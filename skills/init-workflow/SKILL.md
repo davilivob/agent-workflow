@@ -38,14 +38,14 @@ Unity, with `<v>` from `m_EditorVersion:` in `ProjectSettings/ProjectVersion.txt
 - Windows: `"C:\Program Files\Unity\Hub\Editor\<v>\Editor\Unity.exe" -batchmode -nographics -projectPath . -runTests -testPlatform EditMode -testResults test-results.xml -logFile -`
 - Linux: `~/Unity/Hub/Editor/<v>/Editor/Unity -batchmode -nographics -projectPath . -runTests -testPlatform EditMode -testResults test-results.xml -logFile -`
 
-Ask all four in one `AskUserQuestion`, the detected or suggested answer first and marked recommended:
+Ask all four in one `AskUserQuestion`, the detected or suggested answer first and marked recommended. If the owner picks a different stack in question 1, ask questions 2 and 3 again for that stack:
 
 1. Stack — the detected one vs. the others.
-2. Verification command — the suggestion (Unity: all three OS lines together) vs. "Other".
+2. Verification command — the suggestion (Unity: all three OS lines together) vs. "Other"; with no suggestion (stack `other`, or web without a `test` or `check` script), "None yet" vs. "Other".
 3. Worktree — the stack's default vs. the other value.
 4. What counts as production (commands only the owner runs: deploys, production writes, SSH) — "None yet" vs. "Other".
 
-Done when: you have a stack, a verification command, `yes|no` for Worktree, and a production list or "none yet".
+Done when: you have a stack, a verification command or "none yet", `yes|no` for Worktree, and a production list or "none yet".
 
 ## 3. Write (new, existing)
 
@@ -54,7 +54,7 @@ Build each file's intended content:
 | Repo file | Content |
 | --- | --- |
 | `docs/agents/workflow.md` | `Template: $KIT_SHA` line, then `templates/workflow.md` |
-| `docs/agents/project.md` | `templates/project.md` with its three placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command, or `- None yet.`. Every other line, including the `- None yet.` sections, stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
+| `docs/agents/project.md` | `templates/project.md` with its three placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command, or `- None yet.`. Every other line, including the `- None yet.` sections, stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
 | `docs/agents/issue-tracker.md`, `triage-labels.md`, `domain.md` | the same-named template, verbatim |
 | `CLAUDE.md` | each `## ` section of `templates/claude-section.md`: replaces the repo's section with the same heading, else is appended; every other line of the repo's `CLAUDE.md` stays |
 
@@ -65,7 +65,7 @@ Copy `workflow.md` with the shell so it stays byte-exact:
 ```
 
 - **new**: write them all.
-- **existing**: first show the owner, per file, `create`, `unchanged` or a `diff -u` of current vs. intended, plus the graphify changes of section 4 that will apply. Then one `AskUserQuestion`: write all / decide per file / cancel. Write only what was approved.
+- **existing**: first show the owner, per file, `create`, `unchanged` or a `diff -u` of current vs. intended, plus the graphify changes of section 4 that will apply. Then one `AskUserQuestion`: write all / decide per file / cancel. Write only what was approved. Cancel stops the run: write nothing, section 4 included.
 
 Done when: every approved file is written, and `tail -n +2 docs/agents/workflow.md | diff - ~/.claude/kit/templates/workflow.md` prints nothing.
 
@@ -74,7 +74,7 @@ Done when: every approved file is written, and `tail -n +2 docs/agents/workflow.
 `graphify claude install` owns its `## graphify` section in `CLAUDE.md` and its hook in `.claude/settings.json`: leave both exactly as it wrote them, outside every comparison.
 
 1. If `CLAUDE.md` has a `## graphify` line **and** `.claude/settings.json` mentions `graphify`, it is installed: skip to 3.
-2. Otherwise run `graphify claude install`, then `graphify update .` for the first graph (AST only, no API cost).
+2. Otherwise run `graphify claude install`, then `graphify update .` for the first graph (AST only, no API cost). If it is installed but `graphify-out/graph.json` is missing (fresh clone; it is gitignored), run `graphify update .` alone.
 3. If `.gitignore` has no `graphify-out/` line, append one.
 
 Done when: `CLAUDE.md` has `## graphify`, `.claude/settings.json` mentions `graphify`, and `.gitignore` has `graphify-out/`.
@@ -87,7 +87,7 @@ Work in `W=$(mktemp -d)`:
 git -C ~/.claude/kit show HEAD:templates/workflow.md > "$W/tmpl.md"
 ```
 
-- First line is `Template: <40 hex>` → that is `BASE`; `tail -n +2 docs/agents/workflow.md > "$W/repo.md"`; `git -C ~/.claude/kit show $BASE:templates/workflow.md > "$W/base.md"`.
+- First line is `Template: <40 hex>` → that is `BASE`; if `git -C ~/.claude/kit cat-file -e $BASE^{commit}` fails, stop: the commit is not in the local kit (another device made it and has not pushed), so tell the owner to push the kit from that device, then re-run; `tail -n +2 docs/agents/workflow.md > "$W/repo.md"`; `git -C ~/.claude/kit show $BASE:templates/workflow.md > "$W/base.md"`.
 - No `Template:` line → there is no base; `cp docs/agents/workflow.md "$W/repo.md"`.
 
 Classify — the first matching row wins:
@@ -122,7 +122,7 @@ Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | 
 
 ## 6. Commit and report
 
-- Commit in the target repo only the paths this run wrote: `git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `-m "Sync workflow.md with kit <short sha>"` (update).
+- Commit in the target repo only the paths this run wrote: `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update).
 - Check the pipeline's dependencies and list the missing ones, with `sh ~/.claude/kit/setup.sh` as the fix; the owner installs them, not you. Present means: `~/.claude/skills/grill-with-docs` and `~/.claude/skills/to-spec` exist, and `~/.claude/plugins/installed_plugins.json` contains `"superpowers@`.
 - If the kit got a commit and `git -C ~/.claude/kit remote` prints a name, hand over the push in its own `bash` block:
 
