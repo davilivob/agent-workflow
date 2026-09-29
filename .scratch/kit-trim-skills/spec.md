@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Merge: auto
 Plan: no
 Overlaps: kit-guard-hooks — low: 兩者都改 `setup.sh` 與 `tests/setup.test.sh`，但本 spec 只動依賴安裝那一段與參數處理，kit-guard-hooks 只新增一段 guard 安裝；各加各的，互不改對方的區塊。
