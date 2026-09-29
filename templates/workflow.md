@@ -118,3 +118,5 @@ Handing over an owner command: when the work is done, put each command in its ow
 ## Project lessons
 
 A lesson learned about this project goes into `docs/agents/` (usually `project.md`), not into memory. Memory holds only what is specific to one device, such as a local path, because memory does not travel to the owner's other machines.
+
+A lesson about the workflow itself (this file, a kit skill, the Guard) belongs to the kit, `~/.claude/kit`, which a session outside it never edits. When one surfaces, say so in one line and suggest `/propose-to-kit`; the owner decides whether to run it.
