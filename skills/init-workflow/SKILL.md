@@ -122,7 +122,7 @@ Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | 
 
 ## 6. Commit and report
 
-- Commit in the target repo only the paths this run wrote: `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update).
+- Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update).
 - Check the pipeline's dependencies and list the missing ones, with `sh ~/.claude/kit/setup.sh` as the fix; the owner installs them, not you. Present means: `~/.claude/skills/grill-with-docs` and `~/.claude/skills/to-spec` exist, and `~/.claude/plugins/installed_plugins.json` contains `"superpowers@`.
 - If the kit got a commit and `git -C ~/.claude/kit remote` prints a name, hand over the push in its own `bash` block:
 
