@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Merge: ask
 Plan: no
 Overlaps: kit-guard-hooks — low: 兩者都改 `templates/workflow.md`，但 kit-guard-hooks 只刪 Commits 節重複的兩條、縮 step 4 的「No PR」那行、刪 Owner boundary 第一句；本 spec 只改 step 3（Plan）與「Continue」節；各改各的區塊。
