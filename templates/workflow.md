@@ -38,7 +38,7 @@ Direct, step by step: pick a slug; commit what the grill wrote to `CONTEXT.md` a
 
 Step 1 is every Route's; steps 2–4 are Inline's and SDD's. One new session per step. Sessions share nothing but files: whatever the next session needs to know goes into the spec. No handoff document, unless a session is interrupted halfway.
 
-When one grill splits into several specs, or a new spec intersects another spec that has not merged yet, write the relationship at the top of the spec. First decide which kind it is:
+When one grill splits into several specs, or a new spec intersects another spec that has not merged yet, write the relationship at the top of the spec. A Direct change in progress counts too: a slug with a Claim but no spec. First decide which kind it is:
 
 - **A real dependency**: this spec uses the other one's code, schema or decisions. Write `After: <slug>`. **Before starting, confirm that one is already on `main`**: `git log main --oneline --grep=<slug>`. If not, wait.
 - **Only touching the same file**: not a dependency; do not queue because of it. Look at which parts of the file each spec will change, assess the merge-conflict risk, and write `Overlaps: <slug> — low|medium|high: <one-sentence reason>`:
@@ -74,7 +74,7 @@ The grill, plus `/to-spec` where there is a spec, replaces `superpowers:brainsto
 
 Any text in the same message besides "continue" is background, not authorization. Mentioning a slug only tells you its state — in particular "X just started" means **leave X alone**; it belongs to another session, and you are not being asked to take it over. If you cannot tell what it wants, ask; do not pick something and start.
 
-Scan `.scratch/*/spec.md` (committed ones only) and list four groups. First look for each slug's **Claim**, the trace that a session is working on it:
+Scan `.scratch/*/spec.md` (committed ones only) and list four groups. First look for each slug's **Claim**, the trace that a session is working on it; a Claim with no spec is a Direct change and goes under In progress too:
 
 - Writing the plan: `.scratch/<slug>/plan.md` exists but is not committed.
 - Executing: `git worktree list` shows `.claude/worktrees/<slug>`, or a branch named `<slug>` exists.
