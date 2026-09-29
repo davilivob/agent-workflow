@@ -90,7 +90,7 @@ git -C ~/.claude/kit show HEAD:templates/workflow.md | tr -d '\r' > "$W/tmpl.md"
 
 Every file in `$W` is stripped of `\r`: on Windows `core.autocrlf` makes the working tree CRLF while `git show` gives LF.
 
-- First line is `Template: <40 hex>` → that is `BASE`; if `git -C ~/.claude/kit cat-file -e "$BASE^{commit}"` fails, stop: the commit is not in the local kit (another device made it and has not pushed), so tell the owner to push the kit from that device, then re-run; `tail -n +2 docs/agents/workflow.md | tr -d '\r' > "$W/repo.md"`; `git -C ~/.claude/kit show "${BASE}:templates/workflow.md" | tr -d '\r' > "$W/base.md"`.
+- First line is `Template: <40 hex>` → that is `BASE`, read CR-free: `BASE=$(head -n 1 docs/agents/workflow.md | tr -d '\r' | sed -n 's/^Template: \([0-9a-f]\{40\}\)$/\1/p')`; if `git -C ~/.claude/kit cat-file -e "$BASE^{commit}"` fails, stop: the commit is not in the local kit (another device made it and has not pushed), so tell the owner to push the kit from that device, then re-run; `tail -n +2 docs/agents/workflow.md | tr -d '\r' > "$W/repo.md"`; `git -C ~/.claude/kit show "${BASE}:templates/workflow.md" | tr -d '\r' > "$W/base.md"`.
 - No `Template:` line → there is no base; `tr -d '\r' < docs/agents/workflow.md > "$W/repo.md"`.
 
 Classify — the first matching row wins:
