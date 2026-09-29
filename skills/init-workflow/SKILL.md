@@ -108,29 +108,23 @@ Tell the owner which case it is, then decide every item:
 - Only behind items, or only ahead items, and no conflict: list them all, one `AskUserQuestion`: apply all / decide each / cancel.
 - Otherwise: `AskUserQuestion` per item (up to four per call), showing the text:
   - behind: apply the template's version / skip.
-  - ahead: propose to the template / revert to the template's version / keep as is.
-  - conflict: both versions side by side; take the repo's and propose it to the template / take the template's / keep as is.
+  - ahead: revert to the template's version / keep as is.
+  - conflict: both versions side by side; take the template's / keep as is.
 
-Every item proposed to the template says whether it **replaces** an existing rule, **merges** with one (name it), or **adds** a new one, and gives the template's line count before → after (`wc -l`).
+This run never changes the kit. An ahead or conflict item worth carrying back is kept as is, and `/generate-kit-proposal` carries it back as a Proposal.
 
-Apply, in this order:
+Apply:
 
-1. Proposals: edit `~/.claude/kit/templates/workflow.md`, then `git -C ~/.claude/kit commit templates/workflow.md -m "<repo name>: <one line per rule>"`. `KIT_SHA` becomes the new `HEAD`.
-2. Template-side items: edit the repo's `docs/agents/workflow.md`.
-3. Set the first line to `Template: $KIT_SHA` (insert it if missing).
+1. Template-side items: edit the repo's `docs/agents/workflow.md`.
+2. Set the first line to `Template: $KIT_SHA` (insert it if missing).
 
 `project.md` is never compared.
 
-Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | diff --strip-trailing-cr - ~/.claude/kit/templates/workflow.md` shows only the items kept as is — list those for the owner; they will be reported as ahead next time.
+Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | diff --strip-trailing-cr - ~/.claude/kit/templates/workflow.md` shows only the items kept as is — list those for the owner; they will be reported as ahead next time, and `/generate-kit-proposal` is how one reaches the kit.
 
 ## 6. Commit and report
 
 - Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update).
 - List the pipeline's missing dependencies: relay verbatim the `TODO:` lines `setup.sh --check` printed in the preflight; each carries its own fix. The owner runs them, not you.
-- If the kit got a commit and `git -C ~/.claude/kit remote` prints a name, hand over the push in its own `bash` block:
-
-  ```bash
-  git -C ~/.claude/kit push
-  ```
 
 Report: the mode, every file written, every commit (hash and message, up front), missing dependencies.
