@@ -15,10 +15,10 @@ mkdir -p "$T/bin" "$T/.claude/plugins"
 printf '#!/bin/sh\necho "$*" >> "$NPXLOG"\n' > "$T/bin/npx"
 printf '#!/bin/sh\n' > "$T/bin/graphify"
 chmod +x "$T/bin/npx" "$T/bin/graphify"
-ln -s "$(command -v node)" "$T/bin/node"  # the real node: the Guard section needs it
+NODE=$(command -v node)  # captured once: the shell caches lookups, so a later `command -v` can find the fake
+ln -s "$NODE" "$T/bin/node"  # the real node: the Guard section needs it
 echo '{"plugins":{"superpowers@x":[]}}' > "$T/.claude/plugins/installed_plugins.json"
 NPXLOG="$T/npx.log"; : > "$NPXLOG"
-SAVED_PATH=$PATH
 export NPXLOG PATH="$T/bin:/usr/bin:/bin"
 KEEP="grill-with-docs grilling domain-modeling to-spec diagnosing-bugs writing-for-agents writing-great-skills improve-codebase-architecture codebase-design resolving-merge-conflicts prototype wizard wayfinder teach wait-what research handoff retro to-questionnaire code-review"
 for n in $KEEP; do mkdir -p "$T/.claude/skills/$n"; done  # keep list "present": no network install
@@ -37,9 +37,18 @@ for d in "$KIT"/skills/*/; do
   [ "$(cd "$T/.claude/skills/$n" && pwd -P)" = "$(cd "$d" && pwd -P)" ] || fail "$n is not linked to the kit"
 done
 
-[ "$(grep -c 'kit/hooks/guard.cjs' "$T/.claude/settings.json")" = 2 ] || fail "Guard not registered exactly once (Skill and Bash)"
+[ "$(grep -c 'kit/hooks/guard.cjs' "$T/.claude/settings.json")" = 3 ] || fail "Guard not registered exactly once per matcher"
+grep -q '"Edit|Write|NotebookEdit"' "$T/.claude/settings.json" || fail "Guard lacks the Edit matcher"
 grep -q '"keep-me"' "$T/.claude/settings.json" || fail "existing settings key lost"
 grep -q 'echo mine' "$T/.claude/settings.json" || fail "existing hook lost"
+
+# An older install (Skill and Bash only) gains just the missing matcher.
+"$NODE" -e '
+const fs = require("fs"); const f = process.argv[1]; const s = JSON.parse(fs.readFileSync(f, "utf8"));
+s.hooks.PreToolUse = s.hooks.PreToolUse.filter((e) => e.matcher !== "Edit|Write|NotebookEdit");
+fs.writeFileSync(f, JSON.stringify(s));' "$T/.claude/settings.json"
+HOME="$T" sh "$KIT/setup.sh" | grep -q 'Guard hook for Edit|Write|NotebookEdit in' || fail "missing matcher not reported"
+[ "$(grep -c 'kit/hooks/guard.cjs' "$T/.claude/settings.json")" = 3 ] || fail "upgrade did not add exactly the missing matcher"
 
 # A same-named directory that is not the kit's: setup.sh must stop and leave it alone.
 rm "$T/.claude/skills/zz-test-standin"
@@ -106,7 +115,7 @@ HOME="$T" sh "$KIT/setup.sh" --check >/dev/null || fail "extras alone made --che
 rm "$T/bin/node"; cp "$T/.claude/settings.json" "$T/before-settings"
 HOME="$T" sh "$KIT/setup.sh" | grep -q 'TODO.*Guard' || fail "no TODO for the Guard without node"
 cmp -s "$T/.claude/settings.json" "$T/before-settings" || fail "settings.json changed without node"
-ln -s "$(PATH=$SAVED_PATH command -v node)" "$T/bin/node"
+ln -s "$NODE" "$T/bin/node"
 
 # A settings.json it cannot read: setup.sh must stop and leave it alone.
 printf '{broken' > "$T/.claude/settings.json"

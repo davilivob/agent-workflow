@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// Guard: PreToolUse hook that backs the mechanical rules in global.md and workflow.md.
+// Guard: PreToolUse hook that backs the mechanical rules in global.md, workflow.md and the kit's project.md.
 // Prints a deny/ask decision, or nothing to leave the call to the normal permission flow.
 // Anything it cannot parse or check is let through: the written rule stays the source, this is the backstop.
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
@@ -14,6 +15,10 @@ const COMMIT =
   'Guard: on the main checkout `git commit` must take paths — other sessions share the index (global.md). ' +
   "Retry as `git commit <paths> -F - <<'EOF'` with the message in the heredoc, or `git commit -m <msg> -- <paths>`. " +
   'An amend that only rewrites the message takes `--only`.';
+
+const KIT_EDIT =
+  'Guard: a session outside the kit does not edit the kit; only its inbox/ takes Proposals (the kit\'s docs/agents/project.md). ' +
+  'Do not retry; write a Proposal with /propose-to-kit instead.';
 
 // Options of `git commit` that consume the next argument when not written as --opt=value.
 const VALUE_LONG = new Set(['--message', '--file', '--reuse-message', '--reedit-message', '--author', '--date',
@@ -187,6 +192,28 @@ function checkSkill(skill, dir) {
   return marked ? ['deny', BRAINSTORM] : null;
 }
 
+// Resolves symlinks in the longest existing prefix, so a file not yet written still compares.
+function real(p) {
+  const rest = [];
+  for (;;) {
+    try { return path.join(fs.realpathSync(p), ...rest); } catch {}
+    const up = path.dirname(p);
+    if (up === p) return path.join(p, ...rest);
+    rest.unshift(path.basename(p));
+    p = up;
+  }
+}
+const inside = (p, dir) => p === dir || p.startsWith(dir + path.sep);
+
+// Denies an edit to the kit from a session whose cwd is not in it (the main checkout or its worktrees).
+function checkEdit(file, cwd) {
+  if (!file) return null;
+  const kit = real(path.join(os.homedir(), '.claude', 'kit'));
+  const target = real(path.resolve(cwd, file));
+  if (!inside(target, kit) || inside(real(cwd), kit) || inside(target, path.join(kit, 'inbox'))) return null;
+  return ['deny', KIT_EDIT];
+}
+
 try {
   const input = JSON.parse(fs.readFileSync(0, 'utf8'));
   const cwd = input.cwd || process.cwd();
@@ -194,6 +221,7 @@ try {
   const verdict =
     input.tool_name === 'Bash' ? checkBash(String(t.command ?? ''), cwd)
     : input.tool_name === 'Skill' ? checkSkill(t.skill, process.env.CLAUDE_PROJECT_DIR || cwd)
+    : ['Edit', 'Write', 'NotebookEdit'].includes(input.tool_name) ? checkEdit(t.file_path ?? t.notebook_path, cwd)
     : null;
   if (verdict) {
     process.stdout.write(JSON.stringify({ hookSpecificOutput: {

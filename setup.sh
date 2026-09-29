@@ -97,10 +97,12 @@ if (fs.existsSync(file)) {
   catch (e) { console.error(`STOP: ${file} is not valid JSON (${e.message}). Fix it, then re-run.`); process.exit(1); }
 }
 const pre = ((s.hooks ??= {}).PreToolUse ??= []);
-if (JSON.stringify(pre).includes("kit/hooks/guard.cjs")) process.exit(0);
-for (const matcher of ["Skill", "Bash"]) pre.push({ matcher, hooks: [{ type: "command", command }] });
+const has = (m) => pre.some((e) => e.matcher === m && JSON.stringify(e).includes("kit/hooks/guard.cjs"));
+const missing = ["Skill", "Bash", "Edit|Write|NotebookEdit"].filter((m) => !has(m));
+if (!missing.length) process.exit(0);
+for (const matcher of missing) pre.push({ matcher, hooks: [{ type: "command", command }] });
 fs.writeFileSync(file, JSON.stringify(s, null, 2) + "\n");
-console.log(`installed the Guard hook in ${file}`);
+console.log(`installed the Guard hook for ${missing.join(", ")} in ${file}`);
 ' "$SETTINGS" "$GUARD_CMD"
 else
   echo "TODO: install Node.js, then re-run setup.sh: without it the Guard hook is not installed"
