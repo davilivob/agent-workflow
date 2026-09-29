@@ -5,7 +5,7 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
 ## Conventions
 
 - One feature per directory: `.scratch/<feature-slug>/`
-- The spec is `.scratch/<feature-slug>/spec.md`, headed by `Status:`, `Merge:` and `Plan:` lines (see `workflow.md` for their values). `Status:` goes from `ready-for-agent` to `done`; nothing in between
+- The spec is `.scratch/<feature-slug>/spec.md`, headed by `Status:`, `Merge:`, `Plan:` and `Execute:` lines (see `workflow.md` for their values). `Status:` goes from `ready-for-agent` to `done`; nothing in between
 - The implementation plan is `.scratch/<feature-slug>/plan.md`
 - New features are not split into tickets (see `workflow.md`). Where tickets exist, they are one file per ticket at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01`, never a single combined tickets file
 - Triage state is recorded as a `Status:` line near the top of each spec or issue file (see the Triage labels section of `CLAUDE.md` for the role strings)

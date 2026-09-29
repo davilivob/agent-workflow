@@ -6,7 +6,7 @@ Everything that differs per project lives in `docs/agents/project.md`: `Worktree
 
 ## When the pipeline applies
 
-Anything with a design decision the owner has to make goes through the four-step pipeline below. `project.md` lists changes that are always a design decision.
+Anything with a design decision the owner has to make starts with a grill, then takes one of the **Routes** below to `main`. `project.md` lists changes that are always a design decision; they always get a grill, not necessarily a spec.
 
 Do these directly, without the pipeline:
 
@@ -15,9 +15,28 @@ Do these directly, without the pipeline:
   - **Ask first, even during a grill.** When the answer to a grill question settles a change too small to need a spec, first use `AskUserQuestion` to ask "do it now / put it in the spec", and act only once answered; do not announce it and then change and commit. This exemption only decides whether a spec is needed; it does not mean you may skip asking.
 - Pure content writes, as `project.md` defines them.
 
+## Routes
+
+| Route | Spec | Plan | Who implements |
+| --- | --- | --- | --- |
+| **Direct** | none | none | the grill session itself, inline |
+| **Inline** | yes, `Execute: inline` | none | a new session, inline |
+| **SDD** | yes, `Execute: sdd` | yes or no | a new session, with `superpowers:subagent-driven-development` |
+
+No other combination: never SDD without a spec (subagents need a document, and they would flood the grill session), and never a plan for inline work (a plan is for subagents).
+
+**Direct** only when all four hold:
+
+1. It fits one branch and one merge.
+2. It has no `After:` or `Overlaps:` relationship with any spec not yet merged — those relationships live in a spec header.
+3. It needs no plan, and the whole implementation fits in the current session.
+4. The owner can accept the grill's decisions from the diff, without first reading a document.
+
+Direct, step by step: pick a slug; commit what the grill wrote to `CONTEXT.md` and ADRs on `main` as `[<slug>] context: ...`; open a worktree or branch as step 4 says; implement; verify; run `code-review` at medium; write the owner's merge decision from the grill into the last commit's message; merge as that decision says. Interrupted halfway: write the spec to hand over, then continue as Inline or SDD.
+
 ## The pipeline
 
-One new session per step. Sessions share nothing but files: whatever the next session needs to know goes into the spec. No handoff document, unless a session is interrupted halfway.
+Inline and SDD. One new session per step. Sessions share nothing but files: whatever the next session needs to know goes into the spec. No handoff document, unless a session is interrupted halfway.
 
 When one grill splits into several specs, or a new spec intersects another spec that has not merged yet, write the relationship at the top of the spec. First decide which kind it is:
 
@@ -29,14 +48,16 @@ When one grill splits into several specs, or a new spec intersects another spec 
 
 An old spec that only says "follows X" without saying which kind: judge it once by the rules above, then decide whether to wait.
 
-1. **Grill**: `/grill-with-docs`. Updates `CONTEXT.md` and ADRs inline. A grill always lands in a written spec or an ADR — never in chat alone. The last round asks the owner two things: whether this feature may merge automatically, and whether it is big enough to need a plan.
-2. **Spec**: the owner runs `/to-spec`. Output is `.scratch/<slug>/spec.md`, headed by `Status: ready-for-agent`, `Merge: auto | ask | manual` (missing means `manual`) and `Plan: yes | no` (missing means `yes`). Body in Traditional Chinese; template headings and `CONTEXT.md` terms stay in English as written in the glossary. **The owner reviews the spec**, then one commit carries the spec, `CONTEXT.md` and any ADR: `[<slug>] spec: ...`.
+1. **Grill**: `/grill-with-docs`. Updates `CONTEXT.md` and ADRs inline. A grill always lands in writing — a spec, an ADR, or (Direct) commit messages plus `CONTEXT.md` — never in chat alone. In the last round the owner decides whether this feature may merge automatically; the agent states the Route and whether it needs a plan, with a one-line reason, and the owner may overrule.
+2. **Spec**: the owner runs `/to-spec`. Output is `.scratch/<slug>/spec.md`, headed by `Status: ready-for-agent`, `Merge: auto | ask | manual` (missing means `manual`) `Plan: yes | no` (missing means `yes`) and `Execute: sdd | inline` (missing means `sdd`; `inline` always goes with `Plan: no`). Body in Traditional Chinese; template headings and `CONTEXT.md` terms stay in English as written in the glossary. **The owner reviews the spec**, then one commit carries the spec, `CONTEXT.md` and any ADR: `[<slug>] spec: ...`.
 3. **Plan**: `/superpowers:writing-plans .scratch/<slug>/spec.md`. Output is `.scratch/<slug>/plan.md`, not `docs/superpowers/plans/`. In English; the owner does not read it. Commit when written, without asking.
    - **Write a plan only for a committed spec**: `git log main --oneline --grep=<slug>`. A spec still sitting in the working tree means the owner is still reading it; a plan written now is wasted.
    - **A `plan.md` that already exists, committed or not, is someone else's**: stop and tell the owner; never overwrite it. An uncommitted one means another session is writing it.
    - **Claim it first**: once the spec is confirmed committed, and before invoking the skill, write `plan.md` containing the single line `Writing`, and do not commit it. Overwrite it with the full plan, then commit.
    - A spec with `Plan: no` skips this step; step 4 works straight from the spec.
-4. **Execute**: `superpowers:subagent-driven-development` on a branch. Its built-in reviews are the review; do not also run `code-review`. The last commit sets the spec to `Status: done`.
+4. **Execute**: on a branch. The last commit sets the spec to `Status: done`.
+   - `Execute: sdd`: `superpowers:subagent-driven-development`. Its built-in reviews are the review; do not also run `code-review`.
+   - `Execute: inline`: the session implements it itself, then runs `code-review` at medium before merging.
    - With `Worktree: yes` in `project.md`: **open a real worktree**, not a branch on the main checkout: `git worktree add .claude/worktrees/<slug> -b <slug> main`. Nobody commits on the main checkout. Wrap-up: after merging, `git worktree remove .claude/worktrees/<slug>` and delete the branch. `project.md` lists anything else a worktree needs set up or removed.
    - With `Worktree: no`: branch on the main checkout, and work on one spec at a time. Delete the branch after merging.
    - `Merge: manual`: stop before merging, show the evidence (test output; screenshots for UI changes), merge when the owner says so.
@@ -69,10 +90,10 @@ One line each: slug, one sentence on what it is, `Merge:`. Whatever another sess
 
 ## Spec and Plan
 
-- **Spec**: the decision record of one feature: what, why, what was decided, how it is verified. The only document the owner reviews.
+- **Spec**: the decision record of one feature: what, why, what was decided, how it is verified. The only document the owner reviews. Direct has none; the owner accepts the diff instead.
 - **Plan**: the ordered task list derived from the spec, for subagents.
 - One spec, one branch, one merge. If it does not fit one branch, split it into two specs during the grill.
-- New features go through the pipeline above; no tickets. `project.md` says what happens to any older tickets.
+- New features take a Route above; no tickets. `project.md` says what happens to any older tickets.
 
 ## When the spec turns out wrong
 
@@ -86,7 +107,7 @@ One line each: slug, one sentence on what it is, `Merge:`. Whatever another sess
 - On `main`, commit only what passed verification. Leave failing work uncommitted and say so. Task commits on a worktree branch are exempt.
 - `git add` only the files this session touched. Mention anything else left uncommitted in the working tree; do not touch it.
 - **Always pass paths to `git commit`** (`git commit <paths> -F -`); do not rely on the index. Two or three sessions are often open on this repo at once and the index is shared — files another session has just `git add`ed get swept into a commit made without paths. A clean `git status` does not guarantee it either; the gap between two commands is enough for someone else to stage.
-- Prefix: `[<slug>]` with the full `.scratch/` directory name for a feature; `project.md` lists any other prefixes; none otherwise.
+- Prefix: `[<slug>]` for a feature — the full `.scratch/` directory name, or the slug picked for a Direct change; `project.md` lists any other prefixes; none otherwise.
 
 ## Owner boundary
 
