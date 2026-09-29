@@ -14,3 +14,7 @@ A file in `templates/` that `/init-workflow` copies into a repo; `workflow.md` i
 **Guard**:
 The hook that mechanically enforces the owner boundary and the commit rules. The written rule stays the single source; the guard is its backstop.
 _Avoid_: guardrail, git hook
+
+**Claim**:
+The visible trace that a session is working on a slug: an uncommitted `plan.md` while a plan is being written, a worktree or branch named after the slug while it is executed.
+_Avoid_: lock, reservation
