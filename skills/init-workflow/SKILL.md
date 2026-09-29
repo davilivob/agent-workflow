@@ -126,4 +126,5 @@ Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | 
 
 - Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update).
 - List the pipeline's missing dependencies: relay verbatim the `TODO:` lines `setup.sh --check` printed in the preflight; each carries its own fix. The owner runs them, not you.
+
 Report: the mode, every file written, every commit (hash and message, up front), missing dependencies.

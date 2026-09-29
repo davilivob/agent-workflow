@@ -4,38 +4,39 @@ description: Find what this repo's workflow does better than the kit and would h
 disable-model-invocation: true
 ---
 
-The diff half of carrying an experiment back to the kit (`~/.claude/kit`): this skill reads and drafts, and writes nothing in either repo. `propose-to-kit` is the apply half: the owner reviews there, and only it writes the kit's `inbox/`.
+The diff half of carrying an experiment back to the kit (`~/.claude/kit`): this skill reads and drafts. It writes nothing in the source repo, and nothing in the kit beyond bringing it up to date. `propose-to-kit` is the apply half: the owner reviews there, and only it writes the kit's `inbox/`.
 
-**Source**: `git rev-parse --show-toplevel` of the current directory. Not a git repo, or the source resolves to the kit itself (`pwd -P` under `cd ~/.claude/kit && pwd -P`) → stop and say so: in the kit, grill the idea directly.
+**Source**: `git rev-parse --show-toplevel` of the current directory. Not a git repo, or the source is the kit itself (`pwd -P` of both match) → stop and say so: in the kit, grill the idea directly.
+
+**Work directory** `W`: `kit-proposals/` under the session's scratchpad directory, else `mktemp -d`.
 
 ## 1. Candidates
 
-Collect every place the source differs from the kit:
+If `git -C ~/.claude/kit remote` prints a name, `git -C ~/.claude/kit pull --ff-only` first (on failure stop and show the output), so nothing is compared against a stale kit. Then collect every place the source differs from the kit:
 
-1. **`docs/agents/workflow.md`**: its ahead and conflict items against `~/.claude/kit/templates/workflow.md`, computed as section 5 of `~/.claude/kit/skills/init-workflow/SKILL.md` does (read-only: classify, apply nothing). Each hunk is one candidate.
-2. **`docs/agents/project.md`**: each entry under "Rules and lessons", and each entry under any other section that reads as a rule rather than a value of this repo.
-3. **Repo-local extensions**: each skill under `.claude/skills/`; each `CLAUDE.md` section that is neither in `~/.claude/kit/templates/claude-section.md` nor `## graphify`; each hook in `.claude/settings.json` that is not graphify's.
+1. **`docs/agents/workflow.md`**: classify it as the "5. Update mode" section of `~/.claude/kit/skills/init-workflow/SKILL.md` does, its files in `W` instead of a `mktemp -d`, applying nothing; where that section stops, stop too. Each ahead or conflict hunk is one candidate.
+2. **`docs/agents/project.md`**: each entry under "Rules and lessons", and each entry under any other section that reads as a rule. A value (a verification command, `Worktree:`, a production command) is this repo's own: not a candidate.
+3. **Repo-local extensions**: each skill under `.claude/skills/`; each `## ` section of `CLAUDE.md` whose heading and body are not both identical to a section of `~/.claude/kit/templates/claude-section.md`, `## graphify` excepted; each hook in `.claude/settings.json` that is not graphify's.
 
-For each candidate note where it lives and, from `git log --format='%h %ad %s' --date=short -- <path>`, since when it has been there.
+For each candidate note where it lives, and since when: `git log -S'<a distinctive line of it>' --format='%h %ad %s' --date=short --reverse -- <path> | head -1`.
 
-Done when: every item of the three sources is a candidate, or noted as identical to the kit.
+Done when: every item of the three sources is a candidate, a value, or identical to the kit.
 
 ## 2. Filter
 
-Judge each candidate against all four:
+Judge each candidate against all three:
 
 - **Portable**: it depends on none of this repo's stack, paths or tools; it would hold in a Unity repo and a web repo alike.
-- **New**: nothing in the kit's `templates/`, `skills/`, `global.md` or `inbox/` already says it. One that contradicts a kit rule passes as `replaces <that rule>`.
-- **Settled**: it has been in use, not just written; a candidate from the last few days is flagged as young, not dropped.
-- **A rule, not a value**: one that is really this repo's value for something every repo decides becomes "the `project.md` template gains a field for this" instead.
+- **New**: nothing in the kit's `templates/`, `skills/`, `global.md` or `inbox/` already says it. One that contradicts a kit rule passes as `replaces <that rule>`; one that sharpens a kit rule passes as `merges <that rule>`.
+- **A rule, not a value**: one that is really this repo's value for something every repo decides passes as "the `project.md` template gains a field for this" (`Touches: templates/project.md`).
 
-Done when: every candidate passes or fails with a one-line reason.
+Done when: every candidate passes, with its `Kind:`, or fails with a one-line reason.
 
 ## 3. Draft
 
-Draft each passing candidate as a Proposal in the format of section 1 of `~/.claude/kit/skills/propose-to-kit/SKILL.md`, one file per candidate, in `kit-proposals/` under the session's scratchpad directory.
+Draft each passing candidate as a Proposal in the format under "2. Draft" of `~/.claude/kit/skills/propose-to-kit/SKILL.md`, `TODO(owner)` rule included, one file per candidate in `W`, named as that section names inbox files.
 
-Report to the owner: one line per passing candidate (the draft's file and a sentence), then one line per failing candidate with its reason.
+Report to the owner: one line per passing candidate (its file and a sentence), then one line per failing candidate with its reason.
 
 Done when: every passing candidate has a draft file.
 

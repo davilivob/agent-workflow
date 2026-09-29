@@ -50,3 +50,4 @@ A session outside the kit changes the kit only by writing a Proposal into `inbox
 - A Proposal is taken up by a grill: `/grill-with-docs inbox/<file>`. The commit that lands that grill (the spec commit, or Direct's `context:` commit) deletes the file and names it in its message.
 - A Proposal the owner drops: delete the file, `[inbox] drop <file>: <reason>`.
 - `inbox/` holds only Proposals nobody has taken up yet; nothing records a status.
+- An `[inbox]` commit changes no behaviour of the kit, so it runs no verification.
