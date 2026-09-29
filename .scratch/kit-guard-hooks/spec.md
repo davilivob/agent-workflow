@@ -25,7 +25,7 @@ Guard 不能讓 Owner 守著螢幕：SDD 一次十幾個 commit，每個都跳�
 
 | 情況 | 處理 |
 | --- | --- |
-| 在有 `docs/agents/workflow.md` 的 repo 呼叫 `superpowers:brainstorming` | 拒絕，理由說明 grill 加 `/to-spec` 取代它 |
+| 在有 `docs/agents/workflow.md` 或 `templates/workflow.md` 的 repo 呼叫 `superpowers:brainstorming` | 拒絕，理由說明 grill 加 `/to-spec` 取代它 |
 | 任何形式的 `git push` | 跳出確認 |
 | 主 checkout 上不帶路徑的 `git commit` | 拒絕，理由附上改正寫法；agent 自行改寫重試，不經過 Owner |
 | linked worktree 裡的 commit | 放行（index 不共用） |
@@ -36,7 +36,7 @@ Guard 不能讓 Owner 守著螢幕：SDD 一次十幾個 commit，每個都跳�
 
 ## User Stories
 
-1. 身為 Owner，我要 agent 在 kit repo 裡呼叫 `superpowers:brainstorming` 時被直接拒絕，這樣 superpowers 的注入再大聲也不會把 session 帶離 pipeline。
+1. 身為 Owner，我要 agent 在走 kit workflow 的 repo（包括 kit repo 本身）裡呼叫 `superpowers:brainstorming` 時被直接拒絕，這樣 superpowers 的注入再大聲也不會把 session 帶離 pipeline。
 2. 身為 agent，我要被拒絕時的理由告訴我改用 grill 加 `/to-spec`，這樣我知道下一步做什麼，而不是重試。
 3. 身為 Owner，我要沒有 `docs/agents/workflow.md` 的 repo 仍能正常使用 brainstorming，這樣 Guard 不會影響不走這套 workflow 的專案。
 4. 身為 Owner，我要 agent 執行任何 `git push` 都跳出確認，這樣 push 仍在我手上，即使 permission classifier 某天放行。
@@ -72,12 +72,12 @@ Guard 不能讓 Owner 守著螢幕：SDD 一次十幾個 commit，每個都跳�
 
 - **Guard**：kit 內一支 Node script，讀 stdin 的 hook JSON，決定 deny、ask 或不表態。以 `hookSpecificOutput.permissionDecision` 加 `permissionDecisionReason` 回傳（ask 只有 JSON 能表達，deny 也走同一條路）。不表態時什麼都不輸出、以 0 結束，交回一般的 permission 流程。
 - **登記**：兩個 PreToolUse matcher，`Skill` 與 `Bash`，都指向同一支 script，指令以 `node "$HOME/..."` 形式寫，讓 Git Bash 與 macOS 都能展開。
-- **Brainstorming**：Skill 工具輸入的 `skill` 欄位為 `superpowers:brainstorming`，且 session 的專案目錄（`CLAUDE_PROJECT_DIR`，沒有就用 hook 輸入的 `cwd`）所在 repo 有 `docs/agents/workflow.md` → deny。
+- **Brainstorming**：Skill 工具輸入的 `skill` 欄位為 `superpowers:brainstorming`，且 session 的專案目錄（`CLAUDE_PROJECT_DIR`，沒有就用 hook 輸入的 `cwd`）所在 repo 有 `docs/agents/workflow.md`，或有 `templates/workflow.md`（kit repo 本身只有後者）→ deny。
 - **push**：Bash 指令拆成以 `&&`、`||`、`;`、`|`、換行分隔的片段；任一片段是 `git`（中間可帶全域選項如 `-C <dir>`、`-c k=v`）接著 `push` → ask。
 - **commit**：同樣拆片段找 `git … commit`，heredoc 內容排除在解析之外。
   - 帶路徑：`--` 之後有東西，或選項之外有位置參數；會吃下一個參數的選項（如 `-m`、`-F`、`-C`、`-c`、`--author`、`--date`、`-t`、`--fixup`、`--squash`、`--trailer`、`--cleanup`）的值不算路徑。`-a`／`--all` 一律當成不帶路徑。
   - 帶路徑 → 不表態。
-  - 不帶路徑時，在指令作用的目錄（session cwd，套上 `-C`）問 git：`--git-dir` 與 `--git-common-dir` 不同（linked worktree）→ 不表態；`--git-path` 下存在 `MERGE_HEAD`、`CHERRY_PICK_HEAD` 或 `REVERT_HEAD` → 不表態；帶 `--amend --only` → 不表態；否則 deny，理由附改正寫法。
+  - 不帶路徑時，在指令作用的目錄（session cwd，套上同一指令裡前面的 `cd <dir>` 與 `-C`）問 git：`--git-dir` 與 `--git-common-dir` 不同（linked worktree）→ 不表態；`--git-path` 下存在 `MERGE_HEAD`、`CHERRY_PICK_HEAD` 或 `REVERT_HEAD` → 不表態；帶 `--amend --only` → 不表態；否則 deny，理由附改正寫法。
   - 解析失敗或 git 查詢失敗 → 不表態。
 - **安裝**：`setup.sh` 新增一段，以 `node -e` 讀寫使用者層級的 `settings.json`：已含 Guard 的登記就不動；不存在就建立；JSON 解析失敗就印錯誤、不寫入、以非零結束。沒有 `node` → 印 `TODO:` 並跳過這段。
 - **去重的落點**：
