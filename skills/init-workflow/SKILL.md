@@ -13,7 +13,7 @@ In a repo on the **template**, `docs/agents/workflow.md` is `~/.claude/kit/templ
 1. `git -C ~/.claude/kit status --porcelain` prints nothing. Otherwise stop: the kit has uncommitted work, so no sha describes what you would copy.
 2. `git -C ~/.claude/kit branch --show-current` prints `main`. Otherwise stop: the installed kit must be on `main`, or a sha from another branch would not exist on other devices.
 3. If `git -C ~/.claude/kit remote` prints a name, run `git -C ~/.claude/kit pull --ff-only`. On failure stop and show the owner the output.
-4. `command -v graphify` succeeds. Otherwise stop and ask the owner to run `sh ~/.claude/kit/setup.sh`.
+4. Run `sh ~/.claude/kit/setup.sh --check`. If any line it prints mentions graphify, stop and ask the owner to run `sh ~/.claude/kit/setup.sh`. Keep its `TODO:` lines for the report in section 6.
 5. `KIT_SHA=$(git -C ~/.claude/kit rev-parse HEAD)`.
 6. Pick the **mode**:
    - `docs/agents/workflow.md` exists → **update**: sections 5, 4, 6.
@@ -56,7 +56,7 @@ Build each file's intended content:
 | --- | --- |
 | `docs/agents/workflow.md` | `Template: $KIT_SHA` line, then `templates/workflow.md` |
 | `docs/agents/project.md` | `templates/project.md` with its three placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command, or `- None yet.`. Every other line, including the `- None yet.` sections, stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
-| `docs/agents/issue-tracker.md`, `triage-labels.md`, `domain.md` | the same-named template, verbatim |
+| `docs/agents/issue-tracker.md`, `domain.md` | the same-named template, verbatim |
 | `CLAUDE.md` | each `## ` section of `templates/claude-section.md`: replaces the repo's section with the same heading, else is appended; every other line of the repo's `CLAUDE.md` stays |
 
 Copy `workflow.md` with the shell so it stays byte-exact:
@@ -126,7 +126,7 @@ Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | 
 ## 6. Commit and report
 
 - Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update).
-- Check the pipeline's dependencies and list the missing ones, with `sh ~/.claude/kit/setup.sh` as the fix; the owner installs them, not you. Present means: `~/.claude/skills/grill-with-docs` and `~/.claude/skills/to-spec` exist, and `~/.claude/plugins/installed_plugins.json` contains `"superpowers@`.
+- List the pipeline's missing dependencies: relay the `TODO:` lines `setup.sh --check` printed in the preflight, with `sh ~/.claude/kit/setup.sh` as the fix; the owner installs them, not you.
 - If the kit got a commit and `git -C ~/.claude/kit remote` prints a name, hand over the push in its own `bash` block:
 
   ```bash

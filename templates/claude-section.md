@@ -10,7 +10,7 @@ Issues and specs are markdown files in `.scratch/<feature-slug>/`, one directory
 
 ### Triage labels
 
-The five canonical role names, unchanged: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+The five canonical role names, unchanged: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`.
 
 ### Domain docs
 
