@@ -14,7 +14,7 @@ The diff half of carrying an experiment back to the kit (`~/.claude/kit`): this 
 
 If `git -C ~/.claude/kit remote` prints a name, `git -C ~/.claude/kit pull --ff-only` first (on failure stop and show the output), so nothing is compared against a stale kit. Then collect every place the source differs from the kit:
 
-1. **`docs/agents/workflow.md`**: classify it as the "5. Update mode" section of `~/.claude/kit/skills/init-workflow/SKILL.md` does, its files in `W` instead of a `mktemp -d`: only the case and its items, asking nothing and applying nothing; where that section stops, stop too. Each ahead or conflict hunk is one candidate.
+1. **`docs/agents/workflow.md`**: classify it as the "5. Update mode" section of `~/.claude/kit/skills/sync-workflow/SKILL.md` does, its files in `W` instead of a `mktemp -d`: only the case and its items, asking nothing and applying nothing; where that section stops, stop too. Each ahead or conflict hunk is one candidate.
 2. **`docs/agents/project.md`**: each entry under "Rules and lessons", and each entry under any other section that reads as a rule. A value (a verification command, `Worktree:`, a production command) is this repo's own: not a candidate.
 3. **Repo-local extensions**: each skill under `.claude/skills/`; each `## ` section of `CLAUDE.md` whose heading and body are not both identical to a section of `~/.claude/kit/templates/claude-section.md`, `## graphify` excepted; each hook in `.claude/settings.json` that is not graphify's.
 

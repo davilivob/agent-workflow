@@ -1,6 +1,6 @@
 ## Workflow
 
-Before any work, read `docs/agents/workflow.md` and `docs/agents/project.md`. `workflow.md` is identical in every project and synced with `/init-workflow`; everything particular to this repo is in `project.md`.
+Before any work, read `docs/agents/workflow.md` and `docs/agents/project.md`. `workflow.md` is identical in every project and synced with `/sync-workflow`; everything particular to this repo is in `project.md`.
 
 ## Agent skills
 
