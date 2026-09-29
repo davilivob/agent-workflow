@@ -81,3 +81,7 @@ Overlaps: kit-guard-hooks — low: 兩者都改 `setup.sh` 與 `tests/setup.test
 
 - 本機的多餘 skill 已由 Owner 手動移除；merge 後第一次跑應該不會印出多餘報告。
 - 其他裝置要等 Owner push、並在那台重跑 `setup.sh` 才會生效。
+
+## Comments
+
+- 2026-09-29 [kit-code-review-dep]：Owner 推翻本案對 `code-review` 的處置，把它加回 keep list，作為 Inline 與 Direct 在 merge 前的 review。搶觸發的風險由 workflow 的「SDD 不另跑 `code-review`」擋。
