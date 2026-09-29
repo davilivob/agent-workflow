@@ -43,7 +43,7 @@ Touches: <the kit files it would change>
 - Body in Traditional Chinese; the headings above and `CONTEXT.md` terms stay in English.
 - **Why** holds only what the source repo shows (commit messages, the text, `git log -S'<text>'` for since when) or what the owner said. Anything else is a `TODO(owner): <the question>` line, never a guess.
 - **Touches**: the kit file whose rule changes; a lesson from a repo's `project.md` usually lands in `templates/workflow.md`, and one that is really a per-repo value in `templates/project.md` as a new field.
-- **Duplicate**: read every file in `~/.claude/kit/inbox/` (none yet is fine). A draft that says what one of them says is marked `duplicate of <file>`.
+- **Duplicate**: read every file in `~/.claude/kit/inbox/` (none yet is fine). A draft that says what one of them says is marked `duplicate of <file>` (a draft from `generate-kit-proposal` may already carry the mark).
 
 Done when: every idea is one draft with every field filled or marked `TODO(owner)`.
 
@@ -52,7 +52,7 @@ Done when: every idea is one draft with every field filled or marked `TODO(owner
 Show the owner each draft in full, then `AskUserQuestion` per draft (up to four per call):
 
 - A plain draft: **take** / **edit** / **drop**.
-- A draft with `TODO(owner)` lines: ask those questions; the answers replace them. Then as a plain draft.
+- A draft with `TODO(owner)` lines: ask those questions in chat, as open questions; the answers replace them. Then as a plain draft.
 - A duplicate: show the existing Proposal beside it; **add its Why to that file** (under the existing `## Why`, prefixed by this Source line) / **drop**.
 
 Edit: apply the owner's change, show it again, ask again.

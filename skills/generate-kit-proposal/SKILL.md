@@ -14,7 +14,7 @@ The diff half of carrying an experiment back to the kit (`~/.claude/kit`): this 
 
 If `git -C ~/.claude/kit remote` prints a name, `git -C ~/.claude/kit pull --ff-only` first (on failure stop and show the output), so nothing is compared against a stale kit. Then collect every place the source differs from the kit:
 
-1. **`docs/agents/workflow.md`**: classify it as the "5. Update mode" section of `~/.claude/kit/skills/init-workflow/SKILL.md` does, its files in `W` instead of a `mktemp -d`, applying nothing; where that section stops, stop too. Each ahead or conflict hunk is one candidate.
+1. **`docs/agents/workflow.md`**: classify it as the "5. Update mode" section of `~/.claude/kit/skills/init-workflow/SKILL.md` does, its files in `W` instead of a `mktemp -d`: only the case and its items, asking nothing and applying nothing; where that section stops, stop too. Each ahead or conflict hunk is one candidate.
 2. **`docs/agents/project.md`**: each entry under "Rules and lessons", and each entry under any other section that reads as a rule. A value (a verification command, `Worktree:`, a production command) is this repo's own: not a candidate.
 3. **Repo-local extensions**: each skill under `.claude/skills/`; each `## ` section of `CLAUDE.md` whose heading and body are not both identical to a section of `~/.claude/kit/templates/claude-section.md`, `## graphify` excepted; each hook in `.claude/settings.json` that is not graphify's.
 
@@ -27,7 +27,7 @@ Done when: every item of the three sources is a candidate, a value, or identical
 Judge each candidate against all three:
 
 - **Portable**: it depends on none of this repo's stack, paths or tools; it would hold in a Unity repo and a web repo alike.
-- **New**: nothing in the kit's `templates/`, `skills/`, `global.md` or `inbox/` already says it. One that contradicts a kit rule passes as `replaces <that rule>`; one that sharpens a kit rule passes as `merges <that rule>`.
+- **New**: nothing in the kit's `templates/`, `skills/` or `global.md` already says it. One that a Proposal in `inbox/` already says passes as `duplicate of <file>`, so this repo's Why still reaches it. One that contradicts a kit rule passes as `replaces <that rule>`; one that sharpens a kit rule passes as `merges <that rule>`.
 - **A rule, not a value**: one that is really this repo's value for something every repo decides passes as "the `project.md` template gains a field for this" (`Touches: templates/project.md`).
 
 Done when: every candidate passes, with its `Kind:`, or fails with a one-line reason.
