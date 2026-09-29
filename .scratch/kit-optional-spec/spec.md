@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Merge: ask
 Plan: no
 Execute: inline
@@ -72,8 +72,9 @@ Route 與要不要 plan 由 agent 在 grill 最後一輪判斷，附一行理由
   - 「Its built-in reviews are the review; do not also run `code-review`」限定在 SDD。
 - **「Spec and Plan」節**：Spec 仍是「the only document the owner reviews」，但註明 Direct 沒有 spec，Owner 驗收的是 diff。
 - **`templates/issue-tracker.md`**：spec 標頭列舉加上 `Execute:`。
+- **進行中的 Direct 要看得見**（實作時 Owner 在 chat 追加）：判斷 `After:`／`Overlaps:` 時，有 Claim 但沒有 spec 的 slug 也算；「Continue」的 In progress 也列出這類 slug。
 - 不寫 ADR：改規則文字，容易改回來。
-- 「Continue」節不改：`Execute: inline` 帶 `Plan: no`，現有 Ready 條件已涵蓋。Direct 沒有 spec，「Continue」看不到它，只能靠 worktree 或分支（session-claim merge 後即為 Claim）。
+- 「Continue」的 Ready 條件不改：`Execute: inline` 帶 `Plan: no`，現有條件已涵蓋。
 
 ## Testing Decisions
 
@@ -86,7 +87,6 @@ Route 與要不要 plan 由 agent 在 grill 最後一輪判斷，附一行理由
 - 修改 `grill-with-docs`、`to-spec`、`superpowers:*` 等外部 skill；新規則寫在 `workflow.md`，由執行該步驟的 session 遵守。
 - 各 repo 同步新版 `workflow.md`：下次 `/init-workflow` 會看到 behind 的 hunk。
 - 用 Guard 機械式地擋「沒有 spec 卻跑 SDD」之類的禁止組合。
-- 讓「Continue」看見進行中的 Direct 工作：交給 session-claim 的 Claim。
 
 ## Further Notes
 
