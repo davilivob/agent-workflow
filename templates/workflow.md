@@ -80,7 +80,7 @@ One line each: slug, one sentence on what it is, `Merge:`. Mark any that another
 
 ## Owner boundary
 
-The rule itself is in `global.md`. `project.md` lists exactly what counts as production and which operations are whose.
+The rule that production writes, SSH and `git push` belong to the owner is in `global.md`. `project.md` lists exactly what counts as production and which operations are whose.
 
 The boundary is this agreement, not whatever the permission classifier allows on a given day. Never attempt what belongs to the owner. When a command that belongs to you is declined, say "this command was declined" and hand over the exact command; never say "I have no permission".
 
