@@ -32,7 +32,7 @@ Only these three: subagents need a spec to work from (and would flood the grill 
 3. It needs no plan, and the whole implementation fits in the current session.
 4. The owner can accept the grill's decisions from the diff, without first reading a document.
 
-Direct, step by step: pick a slug; commit what the grill wrote to `CONTEXT.md` and ADRs on `main` as `[<slug>] context: ...`; then do step 4 as `Execute: inline`, with no spec to set to `done`, and with the `Merge:` the owner chose in the grill's last round, written into the last commit's message. Interrupted halfway: write the spec to hand over, then continue as Inline or SDD.
+Direct, step by step: pick a slug; commit what the grill wrote to `CONTEXT.md` and ADRs on `main` as `[<slug>] context: ...`; then do step 4 as `Execute: inline`, with no spec to set to `done` (give `code-review` the grill's decisions as its spec), and with the `Merge:` the owner chose in the grill's last round, written into the last commit's message. Interrupted halfway: write the spec to hand over, then continue as Inline or SDD.
 
 ## The pipeline
 
@@ -57,7 +57,7 @@ An old spec that only says "follows X" without saying which kind: judge it once 
    - A spec with `Plan: no` skips this step; step 4 works straight from the spec.
 4. **Execute**: on a branch. The last commit sets the spec to `Status: done`.
    - `Execute: sdd`: `superpowers:subagent-driven-development`. Its built-in reviews are the review; do not also run `code-review`.
-   - `Execute: inline`: the session implements it itself, then runs `code-review` at medium before merging.
+   - `Execute: inline`: the session implements it itself, then runs the `code-review` skill (Standards and Spec) against `main` before merging.
    - With `Worktree: yes` in `project.md`: **open a real worktree**, not a branch on the main checkout: `git worktree add .claude/worktrees/<slug> -b <slug> main`. Nobody commits on the main checkout. Wrap-up: after merging, `git worktree remove .claude/worktrees/<slug>` and delete the branch. `project.md` lists anything else a worktree needs set up or removed.
    - With `Worktree: no`: branch on the main checkout, and work on one spec at a time. Delete the branch after merging.
    - `Merge: manual`: stop before merging, show the evidence (test output; screenshots for UI changes), merge when the owner says so.

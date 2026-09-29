@@ -20,7 +20,7 @@ echo '{"plugins":{"superpowers@x":[]}}' > "$T/.claude/plugins/installed_plugins.
 NPXLOG="$T/npx.log"; : > "$NPXLOG"
 SAVED_PATH=$PATH
 export NPXLOG PATH="$T/bin:/usr/bin:/bin"
-KEEP="grill-with-docs grilling domain-modeling to-spec diagnosing-bugs writing-for-agents writing-great-skills improve-codebase-architecture codebase-design resolving-merge-conflicts prototype wizard wayfinder teach wait-what research handoff retro to-questionnaire"
+KEEP="grill-with-docs grilling domain-modeling to-spec diagnosing-bugs writing-for-agents writing-great-skills improve-codebase-architecture codebase-design resolving-merge-conflicts prototype wizard wayfinder teach wait-what research handoff retro to-questionnaire code-review"
 for n in $KEEP; do mkdir -p "$T/.claude/skills/$n"; done  # keep list "present": no network install
 printf 'existing line' > "$T/.claude/CLAUDE.md"    # no trailing newline, on purpose
 cat > "$T/.claude/settings.json" <<'EOF'
