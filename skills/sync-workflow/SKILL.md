@@ -1,5 +1,5 @@
 ---
-name: init-workflow
+name: sync-workflow
 description: Set up this repo's agent workflow from ~/.claude/kit, or sync its workflow.md with the kit's template.
 disable-model-invocation: true
 ---
