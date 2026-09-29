@@ -18,3 +18,7 @@ _Avoid_: guardrail, git hook
 **Claim**:
 The visible trace that a session is working on a slug: an uncommitted `plan.md` while a plan is being written, a worktree or branch named after the slug while it is executed.
 _Avoid_: lock, reservation
+
+**Route**:
+The path a grilled change takes to `main`: **Direct** (no spec; the grill session implements it), **Inline** (a spec; a new session implements it itself), or **SDD** (a spec, with or without a plan; subagents implement it).
+_Avoid_: path, track, mode
