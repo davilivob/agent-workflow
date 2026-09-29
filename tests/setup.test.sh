@@ -10,7 +10,16 @@ fail() { echo "FAIL: $1" >&2; exit 1; }
 mkdir -p "$KIT/skills/zz-test-standin"
 trap 'rm -rf "$T" "$KIT/skills/zz-test-standin"' EXIT
 
-mkdir -p "$T/.claude/skills/to-spec" "$T/.claude/skills/grill-with-docs"  # Matt Pocock skills "present": no network install
+# Fake npx records its args; fake graphify + superpowers make those deps "present". PATH = fakes + system dirs.
+mkdir -p "$T/bin" "$T/.claude/plugins"
+printf '#!/bin/sh\necho "$*" >> "$NPXLOG"\n' > "$T/bin/npx"
+printf '#!/bin/sh\n' > "$T/bin/graphify"
+chmod +x "$T/bin/npx" "$T/bin/graphify"
+echo '{"plugins":{"superpowers@x":[]}}' > "$T/.claude/plugins/installed_plugins.json"
+NPXLOG="$T/npx.log"; : > "$NPXLOG"
+export NPXLOG PATH="$T/bin:/usr/bin:/bin"
+KEEP="grill-with-docs grilling domain-modeling to-spec diagnosing-bugs writing-for-agents writing-great-skills improve-codebase-architecture codebase-design resolving-merge-conflicts prototype wizard wayfinder teach wait-what research handoff retro to-questionnaire"
+for n in $KEEP; do mkdir -p "$T/.claude/skills/$n"; done  # keep list "present": no network install
 printf 'existing line' > "$T/.claude/CLAUDE.md"    # no trailing newline, on purpose
 
 HOME="$T" sh "$KIT/setup.sh" >/dev/null
@@ -28,5 +37,58 @@ rm "$T/.claude/skills/zz-test-standin"
 mkdir "$T/.claude/skills/zz-test-standin" && touch "$T/.claude/skills/zz-test-standin/mine"
 if HOME="$T" sh "$KIT/setup.sh" >/dev/null 2>&1; then fail "setup.sh did not stop on a foreign directory"; fi
 [ -f "$T/.claude/skills/zz-test-standin/mine" ] || fail "foreign directory was touched"
+
+[ ! -s "$NPXLOG" ] || fail "npx called although the keep list is present"
+HOME="$T" sh "$KIT/setup.sh" --check | grep -q TODO && fail "--check printed TODO with everything present"
+HOME="$T" sh "$KIT/setup.sh" --check >/dev/null || fail "--check exited non-zero with everything present"
+
+# Missing skills: one npx call, -s takes exactly the missing names.
+rm -rf "$T/.claude/skills/zz-test-standin"
+rmdir "$T/.claude/skills/wizard" "$T/.claude/skills/retro"
+HOME="$T" sh "$KIT/setup.sh" >/dev/null
+[ "$(wc -l < "$NPXLOG" | tr -d ' ')" = 1 ] || fail "npx not called exactly once"
+grep -qxe '-y skills@latest add mattpocock/skills -g -a claude-code -s wizard retro -y' "$NPXLOG" || fail "wrong npx args: $(cat "$NPXLOG")"
+
+# --check with missing skills: TODO, exit 1, nothing installed, linked or written.
+: > "$NPXLOG"; rm "$T/.claude/skills/zz-test-standin"
+cp "$T/.claude/CLAUDE.md" "$T/before"
+rc=0; out=$(HOME="$T" sh "$KIT/setup.sh" --check) || rc=$?
+[ "$rc" = 1 ] || fail "--check exit $rc, want 1"
+echo "$out" | grep -q 'TODO.*-s wizard retro -y' || fail "--check TODO lacks install command"
+[ ! -s "$NPXLOG" ] || fail "--check called npx"
+[ ! -e "$T/.claude/skills/zz-test-standin" ] || fail "--check created a link"
+cmp -s "$T/.claude/CLAUDE.md" "$T/before" || fail "--check changed CLAUDE.md"
+if HOME="$T" sh "$KIT/setup.sh" --bogus 2>/dev/null; then fail "unknown argument accepted"; fi
+
+# Extras: recorded as mattpocock/skills, dir exists, not kept -> reported, never deleted.
+# A lock entry whose dir is gone is stale and stays silent.
+mkdir "$T/.claude/skills/wizard" "$T/.claude/skills/retro" "$T/.claude/skills/zz-extra"
+mkdir "$T/.agents"
+cat > "$T/.agents/.skill-lock.json" <<'LOCK'
+{
+  "version": 3,
+  "skills": {
+    "zz-extra": {
+      "source": "mattpocock/skills",
+      "sourceType": "github"
+    },
+    "zz-stale": {
+      "source": "mattpocock/skills",
+      "sourceType": "github"
+    },
+    "wizard": {
+      "source": "mattpocock/skills",
+      "sourceType": "github"
+    }
+  },
+  "dismissed": {}
+}
+LOCK
+out=$(HOME="$T" sh "$KIT/setup.sh")
+echo "$out" | grep -q 'TODO.*zz-extra' || fail "extra not reported"
+echo "$out" | grep -q 'zz-stale' && fail "stale lock entry reported"
+echo "$out" | grep -q 'wizard' && fail "kept skill reported as extra"
+[ -d "$T/.claude/skills/zz-extra" ] || fail "extra was deleted"
+HOME="$T" sh "$KIT/setup.sh" --check >/dev/null || fail "extras alone made --check fail"
 
 echo PASS
