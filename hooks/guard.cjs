@@ -77,6 +77,11 @@ function segments(cmd) {
       i = next - 1;
       continue;
     }
+    if (c === '#' && tok === null) { // comment: skip to just before the newline
+      const nl = cmd.indexOf('\n', i);
+      i = (nl === -1 ? cmd.length : nl) - 1;
+      continue;
+    }
     if (c === '\n') {
       split();
       while (heredocs.length) { // skip each pending heredoc body up to its delimiter line

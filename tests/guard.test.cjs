@@ -56,6 +56,9 @@ expect(bash(main, 'git push'), 'ask', 'git push');
 expect(bash(main, `git -C ${wt} push origin feature`), 'ask', 'git -C push');
 expect(bash(main, 'npm test && git push'), 'ask', 'push after &&');
 expect(bash(main, 'git status; git push --force'), 'ask', 'push after ;');
+expect(bash(main, "# don't forget\ngit push"), 'ask', 'apostrophe in a # comment');
+expect(bash(main, 'ls # ; git push'), 'none', '; inside a # comment');
+expect(bash(main, '# note\ngit commit -m msg'), 'deny', 'commit after a # comment line');
 
 // commit on the main checkout.
 expect(bash(main, "git commit a.txt -F - <<'EOF'\nfix: stop git commit -m x from\nEOF"), 'none', 'paths -F - heredoc');
