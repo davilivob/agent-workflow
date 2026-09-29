@@ -17,7 +17,7 @@ const COMMIT =
   'An amend that only rewrites the message takes `--only`.';
 
 const KIT_EDIT =
-  'Guard: a session outside the kit does not edit the kit; only its inbox/ takes Proposals (the kit\'s docs/agents/project.md). ' +
+  "Guard: a session outside the kit does not edit the kit; only its inbox/ takes Proposals (the kit's docs/agents/project.md). " +
   'Do not retry; write a Proposal with /propose-to-kit instead.';
 
 // Options of `git commit` that consume the next argument when not written as --opt=value.
@@ -192,11 +192,11 @@ function checkSkill(skill, dir) {
   return marked ? ['deny', BRAINSTORM] : null;
 }
 
-// Resolves symlinks in the longest existing prefix, so a file not yet written still compares.
+// Resolves symlinks and letter case (.native) in the longest existing prefix, so a file not yet written still compares.
 function real(p) {
   const rest = [];
   for (;;) {
-    try { return path.join(fs.realpathSync(p), ...rest); } catch {}
+    try { return path.join(fs.realpathSync.native(p), ...rest); } catch {}
     const up = path.dirname(p);
     if (up === p) return path.join(p, ...rest);
     rest.unshift(path.basename(p));
@@ -206,6 +206,7 @@ function real(p) {
 const inside = (p, dir) => p === dir || p.startsWith(dir + path.sep);
 
 // Denies an edit to the kit from a session whose cwd is not in it (the main checkout or its worktrees).
+// ponytail: Edit/Write/NotebookEdit only, and cwd follows a `cd`; a Bash write to the kit passes. Add a Bash check if that is ever seen.
 function checkEdit(file, cwd) {
   if (!file) return null;
   const kit = real(path.join(os.homedir(), '.claude', 'kit'));

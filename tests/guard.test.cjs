@@ -98,6 +98,7 @@ expect(edit('Edit', kit, viaLink('global.md')), 'none', 'Edit from the kit check
 expect(edit('Edit', kitWt, path.join(kitWt, 'global.md')), 'none', 'Edit from a kit worktree');
 expect(edit('Edit', flow, path.join(flow, 'a.txt')), 'none', 'Edit outside the kit');
 expect(edit('Edit', flow, '../kit/global.md'), 'deny', 'relative path into the kit');
+if (fs.existsSync(kit.toUpperCase())) expect(edit('Edit', flow, path.join(kit.toUpperCase(), 'global.md')), 'deny', 'other letter case, case-insensitive disk');
 
 // Everything else, and whatever the Guard cannot read, passes.
 expect(bash(main, 'ls -la'), 'none', 'ls');
