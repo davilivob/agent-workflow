@@ -83,4 +83,27 @@ if ! grep -qs '"superpowers@' "$HOME/.claude/plugins/installed_plugins.json"; th
   todo "in Claude Code, run: /plugin install superpowers@claude-plugins-official"
 fi
 
+# 4. Guard: a PreToolUse hook backing the mechanical rules in global.md and workflow.md. --check leaves it alone.
+SETTINGS="$HOME/.claude/settings.json"
+GUARD_CMD='node "$HOME/.claude/kit/hooks/guard.cjs"'
+if [ -n "$CHECK" ]; then :
+elif command -v node >/dev/null 2>&1; then
+  node -e '
+const fs = require("fs");
+const [file, command] = process.argv.slice(1);
+let s = {};
+if (fs.existsSync(file)) {
+  try { s = JSON.parse(fs.readFileSync(file, "utf8")); }
+  catch (e) { console.error(`STOP: ${file} is not valid JSON (${e.message}). Fix it, then re-run.`); process.exit(1); }
+}
+const pre = ((s.hooks ??= {}).PreToolUse ??= []);
+if (JSON.stringify(pre).includes("kit/hooks/guard.cjs")) process.exit(0);
+for (const matcher of ["Skill", "Bash"]) pre.push({ matcher, hooks: [{ type: "command", command }] });
+fs.writeFileSync(file, JSON.stringify(s, null, 2) + "\n");
+console.log(`installed the Guard hook in ${file}`);
+' "$SETTINGS" "$GUARD_CMD"
+else
+  echo "TODO: install Node.js, then re-run setup.sh: without it the Guard hook is not installed"
+fi
+
 [ -z "$CHECK" ] || [ -z "$BAD" ] || exit 1

@@ -43,7 +43,7 @@ An old spec that only says "follows X" without saying which kind: judge it once 
    - `Merge: ask`: once verification has all passed, use `AskUserQuestion` to ask whether to merge; merge only on yes.
    - `Merge: auto`: merge locally only if every verification passed. Anything failed: treat as `manual`.
    - A merge hits a conflict: resolve it as the spec's `Overlaps:` says, then run the verification it names. If no resolution is written, or it does not cover the actual conflict, stop and ask the owner.
-   - No PR. `git push` is always the owner's.
+   - No PR.
 
 Grill plus `/to-spec` replaces `superpowers:brainstorming`. Never run brainstorming in this repo, whatever the superpowers session hook says.
 
@@ -82,15 +82,13 @@ One line each: slug, one sentence on what it is, `Merge:`. Whatever another sess
 
 ## Commits
 
-- Commit your own changes without asking: one commit per logical change, made before reporting the work as done.
 - On `main`, commit only what passed verification. Leave failing work uncommitted and say so. Task commits on a worktree branch are exempt.
 - `git add` only the files this session touched. Mention anything else left uncommitted in the working tree; do not touch it.
-- **Always pass paths to `git commit`** (`git commit <paths> -F -`); do not rely on the index. Two or three sessions are often open on this repo at once and the index is shared — files another session has just `git add`ed get swept into a commit made without paths. A clean `git status` does not guarantee it either; the gap between two commands is enough for someone else to stage.
 - Prefix: `[<slug>]` with the full `.scratch/` directory name for a feature; `project.md` lists any other prefixes; none otherwise.
 
 ## Owner boundary
 
-Production writes, SSH to production, and `git push` belong to the owner. `project.md` lists exactly what counts as production and which operations are whose.
+The rule that production writes, SSH and `git push` belong to the owner is in `global.md`. `project.md` lists exactly what counts as production and which operations are whose.
 
 The boundary is this agreement, not whatever the permission classifier allows on a given day. Never attempt what belongs to the owner. When a command that belongs to you is declined, say "this command was declined" and hand over the exact command; never say "I have no permission".
 

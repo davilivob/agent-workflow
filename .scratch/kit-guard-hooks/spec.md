@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Merge: ask
 Plan: yes
 Overlaps: kit-trim-skills — low: 兩者都改 `setup.sh` 與 `tests/setup.test.sh`，但本 spec 只新增一段 guard 安裝與對應斷言，kit-trim-skills 只動依賴安裝那一段與參數處理；各加各的，互不改對方的區塊。

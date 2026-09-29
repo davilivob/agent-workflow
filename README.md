@@ -4,6 +4,7 @@ The owner's agent workflow, shared by every project and device:
 
 - `templates/` — the workflow docs `/init-workflow` writes into a repo. `templates/workflow.md` is the single source; each repo carries it verbatim under a `Template: <sha>` line.
 - `skills/` — skills linked into `~/.claude/skills/` by `setup.sh`.
+- `hooks/guard.cjs` — the Guard, a PreToolUse hook `setup.sh` installs in `~/.claude/settings.json`; it backs the push, commit and brainstorming rules.
 - `global.md` — rules for every session, imported from `~/.claude/CLAUDE.md`.
 
 ## New device
