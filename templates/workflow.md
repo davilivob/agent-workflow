@@ -33,6 +33,8 @@ An old spec that only says "follows X" without saying which kind: judge it once 
 2. **Spec**: the owner runs `/to-spec`. Output is `.scratch/<slug>/spec.md`, headed by `Status: ready-for-agent`, `Merge: auto | ask | manual` (missing means `manual`) and `Plan: yes | no` (missing means `yes`). Body in Traditional Chinese; template headings and `CONTEXT.md` terms stay in English as written in the glossary. **The owner reviews the spec**, then one commit carries the spec, `CONTEXT.md` and any ADR: `[<slug>] spec: ...`.
 3. **Plan**: `/superpowers:writing-plans .scratch/<slug>/spec.md`. Output is `.scratch/<slug>/plan.md`, not `docs/superpowers/plans/`. In English; the owner does not read it. Commit when written, without asking.
    - **Write a plan only for a committed spec**: `git log main --oneline --grep=<slug>`. A spec still sitting in the working tree means the owner is still reading it; a plan written now is wasted.
+   - **A `plan.md` that already exists, committed or not, is someone else's**: stop and tell the owner; never overwrite it. An uncommitted one means another session is writing it.
+   - **Claim it first**: once the spec is confirmed committed, and before invoking the skill, write `plan.md` containing the single line `Writing`, and do not commit it. Overwrite it with the full plan, then commit.
    - A spec with `Plan: no` skips this step; step 4 works straight from the spec.
 4. **Execute**: `superpowers:subagent-driven-development` on a branch. Its built-in reviews are the review; do not also run `code-review`. The last commit sets the spec to `Status: done`.
    - With `Worktree: yes` in `project.md`: **open a real worktree**, not a branch on the main checkout: `git worktree add .claude/worktrees/<slug> -b <slug> main`. Nobody commits on the main checkout. Wrap-up: after merging, `git worktree remove .claude/worktrees/<slug>` and delete the branch. `project.md` lists anything else a worktree needs set up or removed.
@@ -51,13 +53,19 @@ Grill plus `/to-spec` replaces `superpowers:brainstorming`. Never run brainstorm
 
 Any text in the same message besides "continue" is background, not authorization. Mentioning a slug only tells you its state — in particular "X just started" means **leave X alone**; it belongs to another session, and you are not being asked to take it over. If you cannot tell what it wants, ask; do not pick something and start.
 
-Scan `.scratch/*/spec.md` (committed ones only) and list three groups:
+Scan `.scratch/*/spec.md` (committed ones only) and list four groups. First look for each slug's **Claim**, the trace that a session is working on it:
 
+- Writing the plan: `.scratch/<slug>/plan.md` exists but is not committed.
+- Executing: `git worktree list` shows `.claude/worktrees/<slug>`, or a branch named `<slug>` exists.
+
+The groups:
+
+- **In progress**: slugs with a Claim, and only here, in none of the other groups. Say which kind (writing the plan, or executing) and how long since it last moved: the stub's modification time, or the branch's last commit. Never judge a Claim stale yourself; report the time and let the owner decide whether to take it over.
 - **Needs a plan**: specs with `Plan: yes` (or none written) and no `plan.md` in the directory.
 - **Ready**: has `plan.md` (or `Plan: no`), `Status` not yet `done`, and whatever `After:` names is already on `main`. Low or medium `Overlaps:` still count as Ready; note after them whom they overlap and at what risk.
 - **Blocked**: same conditions as Ready, but what `After:` (or `Overlaps: high`) names is not on `main` yet; say which one it waits for, and whether it is a real dependency or a high conflict risk.
 
-One line each: slug, one sentence on what it is, `Merge:`. Mark any that another session is already working on and leave them out of Ready. Start only after the owner picks.
+One line each: slug, one sentence on what it is, `Merge:`. Whatever another session is already working on goes under In progress: a Claim, or the owner saying so. Start only after the owner picks.
 
 ## Spec and Plan
 
