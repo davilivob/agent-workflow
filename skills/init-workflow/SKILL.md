@@ -87,7 +87,7 @@ Work in `W=$(mktemp -d)`:
 git -C ~/.claude/kit show HEAD:templates/workflow.md > "$W/tmpl.md"
 ```
 
-- First line is `Template: <40 hex>` → that is `BASE`; if `git -C ~/.claude/kit cat-file -e $BASE^{commit}` fails, stop: the commit is not in the local kit (another device made it and has not pushed), so tell the owner to push the kit from that device, then re-run; `tail -n +2 docs/agents/workflow.md > "$W/repo.md"`; `git -C ~/.claude/kit show $BASE:templates/workflow.md > "$W/base.md"`.
+- First line is `Template: <40 hex>` → that is `BASE`; if `git -C ~/.claude/kit cat-file -e "$BASE^{commit}"` fails, stop: the commit is not in the local kit (another device made it and has not pushed), so tell the owner to push the kit from that device, then re-run; `tail -n +2 docs/agents/workflow.md > "$W/repo.md"`; `git -C ~/.claude/kit show $BASE:templates/workflow.md > "$W/base.md"`.
 - No `Template:` line → there is no base; `cp docs/agents/workflow.md "$W/repo.md"`.
 
 Classify — the first matching row wins:
