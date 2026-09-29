@@ -39,13 +39,13 @@ done
 
 # 3. What the pipeline depends on
 MATT='npx -y skills@latest add mattpocock/skills -g -a claude-code -s '\''*'\'' -y'
-if [ -e "$SKILLS/to-spec" ]; then :
-elif command -v npx >/dev/null 2>&1; then sh -c "$MATT"
+if [ -e "$SKILLS/to-spec" ] && [ -e "$SKILLS/grill-with-docs" ]; then :
+elif command -v npx >/dev/null 2>&1; then sh -c "$MATT" || echo "TODO: install failed; retry: $MATT"
 else echo "TODO: install Node.js, then run: $MATT"
 fi
 
 if command -v graphify >/dev/null 2>&1; then :
-elif command -v uv >/dev/null 2>&1; then uv tool install graphifyy
+elif command -v uv >/dev/null 2>&1; then uv tool install graphifyy || echo "TODO: install failed; retry: uv tool install graphifyy"
 else echo "TODO: install uv (https://docs.astral.sh/uv/getting-started/installation/), then run: uv tool install graphifyy"
 fi
 

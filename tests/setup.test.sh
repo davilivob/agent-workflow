@@ -10,7 +10,7 @@ fail() { echo "FAIL: $1" >&2; exit 1; }
 mkdir -p "$KIT/skills/zz-test-standin"
 trap 'rm -rf "$T" "$KIT/skills/zz-test-standin"' EXIT
 
-mkdir -p "$T/.claude/skills/to-spec"               # Matt Pocock skills "present": no network install
+mkdir -p "$T/.claude/skills/to-spec" "$T/.claude/skills/grill-with-docs"  # Matt Pocock skills "present": no network install
 printf 'existing line' > "$T/.claude/CLAUDE.md"    # no trailing newline, on purpose
 
 HOME="$T" sh "$KIT/setup.sh" >/dev/null

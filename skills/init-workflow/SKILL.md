@@ -11,15 +11,16 @@ In a repo on the **template**, `docs/agents/workflow.md` is `~/.claude/kit/templ
 ## 1. Preflight
 
 1. `git -C ~/.claude/kit status --porcelain` prints nothing. Otherwise stop: the kit has uncommitted work, so no sha describes what you would copy.
-2. If `git -C ~/.claude/kit remote` prints a name, run `git -C ~/.claude/kit pull --ff-only`. On failure stop and show the owner the output.
-3. `command -v graphify` succeeds. Otherwise stop and ask the owner to run `sh ~/.claude/kit/setup.sh`.
-4. `KIT_SHA=$(git -C ~/.claude/kit rev-parse HEAD)`.
-5. Pick the **mode**:
+2. `git -C ~/.claude/kit branch --show-current` prints `main`. Otherwise stop: the installed kit must be on `main`, or a sha from another branch would not exist on other devices.
+3. If `git -C ~/.claude/kit remote` prints a name, run `git -C ~/.claude/kit pull --ff-only`. On failure stop and show the owner the output.
+4. `command -v graphify` succeeds. Otherwise stop and ask the owner to run `sh ~/.claude/kit/setup.sh`.
+5. `KIT_SHA=$(git -C ~/.claude/kit rev-parse HEAD)`.
+6. Pick the **mode**:
    - `docs/agents/workflow.md` exists → **update**: sections 5, 4, 6.
    - None of `CLAUDE.md`, `docs/`, `.scratch/`, `CONTEXT.md` exists → **new**: sections 2, 3, 4, 6.
    - Otherwise → **existing**: sections 2, 3, 4, 6.
 
-Done when: the kit is clean and current, graphify is on PATH, and you have a mode.
+Done when: the kit is clean, on `main` and current, graphify is on PATH, and you have a mode.
 
 ## 2. Project values (new, existing)
 
@@ -65,11 +66,11 @@ Copy `workflow.md` with the shell so it stays byte-exact:
 ```
 
 - **new**: write them all.
-- **existing**: first show the owner, per file, `create`, `unchanged` or a `diff -u` of current vs. intended, plus the graphify changes of section 4 that will apply. Then one `AskUserQuestion`: write all / decide per file / cancel. Write only what was approved. Cancel stops the run: write nothing, section 4 included.
+- **existing**: first show the owner, per file, `create`, `unchanged` or a `diff -u` of current vs. intended, flagging any target file that already has uncommitted changes (`git status --porcelain <path>`): section 6 commits them together with this run's. Add the graphify changes of section 4 that will apply as an item of their own. Then one `AskUserQuestion`: write all / decide per item / cancel. Write only what was approved. Declining the graphify item skips section 4. Cancel stops the run: write nothing, section 4 included.
 
-Done when: every approved file is written, and `tail -n +2 docs/agents/workflow.md | diff - ~/.claude/kit/templates/workflow.md` prints nothing.
+Done when: every approved file is written, and `tail -n +2 docs/agents/workflow.md | diff --strip-trailing-cr - ~/.claude/kit/templates/workflow.md` prints nothing.
 
-## 4. graphify (every mode)
+## 4. graphify (every mode; skipped if the owner declined it in section 3)
 
 `graphify claude install` owns its `## graphify` section in `CLAUDE.md` and its hook in `.claude/settings.json`: leave both exactly as it wrote them, outside every comparison.
 
@@ -84,11 +85,13 @@ Done when: `CLAUDE.md` has `## graphify`, `.claude/settings.json` mentions `grap
 Work in `W=$(mktemp -d)`:
 
 ```bash
-git -C ~/.claude/kit show HEAD:templates/workflow.md > "$W/tmpl.md"
+git -C ~/.claude/kit show HEAD:templates/workflow.md | tr -d '\r' > "$W/tmpl.md"
 ```
 
-- First line is `Template: <40 hex>` → that is `BASE`; if `git -C ~/.claude/kit cat-file -e "$BASE^{commit}"` fails, stop: the commit is not in the local kit (another device made it and has not pushed), so tell the owner to push the kit from that device, then re-run; `tail -n +2 docs/agents/workflow.md > "$W/repo.md"`; `git -C ~/.claude/kit show "${BASE}:templates/workflow.md" > "$W/base.md"`.
-- No `Template:` line → there is no base; `cp docs/agents/workflow.md "$W/repo.md"`.
+Every file in `$W` is stripped of `\r`: on Windows `core.autocrlf` makes the working tree CRLF while `git show` gives LF.
+
+- First line is `Template: <40 hex>` → that is `BASE`; if `git -C ~/.claude/kit cat-file -e "$BASE^{commit}"` fails, stop: the commit is not in the local kit (another device made it and has not pushed), so tell the owner to push the kit from that device, then re-run; `tail -n +2 docs/agents/workflow.md | tr -d '\r' > "$W/repo.md"`; `git -C ~/.claude/kit show "${BASE}:templates/workflow.md" | tr -d '\r' > "$W/base.md"`.
+- No `Template:` line → there is no base; `tr -d '\r' < docs/agents/workflow.md > "$W/repo.md"`.
 
 Classify — the first matching row wins:
 
@@ -98,7 +101,7 @@ Classify — the first matching row wins:
 | no base | **unknown** | each hunk of `diff -u tmpl.md repo.md` is a **conflict** |
 | `repo.md` = `base.md` | **behind** | each hunk of `diff -u base.md tmpl.md` |
 | `tmpl.md` = `base.md` | **ahead** | each hunk of `diff -u base.md repo.md` |
-| otherwise | **diverged** | hunks of `diff -u base.md repo.md` (ahead) and `diff -u base.md tmpl.md` (behind); two hunks whose `base.md` line ranges overlap are one **conflict** (`git merge-file -p --diff3 repo.md base.md tmpl.md` shows them as markers) |
+| otherwise | **diverged** | hunks of `diff -U0 base.md repo.md` (ahead) and `diff -U0 base.md tmpl.md` (behind); two hunks whose `base.md` line ranges overlap are one **conflict** (`-U0` keeps context lines out of the ranges; `git merge-file -p --diff3 repo.md base.md tmpl.md` shows them as markers) |
 
 Tell the owner which case it is, then decide every item:
 
@@ -118,7 +121,7 @@ Apply, in this order:
 
 `project.md` is never compared.
 
-Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | diff - ~/.claude/kit/templates/workflow.md` shows only the items kept as is — list those for the owner; they will be reported as ahead next time.
+Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | diff --strip-trailing-cr - ~/.claude/kit/templates/workflow.md` shows only the items kept as is — list those for the owner; they will be reported as ahead next time.
 
 ## 6. Commit and report
 
