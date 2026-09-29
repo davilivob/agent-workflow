@@ -6,7 +6,7 @@ The values `workflow.md` refers to, and every rule that holds only in the kit.
 
 Verification command:
 
-`sh tests/setup.test.sh` — then, for a change to a skill or a template, run the skill by hand in a throwaway repo under the session's scratchpad and keep its output as evidence.
+`sh tests/setup.test.sh && node tests/guard.test.cjs` — then, for a change to a skill or a template, run the skill by hand in a throwaway repo under the session's scratchpad and keep its output as evidence.
 
 ## Worktree
 
