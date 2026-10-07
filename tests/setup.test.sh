@@ -20,7 +20,7 @@ ln -s "$NODE" "$T/bin/node"  # the real node: the Guard section needs it
 echo '{"plugins":{"superpowers@x":[]}}' > "$T/.claude/plugins/installed_plugins.json"
 NPXLOG="$T/npx.log"; : > "$NPXLOG"
 export NPXLOG PATH="$T/bin:/usr/bin:/bin${SYSTEMROOT:+:$(cygpath -u "$SYSTEMROOT")/System32}"  # Windows: setup.sh needs cmd for mklink
-KEEP="grill-with-docs grilling domain-modeling to-spec diagnosing-bugs writing-for-agents writing-great-skills improve-codebase-architecture codebase-design resolving-merge-conflicts prototype wizard wayfinder teach wait-what research handoff retro to-questionnaire code-review"
+KEEP="grill-with-docs grilling domain-modeling to-spec diagnosing-bugs writing-for-agents improve-codebase-architecture codebase-design prototype wizard wayfinder teach wait-what research handoff retro to-questionnaire code-review"
 for n in $KEEP; do mkdir -p "$T/.claude/skills/$n"; done  # keep list "present": no network install
 printf 'existing line' > "$T/.claude/CLAUDE.md"    # no trailing newline, on purpose
 cat > "$T/.claude/settings.json" <<'EOF'
