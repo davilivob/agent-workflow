@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs setup.sh twice against a throwaway HOME. macOS/Linux only; needs node.
+# Runs setup.sh twice against a throwaway HOME. macOS, Linux and Windows (Git Bash); needs node.
 set -eu
 KIT=$(cd "$(dirname "$0")/.." && pwd -P)
 T=$(mktemp -d)
@@ -19,7 +19,7 @@ NODE=$(command -v node)  # captured once: the shell caches lookups, so a later `
 ln -s "$NODE" "$T/bin/node"  # the real node: the Guard section needs it
 echo '{"plugins":{"superpowers@x":[]}}' > "$T/.claude/plugins/installed_plugins.json"
 NPXLOG="$T/npx.log"; : > "$NPXLOG"
-export NPXLOG PATH="$T/bin:/usr/bin:/bin"
+export NPXLOG PATH="$T/bin:/usr/bin:/bin${SYSTEMROOT:+:$(cygpath -u "$SYSTEMROOT")/System32}"  # Windows: setup.sh needs cmd for mklink
 KEEP="grill-with-docs grilling domain-modeling to-spec diagnosing-bugs writing-for-agents writing-great-skills improve-codebase-architecture codebase-design resolving-merge-conflicts prototype wizard wayfinder teach wait-what research handoff retro to-questionnaire code-review"
 for n in $KEEP; do mkdir -p "$T/.claude/skills/$n"; done  # keep list "present": no network install
 printf 'existing line' > "$T/.claude/CLAUDE.md"    # no trailing newline, on purpose
