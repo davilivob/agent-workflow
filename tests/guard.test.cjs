@@ -83,10 +83,10 @@ expect(bash(main, `cd ${wt} && git commit -m msg`), 'none', 'cd worktree &&');
 // Edits to the kit (~/.claude/kit, a symlink as on a real device): only from inside it, or into inbox/.
 const home = path.join(T, 'home');
 fs.mkdirSync(path.join(home, '.claude'), { recursive: true });
-fs.symlinkSync(kit, path.join(home, '.claude', 'kit'));
+fs.symlinkSync(kit, path.join(home, '.claude', 'kit'), 'junction'); // a junction on Windows, as setup.sh makes; the type is ignored elsewhere
 const kitWt = path.join(kit, '.claude', 'worktrees', 'x');
 fs.mkdirSync(kitWt, { recursive: true });
-const edit = (tool, cwd, file) => guard({ tool_name: tool, tool_input: tool === 'NotebookEdit' ? { notebook_path: file } : { file_path: file }, cwd }, { HOME: home });
+const edit = (tool, cwd, file) => guard({ tool_name: tool, tool_input: tool === 'NotebookEdit' ? { notebook_path: file } : { file_path: file }, cwd }, { HOME: home, USERPROFILE: home }); // os.homedir() reads USERPROFILE on Windows
 const viaLink = (f) => path.join(home, '.claude', 'kit', f);
 expect(edit('Edit', flow, viaLink('global.md')), 'deny', 'Edit kit via the symlink from another repo');
 expect(edit('Write', flow, path.join(kit, 'skills', 'new', 'SKILL.md')), 'deny', 'Write a new kit file by its real path');
