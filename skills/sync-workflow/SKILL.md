@@ -15,13 +15,13 @@ In a repo on the **template**, `docs/agents/workflow.md` is `~/.claude/kit/templ
 3. If `git -C ~/.claude/kit remote` prints a name, run `git -C ~/.claude/kit pull --ff-only`. On failure stop and show the owner the output.
 4. Run `sh ~/.claude/kit/setup.sh --check`. If any line it prints mentions graphify, stop and ask the owner to run `sh ~/.claude/kit/setup.sh`. Keep its `TODO:` lines for the report in section 6.
 5. `KIT_SHA=$(git -C ~/.claude/kit rev-parse HEAD)`.
-6. `ORIGIN=$(git remote get-url origin)`. If set, `REMOTE` is its `owner/repo`: `sed -E 's#\.git$##; s#.*[:/]([^/:]+/[^/:]+)$#\1#'` of it (the same as `/propose-to-kit`). If `ORIGIN` does not contain `github.com`, keep a note for the report: origin is not on GitHub, so the Claude App's remote sidebar will not give this repo its own group.
+6. `ORIGIN=$(git remote get-url origin 2>/dev/null)`; empty means no origin. If set, `REMOTE` is its `owner/repo`: `sed -E 's#\.git$##; s#.*[:/]([^/:]+/[^/:]+)$#\1#'` of it (the same as `/propose-to-kit`); and if it does not contain `github.com`, keep a note for the report: origin is not on GitHub, so the Claude desktop app, seen from another device, will not give this repo its own group in the sidebar.
 7. Pick the **mode**:
-   - `docs/agents/workflow.md` exists → **update**: sections 5, 4, 6.
-   - None of `CLAUDE.md`, `docs/`, `.scratch/`, `CONTEXT.md` exists → **new**: sections 2, 3, 4, 6.
-   - Otherwise → **existing**: sections 2, 3, 4, 6.
+   - `docs/agents/workflow.md` exists → **update**: sections 5, 7, 4, 6.
+   - None of `CLAUDE.md`, `docs/`, `.scratch/`, `CONTEXT.md` exists → **new**: sections 2, 7, 3, 4, 6.
+   - Otherwise → **existing**: sections 2, 7, 3, 4, 6.
 
-Done when: the kit is clean, on `main` and current, graphify is on PATH, you have a mode, and `REMOTE` or the knowledge that there is no origin.
+Done when: the kit is clean, on `main` and current, graphify is on PATH, you have a mode and `ORIGIN` (empty if none).
 
 ## 2. Project values (new, existing)
 
@@ -47,22 +47,7 @@ Ask all four in one `AskUserQuestion`, the detected or suggested answer first an
 3. Worktree — the stack's default vs. the other value.
 4. What counts as production (commands only the owner runs: deploys, production writes, SSH) — "None yet" vs. "Other".
 
-### Remote
-
-`REMOTE` is set → the `Remote:` value is `$REMOTE`; ask nothing. Otherwise ask one more `AskUserQuestion`, separate from the four (one call holds at most four questions). First run `gh api user --jq .login`: it prints the account a repo would be created under; if it fails (no `gh`, or not logged in), the account is unknown and the report gets `TODO: install gh (https://cli.github.com) and run: gh auth login`. The name is the directory name of the target root; the owner renames it through "Other". Show both in the question:
-
-- Create a private GitHub repo (recommended) → `Remote: <account>/<name>`, or `Remote: <name>` if the account is unknown.
-- Create a public GitHub repo → the same.
-- Local only → `Remote: none (local only)`; no later run asks again.
-
-On create, the `Remote:` line is written before the repo exists; until the owner runs the command, update mode reports the mismatch. Before the report, list for the owner, as a warning and never a block — the first push uploads the whole history:
-
-- tracked files that may hold secrets: `git ls-files | grep -iE '\.env|secret|key|\.pem'`;
-- tracked files over 100 MB, which GitHub refuses without Git LFS.
-
-Section 6 hands over `gh repo create <name> --private --source . --remote origin --push` (`--public` if chosen) in its own `bash` block. `gh` and the push belong to the owner.
-
-Done when: you have a stack, a verification command or "none yet", `yes|no` for Worktree, a production list or "none yet", and a `Remote:` value.
+Done when: you have a stack, a verification command or "none yet", `yes|no` for Worktree, and a production list or "none yet".
 
 ## 3. Write (new, existing)
 
@@ -71,7 +56,7 @@ Build each file's intended content:
 | Repo file | Content |
 | --- | --- |
 | `docs/agents/workflow.md` | `Template: $KIT_SHA` line, then `templates/workflow.md` |
-| `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command, or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 2. Every other line, including the `- None yet.` sections, stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
+| `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command, or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 7. Every other line, including the `- None yet.` sections, stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
 | `docs/agents/issue-tracker.md`, `domain.md` | the same-named template, verbatim |
 | `CLAUDE.md` | each `## ` section of `templates/claude-section.md`: replaces the repo's section with the same heading, else is appended; every other line of the repo's `CLAUDE.md` stays |
 
@@ -134,17 +119,42 @@ Apply:
 1. Template-side items: edit the repo's `docs/agents/workflow.md`.
 2. Set the first line to `Template: $KIT_SHA` (insert it if missing).
 
-`project.md` is never compared, except its `Remote:` line:
-
-- No `Remote:` line (set up before the template had one): `REMOTE` set → `Remote: $REMOTE`; otherwise ask section 2's Remote question, with its warnings and handover. Write the line under a `## Remote` heading placed as in `templates/project.md`.
-- `Remote: none (local only)` → nothing.
-- Otherwise, if it is not `REMOTE` (no origin, or another one) → a reminder in the report. A value without an owner (the account was unknown) matches on the part after the `/`.
+`project.md` is never compared; section 7 reads its `Remote:` line, and adds one if it is missing.
 
 Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | diff --strip-trailing-cr - ~/.claude/kit/templates/workflow.md` shows only the items kept as is — list those for the owner; they will be reported as ahead next time, and `/generate-kit-proposal` is how one reaches the kit.
 
 ## 6. Commit and report
 
-- Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update).
-- List the pipeline's missing dependencies: relay verbatim the `TODO:` lines `setup.sh --check` printed in the preflight; each carries its own fix. The owner runs them, not you.
+- Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update; `, add Remote: to project.md` appended when section 7 wrote it).
+- List the pipeline's missing dependencies: relay verbatim the `TODO:` lines `setup.sh --check` printed in the preflight, and section 7's `gh` one; each carries its own fix. The owner runs them, not you.
 
 Report: the mode, every file written, every commit (hash and message, up front), missing dependencies, and the remote: the `Remote:` value, any warning, mismatch or non-GitHub note, and the `gh repo create` command if one is handed over.
+
+## 7. Remote (every mode)
+
+Decide the `Remote:` value; the first matching row wins:
+
+- **update** and `docs/agents/project.md` has a `Remote:` line: `Remote: none (local only)` → nothing. Otherwise, if it is not `REMOTE` (no origin, or another one), a reminder for the report; a value without an owner matches on the part after the `/`. This section ends here.
+- `REMOTE` is set → `Remote: $REMOTE`; ask nothing.
+- Otherwise ask the question below.
+
+The question is one `AskUserQuestion` of its own (a call holds at most four questions, and section 2 uses them). First `ACCOUNT=$(gh api user --jq .login 2>/dev/null)`; empty means no `gh`, or not logged in. The name is the directory name of the target root. Show the account (or "unknown") and the name:
+
+- Create a private GitHub repo (recommended).
+- Create a public GitHub repo.
+- Local only → `Remote: none (local only)`; no later run asks again.
+
+"Other" is a different name for a private repo.
+
+On create:
+
+- `Remote: $ACCOUNT/<name>`, or `Remote: <name>` when `ACCOUNT` is empty. It is written before the repo exists, so until the owner runs the command, update mode reports the mismatch.
+- `ACCOUNT` empty → the report gets `TODO: install gh (https://cli.github.com) and run: gh auth login`.
+- Warn the owner, never block — the first push uploads the whole history:
+  - tracked files that may hold secrets: `git ls-files | grep -iE '\.env|secret|key|\.pem'`;
+  - tracked files over 100 MB, which GitHub refuses without Git LFS: `git ls-files -z | xargs -0 du -m | awk '$1 > 100'`.
+- Section 6 hands over `gh repo create <name> --private --source . --remote origin --push` (`--public` if chosen) in its own `bash` block. That command and the push belong to the owner.
+
+Write: new and existing fill `{{REMOTE}}` in section 3. Update, when the line was missing: add it to `docs/agents/project.md` under a `## Remote` heading, placed as in `templates/project.md`.
+
+Done when: the `Remote:` value is decided and written, or (update) the existing line is checked against `REMOTE`.
