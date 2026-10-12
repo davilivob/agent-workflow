@@ -58,3 +58,15 @@ _Avoid_: product decision, big decision
 **Technical decision**:
 A decision that changes no existing behaviour. The agent makes it and writes a one-line reason where the work is recorded; the owner may overrule. Deciding it is not leave to act on it.
 _Avoid_: implementation detail, minor decision
+
+**Session title**:
+The name a session shows in the app's sidebar and in Remote Control: `[<Device code>] <Phase> · <topic>`, the topic being the slug once there is one. The agent sets it once the session's work is known, and again when its Phase changes.
+_Avoid_: session name, label
+
+**Device code**:
+The short name of the machine a session runs on (`studio`, `mbp`, `win`) — not the device it is watched from. Set once per device; a device without one shows `?`.
+_Avoid_: hostname, device name
+
+**Phase**:
+What a session is doing now, as its Session title shows it: grill, spec, plan, sdd, inline, debug, triage, review, next or chat. Each pipeline step has its Phase, but a Phase also covers work outside the pipeline.
+_Avoid_: step, stage
