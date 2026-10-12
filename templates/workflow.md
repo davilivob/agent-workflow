@@ -121,7 +121,7 @@ The rule that production writes, SSH and `git push` belong to the owner is in `g
 
 The boundary is this agreement, not whatever the permission classifier allows on a given day. Never attempt what belongs to the owner. When a command that belongs to you is declined, say "this command was declined" and hand over the exact command; never say "I have no permission".
 
-Handing over an owner command: when the work is done, put each command in its own ` ```bash ` block, no `$`, no output inside, `cd` to the repo first if the session sits in a worktree. The desktop app turns that block into a Run button in the Terminal panel. Once the owner has run it, read the output with `read_terminal` and report what it says — don't ask them to paste it.
+Handing over an owner command: when the work is done, read the Terminal panel with `read_terminal` first to see which shell the owner's terminal runs, and write each command for that shell, not for your own Bash tool: its paths, its syntax, and a fenced block tagged with its name (` ```bash `, ` ```powershell `). One command per block, no prompt, no output inside, `cd` to the repo first if the session sits in a worktree. The desktop app turns that block into a Run button in the Terminal panel. Once the owner has run it, read the output with `read_terminal` and report what it says — don't ask them to paste it.
 
 ## Project lessons
 
