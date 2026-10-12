@@ -23,16 +23,35 @@ const KIT_EDIT =
   "Guard: a session outside the kit does not edit the kit; only its inbox/ takes Proposals (the kit's docs/agents/project.md). " +
   'Do not retry; write a Proposal with /propose-to-kit instead.';
 
-// Push options that rewrite, remove or publish more than the current branch's fast-forward.
+// Push options that do more than fast-forward the current branch: rewrite, delete, or push tags or other branches.
 const PUSH_OWNER_LONG = new Set(['--force', '--force-with-lease', '--force-if-includes', '--delete', '--tags',
   '--follow-tags', '--mirror', '--all', '--branches', '--prune']);
+// Options of `git push` that consume the next argument when not written as --opt=value; -o is its only short one.
+const PUSH_VALUE_LONG = new Set(['--push-option', '--repo', '--receive-pack', '--exec']);
 
 // True when a push is more than a plain fast-forward to its upstream: an owner-only flag, or a refspec with + or :.
-// ponytail: a bare tag name as refspec (`git push origin v1`) looks like a branch here; the ask still catches it.
-function ownerPush(args) {
-  const refspecs = args.filter((a) => !a.startsWith('-')).slice(1); // the first positional is the repository
-  return args.some((a) => PUSH_OWNER_LONG.has(a.split('=')[0]) || (/^-[^-]/.test(a) && /[fd]/.test(a.slice(1))))
-    || refspecs.some((r) => /^\+|:/.test(r));
+// ponytail: a bare tag name as refspec (`git push origin v1`), an abbreviated option (`--forc`) or a
+// `-c remote.<r>.mirror=true` looks plain here; the ask still catches it.
+function isOwnerOnlyPush(args) {
+  const positionals = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === '--') { positionals.push(...args.slice(i + 1)); break; }
+    if (a.startsWith('--')) {
+      const name = a.split('=')[0];
+      if (PUSH_OWNER_LONG.has(name)) return true;
+      if (PUSH_VALUE_LONG.has(name) && !a.includes('=')) i++;
+      continue;
+    }
+    if (a.startsWith('-') && a.length > 1) {
+      const flags = a.slice(1).split('o')[0]; // -o takes the rest, or the next argument, as its value
+      if (/[fd]/.test(flags)) return true;
+      if (flags.length === a.length - 2) i++; // a bare trailing -o
+      continue;
+    }
+    positionals.push(a);
+  }
+  return positionals.slice(1).some((r) => /^\+|:/.test(r)); // the first positional is the repository
 }
 
 // Options of `git commit` that consume the next argument when not written as --opt=value.
@@ -189,7 +208,7 @@ function checkBash(command, cwd) {
     if (seg[0] === 'cd' && seg.length === 2) { dir = path.resolve(dir, seg[1]); continue; }
     const call = gitCall(seg);
     if (!call) continue;
-    if (call.sub === 'push') { if (ownerPush(call.args)) return ['deny', PUSH_OWNER]; ask = true; continue; }
+    if (call.sub === 'push') { if (isOwnerOnlyPush(call.args)) return ['deny', PUSH_OWNER]; ask = true; continue; }
     if (call.sub !== 'commit') continue;
     const s = commitShape(call.args);
     if ((s.paths && !s.all) || (s.amend && s.only)) continue;

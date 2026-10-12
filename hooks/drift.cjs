@@ -11,9 +11,12 @@ const { execFile } = require('child_process');
 const FETCH_TIMEOUT = 15000;
 const SESSION_DEADLINE = 25000; // under the 30 s hook timeout setup.sh registers: a killed hook would print nothing
 const ROOTS = path.join(os.homedir(), '.claude', 'drift-roots');
-// A copy of the Drift rule in global.md, which stays the source: change both together.
+// Copies of the Drift rule in global.md, which stays the source: change both together.
 const ASK =
   'Per global.md: before changing any file, ask the owner with AskUserQuestion: `pull --ff-only`, leave it, or stop.';
+const FF =
+  'Per global.md: fast-forward each behind branch with `pull --ff-only` without asking, in its own checkout if that one is clean, ' +
+  'and report it in one line; a dirty checkout: ask first. If a fast-forward fails, stop and tell the owner.';
 // No password, SSH or credential-manager prompt may hang the check: a fetch that needs one fails, and so is Unknown.
 // ponytail: GIT_SSH_COMMAND wins over a core.sshCommand in git config; pass that one through if a device ever uses it.
 const ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never',
@@ -64,7 +67,7 @@ async function session() {
   try { top = (await git(cwd, ['rev-parse', '--show-toplevel'])).trim(); } catch { return null; } // not a repo: nothing to say
   const s = await inspect(top);
   const lines = [];
-  let ask = !!s.unknown;
+  let behind = false;
   if (s.unknown) lines.push(`Unknown: ${s.unknown}`);
   if (s.noRemote) lines.push('no remote');
   else for (const b of s.branches) {
@@ -72,11 +75,12 @@ async function session() {
       : b.name === s.defaultBranch && b.behind ? `behind ${b.upstream} by ${b.behind}` : '';
     if (!d) continue;
     lines.push(`branch ${b.name}: ${d}`);
-    if (b.behind) ask = true;
+    if (b.behind) behind = true;
   }
   if (s.dirty) lines.push('uncommitted changes');
   if (!lines.length) return null;
-  return `Drift check for ${top}:\n${lines.map((l) => `- ${l}`).join('\n')}${ask ? `\n${ASK}` : ''}`;
+  const rule = s.unknown || (behind && s.dirty) ? ASK : behind ? FF : '';
+  return `Drift check for ${top}:\n${lines.map((l) => `- ${l}`).join('\n')}${rule ? `\n${rule}` : ''}`;
 }
 
 // Written synchronously: the deadline below exits right after.

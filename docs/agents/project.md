@@ -38,7 +38,7 @@ Worktree: yes
 
 Production in this repo — these commands belong to the owner:
 
-- None. `git push` follows `global.md`: another device takes the template only through a pull, and its Drift report asks first.
+- None.
 
 ## Rules and lessons
 

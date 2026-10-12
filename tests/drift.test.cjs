@@ -43,17 +43,19 @@ function session(cwd) {
   assert.strictEqual(out.systemMessage, out.hookSpecificOutput.additionalContext, 'owner and agent see the same text');
   return out.hookSpecificOutput.additionalContext;
 }
-const ASK = 'ask the owner';
-function expect(text, has, ask, what) {
+const RULES = { ask: 'ask the owner with AskUserQuestion', ff: 'without asking' };
+function expect(text, has, rule, what) { // rule: 'ask', 'ff' or false
   assert.ok(text, `${what}: no output`);
   for (const h of has) assert.ok(text.includes(h), `${what}: missing "${h}" in:\n${text}`);
-  assert.strictEqual(text.includes(ASK), ask, `${what}: ask should be ${ask}:\n${text}`);
+  for (const [k, v] of Object.entries(RULES)) assert.strictEqual(text.includes(v), rule === k, `${what}: ${k} should be ${rule === k}:\n${text}`);
 }
 
 // SessionStart.
 assert.strictEqual(session(clone('synced')), null, 'in sync: silent');
 let d = clone('behind'); advance(d);
-expect(session(d), ['branch main: behind origin/main by 1'], true, 'behind');
+expect(session(d), ['branch main: behind origin/main by 1'], 'ff', 'behind, clean');
+fs.writeFileSync(path.join(d, 'a.txt'), 'changed');
+expect(session(d), ['branch main: behind origin/main by 1', 'uncommitted changes'], 'ask', 'behind, dirty');
 d = clone('ahead'); commit(d, 'x.txt');
 expect(session(d), ['branch main: ahead of origin/main by 1'], false, 'ahead');
 d = clone('dirty'); fs.writeFileSync(path.join(d, 'a.txt'), 'changed');
@@ -64,18 +66,18 @@ d = clone('local-branch'); sh(d, 'checkout', '-q', '-b', 'feature');
 expect(session(d), ['branch feature: no upstream'], false, 'branch with no upstream');
 d = clone('dev');
 sh(d, 'checkout', '-q', '-b', 'dev'); sh(d, 'push', '-q', '-u', 'origin', 'dev'); advance(d, 'dev'); advance(d, 'dev');
-expect(session(d), ['branch dev: behind origin/dev by 2'], true, 'current non-default branch behind');
+expect(session(d), ['branch dev: behind origin/dev by 2'], 'ff', 'current non-default branch behind');
 d = clone('wt-main'); advance(d);
 const wt = path.join(d, '.claude', 'worktrees', 'x');
 sh(d, 'worktree', 'add', '-q', wt, '-b', 'x');
-expect(session(wt), ['branch x: no upstream', 'branch main: behind origin/main by 1'], true, 'worktree, main behind');
+expect(session(wt), ['branch x: no upstream', 'branch main: behind origin/main by 1'], 'ff', 'worktree, main behind');
 d = clone('no-remote'); sh(d, 'remote', 'remove', 'origin');
 expect(session(d), ['no remote'], false, 'no remote');
 assert.ok(!session(d).includes('no upstream'), 'no remote: branches are not reported as no upstream');
 fs.writeFileSync(path.join(d, 'new.txt'), 'x');
 expect(session(d), ['no remote', 'uncommitted changes'], false, 'no remote, uncommitted changes');
 d = clone('bad-remote'); sh(d, 'remote', 'set-url', 'origin', path.join(T, 'gone.git'));
-expect(session(d), ['Unknown: fetch failed'], true, 'remote unreachable');
+expect(session(d), ['Unknown: fetch failed'], 'ask', 'remote unreachable');
 fs.mkdirSync(path.join(T, 'plain'));
 assert.strictEqual(session(path.join(T, 'plain')), null, 'not a repo: silent');
 

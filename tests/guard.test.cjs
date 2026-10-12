@@ -57,9 +57,14 @@ expect(bash(main, `git -C ${wt} push origin feature`), 'ask', 'git -C push');
 expect(bash(main, 'npm test && git push'), 'ask', 'push after &&');
 expect(bash(main, 'git push -u origin main'), 'ask', 'push -u');
 expect(bash(main, 'git push git@github.com:o/r.git main'), 'ask', 'push to an scp-style URL');
+for (const p of ['-odeploy', '-o ci.skip:yes origin main', '--push-option a:b', '--receive-pack C:/x origin',
+  '-uo a:b', '--repo=origin', '-- origin main']) {
+  expect(bash(main, `git push ${p}`), 'ask', `git push ${p}: a value is not a flag or refspec`);
+}
 expect(bash(main, 'git status; git push --force'), 'deny', 'push --force after ;');
-for (const p of ['-f', '-uf', '--force-with-lease', '--force-with-lease=main', '--delete', '-d', '--tags',
-  '--follow-tags', '--mirror', '--all', '--prune', 'origin +main', 'origin :old', 'origin HEAD:main']) {
+for (const p of ['-f', '-uf', '--force-with-lease', '--force-with-lease=main', '--force-if-includes', '--delete', '-d',
+  '--tags', '--follow-tags', '--mirror', '--all', '--branches', '--prune', 'origin +main', 'origin :old',
+  'origin HEAD:main', '-fo x', '-- origin +main']) {
   expect(bash(main, `git push ${p}`), 'deny', `git push ${p}`);
 }
 expect(bash(main, 'git push -f && git commit -am x'), 'deny', 'force push before a pathless commit');
