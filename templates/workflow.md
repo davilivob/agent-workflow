@@ -6,7 +6,9 @@ Everything that differs per project lives in `docs/agents/project.md`: `Worktree
 
 ## When a grill applies
 
-Anything with a design decision the owner has to make starts with a grill, then takes one of the **Routes** below to `main`. `project.md` lists changes that are always a design decision; they always get a grill, not necessarily a spec.
+Anything with a design decision the owner has to make starts with a grill, then takes one of the **Routes** below to `main`. `project.md` lists changes that are always a design decision, including anything the owner said they want to try first; they always get a grill, not necessarily a spec.
+
+**A technical decision is yours**: one that changes no existing behaviour — what the user or the owner can observe; in a repo of rules or docs the text itself is the behaviour, so changing it is never technical. Make it and give a one-line reason instead of asking. In a grill, write it into the round as "Decided: X, because Y", so the owner can overrule it; the reason lands where the work is recorded — the spec, or the commit message where there is none. Everything else is a design decision.
 
 Do these without a grill (unlike Direct, which is grilled first):
 
@@ -73,7 +75,7 @@ The grill, plus `/to-spec` where there is a spec, replaces `superpowers:brainsto
 
 Before the first change in a batch of work, write one line: "I take <the owner's sentence> as authorization; next I do X." If no sentence can be quoted, there is no authorization yet: ask. It is an output rule, so the owner can interrupt when the line is missing. Two ways it goes wrong with the right sentence quoted:
 
-- **A ruling is not a write permission.** The owner settling how the system should behave is not leave to edit files; the two are asked for separately.
+- **A ruling is not a write permission.** The owner settling how the system should behave, or handing a decision over ("that's technical, you decide"), is not leave to edit files; the two are asked for separately.
 - **The scope does not grow by itself.** It covers what the owner named, not a file inferred along the way.
 
 ## What is said in chat goes into its file
