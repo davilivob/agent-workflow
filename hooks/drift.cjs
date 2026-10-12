@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Drift check: one check, two entry points.
-//   --session  SessionStart hook: reads hook JSON on stdin, checks the session's repo, prints context for the agent.
+//   --session  SessionStart hook: reads hook JSON on stdin, checks the session's repo, prints context for the agent,
+//              always headed by this device's Device code (from ~/.claude/device) for the Session title.
 //   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots,
 //              except Retired repos (under a `!` line there), which it only counts.
 // The only write it makes to a repo is `git fetch`. Whatever it cannot confirm is Unknown, never "no Drift".
@@ -12,6 +13,7 @@ const { execFile } = require('child_process');
 const FETCH_TIMEOUT = 15000;
 const SESSION_DEADLINE = 25000; // under the 30 s hook timeout setup.sh registers: a killed hook would print nothing
 const ROOTS = path.join(os.homedir(), '.claude', 'drift-roots');
+const DEVICE = path.join(os.homedir(), '.claude', 'device');
 // Copies of the Drift rule in global.md, which stays the source: change both together.
 const ASK =
   'Per global.md: before changing any file, ask the owner with AskUserQuestion: `pull --ff-only`, leave it, or stop.';
@@ -84,9 +86,16 @@ async function session() {
   return `Drift check for ${top}:\n${lines.map((l) => `- ${l}`).join('\n')}${rule ? `\n${rule}` : ''}`;
 }
 
-// Written synchronously: the deadline below exits right after.
+function device() {
+  try { const code = fs.readFileSync(DEVICE, 'utf8').trim(); if (code) return `Device: ${code}`; } catch {}
+  return `Device: ? (no ${DEVICE}: use ? as the Device code in the Session title)`;
+}
+
+// Written synchronously: the deadline below exits right after. The Device line is for the agent only.
 function emit(text) {
-  fs.writeSync(1, JSON.stringify({ systemMessage: text, hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text } }));
+  const out = { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text ? `${device()}\n${text}` : device() } };
+  if (text) out.systemMessage = text;
+  fs.writeSync(1, JSON.stringify(out));
 }
 
 // A directory holding a .git directory is a repo; nothing inside it is searched.
@@ -159,7 +168,7 @@ if (process.argv[2] === '--session') { // a check that broke or ran out of time 
     emit(`Drift check: Unknown, it did not finish within ${SESSION_DEADLINE / 1000}s.\n${ASK}`);
     process.exit(0);
   }, SESSION_DEADLINE);
-  session().then((text) => { if (text) emit(text); }, (e) => emit(`Drift check: Unknown, the check itself failed (${e.message}).\n${ASK}`))
+  session().then(emit, (e) => emit(`Drift check: Unknown, the check itself failed (${e.message}).\n${ASK}`))
     .finally(() => clearTimeout(deadline));
 } else {
   cli().then((code) => { process.exitCode = code; }, (e) => { console.error(`drift: Unknown, the check failed: ${e.message}`); process.exitCode = 2; });

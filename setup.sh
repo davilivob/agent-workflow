@@ -127,4 +127,7 @@ if ! command -v drift >/dev/null 2>&1; then
   todo "add $BIN to PATH (macOS: in ~/.zshrc; Windows: the user Path environment variable), so the drift command works"
 fi
 
+# 6. The Device code differs per device too: the Drift check hook hands it to the agent for the Session title.
+[ -s "$HOME/.claude/device" ] || todo "create ~/.claude/device holding this device's Device code on one line (studio, mbp or win), for the Session title"
+
 [ -z "$CHECK" ] || [ -z "$BAD" ] || exit 1

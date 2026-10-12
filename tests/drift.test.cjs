@@ -11,6 +11,9 @@ process.on('exit', () => fs.rmSync(T, { recursive: true, force: true }));
 
 const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' };
 delete env.CLAUDE_PROJECT_DIR; // the session running this test may set it
+const HOME = path.join(T, 'home'); // holds .claude/device; USERPROFILE is what os.homedir() reads on Windows
+fs.mkdirSync(path.join(HOME, '.claude'), { recursive: true });
+env.HOME = env.USERPROFILE = HOME;
 const sh = (cwd, ...args) => execFileSync('git', args, { cwd, env, stdio: 'ignore' });
 const commit = (dir, file) => { fs.writeFileSync(path.join(dir, file), file); sh(dir, 'add', file); sh(dir, 'commit', '-q', '-m', file); };
 
@@ -35,13 +38,18 @@ function advance(dir, branch = 'main') {
   sh(other, 'push', '-q');
 }
 
+// Returns the Drift report, or null; the Device line, always first and for the agent only, goes to lastDevice.
+let lastDevice;
 function session(cwd) {
   const r = spawnSync('node', [DRIFT, '--session'], { input: JSON.stringify({ hook_event_name: 'SessionStart', cwd }), env, encoding: 'utf8' });
   assert.strictEqual(r.status, 0, `drift --session exited ${r.status}: ${r.stderr}`);
-  if (!r.stdout) return null;
   const out = JSON.parse(r.stdout);
-  assert.strictEqual(out.systemMessage, out.hookSpecificOutput.additionalContext, 'owner and agent see the same text');
-  return out.hookSpecificOutput.additionalContext;
+  const [first, ...rest] = out.hookSpecificOutput.additionalContext.split('\n');
+  assert.ok(first.startsWith('Device: '), `no Device line first:\n${out.hookSpecificOutput.additionalContext}`);
+  lastDevice = first;
+  const text = rest.join('\n') || null;
+  assert.strictEqual(out.systemMessage, text ?? undefined, 'owner sees the Drift report, without the Device line');
+  return text;
 }
 const RULES = { ask: 'ask the owner with AskUserQuestion', ff: 'without asking' };
 function expect(text, has, rule, what) { // rule: 'ask', 'ff' or false
@@ -52,6 +60,10 @@ function expect(text, has, rule, what) { // rule: 'ask', 'ff' or false
 
 // SessionStart.
 assert.strictEqual(session(clone('synced')), null, 'in sync: silent');
+assert.ok(lastDevice.startsWith('Device: ? '), `no device file: ${lastDevice}`);
+fs.writeFileSync(path.join(HOME, '.claude', 'device'), 'mbp\r\n');
+assert.strictEqual(session(T), null, 'not a repo: silent');
+assert.strictEqual(lastDevice, 'Device: mbp', 'device file read and trimmed');
 let d = clone('behind'); advance(d);
 expect(session(d), ['branch main: behind origin/main by 1'], 'ff', 'behind, clean');
 fs.writeFileSync(path.join(d, 'a.txt'), 'changed');

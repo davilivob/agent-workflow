@@ -17,6 +17,7 @@ printf '#!/bin/sh\n' > "$T/bin/graphify"
 cp "$T/bin/graphify" "$T/bin/drift"  # the drift command "on PATH"
 chmod +x "$T/bin/npx" "$T/bin/graphify" "$T/bin/drift"
 touch "$T/.claude/drift-roots"
+echo win > "$T/.claude/device"
 NODE=$(command -v node)  # captured once: the shell caches lookups, so a later `command -v` can find the fake
 ln -s "$NODE" "$T/bin/node"  # the real node: the Guard section needs it
 echo '{"plugins":{"superpowers@x":[]}}' > "$T/.claude/plugins/installed_plugins.json"
@@ -119,6 +120,13 @@ rc=0; out=$(HOME="$T" sh "$KIT/setup.sh" --check) || rc=$?
 echo "$out" | grep -q 'TODO: create ~/.claude/drift-roots' || fail "no TODO for a missing drift-roots"
 echo "$out" | grep -q 'TODO: add .*bin to PATH' || fail "no TODO for drift not on PATH"
 touch "$T/.claude/drift-roots"; cp "$T/bin/graphify" "$T/bin/drift"
+
+# The Device code file: a TODO when missing or empty, and --check fails.
+: > "$T/.claude/device"
+rc=0; out=$(HOME="$T" sh "$KIT/setup.sh" --check) || rc=$?
+[ "$rc" = 1 ] || fail "--check exit $rc with an empty device file, want 1"
+echo "$out" | grep -q 'TODO: create ~/.claude/device' || fail "no TODO for an empty device file"
+echo win > "$T/.claude/device"
 rmdir "$T/.claude/skills/wizard" "$T/.claude/skills/retro"
 
 # Extras: recorded as mattpocock/skills, dir exists, not kept -> reported, never deleted.
