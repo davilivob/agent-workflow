@@ -41,6 +41,14 @@ done
 grep -q '"Edit|Write|NotebookEdit"' "$T/.claude/settings.json" || fail "Guard lacks the Edit matcher"
 grep -q '"keep-me"' "$T/.claude/settings.json" || fail "existing settings key lost"
 grep -q 'echo mine' "$T/.claude/settings.json" || fail "existing hook lost"
+grep -q '"language": "Traditional Chinese' "$T/.claude/settings.json" || fail "language not set"
+
+# A language the owner set is kept.
+"$NODE" -e '
+const fs = require("fs"); const f = process.argv[1]; const s = JSON.parse(fs.readFileSync(f, "utf8"));
+s.language = "mine"; fs.writeFileSync(f, JSON.stringify(s));' "$T/.claude/settings.json"
+HOME="$T" sh "$KIT/setup.sh" >/dev/null
+grep -q '"language":"mine"' "$T/.claude/settings.json" || fail "owner-set language overwritten"
 
 # An older install (Skill and Bash only) gains just the missing matcher.
 "$NODE" -e '

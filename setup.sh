@@ -83,7 +83,8 @@ if ! grep -qs '"superpowers@' "$HOME/.claude/plugins/installed_plugins.json"; th
   todo "in Claude Code, run: /plugin install superpowers@claude-plugins-official"
 fi
 
-# 4. Guard: a PreToolUse hook backing the mechanical rules in global.md and workflow.md. --check leaves it alone.
+# 4. Guard: a PreToolUse hook backing the mechanical rules in global.md and workflow.md.
+#    language: puts global.md's reply language into the system prompt, where it outlasts a long session. --check leaves both alone.
 SETTINGS="$HOME/.claude/settings.json"
 GUARD_CMD='node "$HOME/.claude/kit/hooks/guard.cjs"'
 if [ -n "$CHECK" ]; then :
@@ -99,10 +100,13 @@ if (fs.existsSync(file)) {
 const pre = ((s.hooks ??= {}).PreToolUse ??= []);
 const has = (m) => pre.some((e) => e.matcher === m && JSON.stringify(e).includes("kit/hooks/guard.cjs"));
 const missing = ["Skill", "Bash", "Edit|Write|NotebookEdit"].filter((m) => !has(m));
-if (!missing.length) process.exit(0);
+const lang = !("language" in s);  // a language the owner set stays
+if (!missing.length && !lang) process.exit(0);
 for (const matcher of missing) pre.push({ matcher, hooks: [{ type: "command", command }] });
+if (lang) s.language = "Traditional Chinese (繁體中文, never Simplified)";
 fs.writeFileSync(file, JSON.stringify(s, null, 2) + "\n");
-console.log(`installed the Guard hook for ${missing.join(", ")} in ${file}`);
+if (missing.length) console.log(`installed the Guard hook for ${missing.join(", ")} in ${file}`);
+if (lang) console.log(`set language in ${file}`);
 ' "$SETTINGS" "$GUARD_CMD"
 else
   echo "TODO: install Node.js, then re-run setup.sh: without it the Guard hook is not installed"
