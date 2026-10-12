@@ -50,7 +50,7 @@ An old spec that only says "follows X" without saying which kind: judge it once 
 
 1. **Grill**: `/grill-with-docs`. Updates `CONTEXT.md` and ADRs inline. A grill always lands in writing — a spec, an ADR, or (Direct) commit messages plus `CONTEXT.md` — never in chat alone. In the last round the owner decides `Merge:` (auto, ask or manual); the agent states the Route and whether it needs a plan, with a one-line reason, and the owner may overrule.
 2. **Spec**: the owner runs `/to-spec`. Output is `.scratch/<slug>/spec.md`, headed by `Status: ready-for-agent`, `Merge: auto | ask | manual` (missing means `manual`), `Plan: yes | no` (missing means `yes`) and `Execute: sdd | inline` (missing means `sdd`; `inline` always goes with `Plan: no`). Body in Traditional Chinese; template headings and `CONTEXT.md` terms stay in English as written in the glossary. **The owner reviews the spec**, then one commit carries the spec, `CONTEXT.md` and any ADR: `[<slug>] spec: ...`.
-3. **Plan**: `/superpowers:writing-plans .scratch/<slug>/spec.md`. Output is `.scratch/<slug>/plan.md`, not `docs/superpowers/plans/`. In English; the owner does not read it. Commit when written, without asking.
+3. **Plan**: `/superpowers:writing-plans .scratch/<slug>/spec.md`. Output is `.scratch/<slug>/plan.md`, not `docs/superpowers/plans/`. In English; the owner does not read it. Commit when written, without asking, on the branch it belongs to (see **Commits**).
    - **Write a plan only for a committed spec**: `git log main --oneline --grep=<slug>`. A spec still sitting in the working tree means the owner is still reading it; a plan written now is wasted.
    - **Write a plan only once whatever `After:` (or `Overlaps: high`) names is on `main`**: `git log main --oneline --grep=<slug>`. A plan names exact files and code shapes; written against a dependency still on another branch, it goes stale when that one merges.
    - **A `plan.md` that already exists, committed or not, is someone else's**: stop and tell the owner; never overwrite it. An uncommitted one means another session is writing it.
@@ -113,6 +113,7 @@ One line each: slug, one sentence on what it is, `Merge:`. Whatever another sess
 
 - On `main`, commit only what passed verification. Leave failing work uncommitted and say so. Task commits on a worktree branch are exempt.
 - `git add` only the files this session touched. Mention anything else left uncommitted in the working tree; do not touch it.
+- **A commit lands only on the branch of the work it belongs to.** What belongs to the work a branch was opened for — its code, and corrections to its own spec found while executing — stays on that branch and reaches `main` with the merge. Anything else goes onto `main` at once, without asking: another spec's plan, a lesson for `project.md`, an ADR, a `CONTEXT.md` term, a rule. Check first with `git branch --show-current`. Not on `main`: open `git worktree add .claude/worktrees/<name> -b <name> main` and commit there; then, in that worktree, `git merge main`, and bring `main` forward to it. If `git worktree list` shows a checkout on `main`, run `git -C <that checkout> merge --ff-only <name>` (its files move with it, and it refuses rather than touch uncommitted work there); if none is on `main`, `git fetch . <name>:main` (no checkout moves).
 - Prefix: `[<slug>]` for a feature — the full `.scratch/` directory name, or the slug picked for a Direct change; `project.md` lists any other prefixes; none otherwise.
 
 ## Owner boundary
@@ -125,6 +126,6 @@ Handing over an owner command: when the work is done, read the Terminal panel wi
 
 ## Project lessons
 
-A lesson learned about this project goes into `docs/agents/` (usually `project.md`), not into memory. Memory holds only what is specific to one device, such as a local path, because memory does not travel to the owner's other machines.
+A lesson learned about this project goes into `docs/agents/` (usually `project.md`), not into memory, and onto `main` at once (see **Commits**). Memory holds only what is specific to one device, such as a local path, because memory does not travel to the owner's other machines.
 
 A lesson about the workflow itself (this file, a kit skill, the Guard) belongs to the kit, `~/.claude/kit`, which a session outside it never edits. When one surfaces, say so in one line and suggest `/propose-to-kit`; the owner decides whether to run it.
