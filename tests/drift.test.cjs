@@ -72,6 +72,8 @@ expect(session(wt), ['branch x: no upstream', 'branch main: behind origin/main b
 d = clone('no-remote'); sh(d, 'remote', 'remove', 'origin');
 expect(session(d), ['no remote'], false, 'no remote');
 assert.ok(!session(d).includes('no upstream'), 'no remote: branches are not reported as no upstream');
+fs.writeFileSync(path.join(d, 'new.txt'), 'x');
+expect(session(d), ['no remote', 'uncommitted changes'], false, 'no remote, uncommitted changes');
 d = clone('bad-remote'); sh(d, 'remote', 'set-url', 'origin', path.join(T, 'gone.git'));
 expect(session(d), ['Unknown: fetch failed'], true, 'remote unreachable');
 fs.mkdirSync(path.join(T, 'plain'));
@@ -113,6 +115,8 @@ const quiet = clone('quiet', root);
 sh(quiet, 'branch', 'side'); // a branch other than the current one, never pushed
 sh(quiet, 'worktree', 'add', '-q', path.join(quiet, '.claude', 'worktrees', 'w'), '-b', 'w');
 const lonely = clone('lonely', root); sh(lonely, 'remote', 'remove', 'origin');
+const lonelyDirty = clone('lonely-dirty', root); sh(lonelyDirty, 'remote', 'remove', 'origin');
+fs.writeFileSync(path.join(lonelyDirty, 'new.txt'), 'x');
 const broken = clone('broken', root); sh(broken, 'remote', 'set-url', 'origin', path.join(T, 'gone.git'));
 clone('dep', path.join(root, 'node_modules')); advance(path.join(root, 'node_modules', 'dep'));
 roots(root);
@@ -122,9 +126,10 @@ assert.ok(r.out.includes(`${behind}\n  branch main: behind origin/main by 1`), `
 assert.ok(r.out.includes('branch side: no upstream') && r.out.includes('branch w: no upstream'), `every local branch:\n${r.out}`);
 assert.ok(!r.out.includes(path.join('worktrees', 'w')), `a worktree is not a repo of its own:\n${r.out}`);
 assert.ok(r.out.includes(`${lonely}\n  no remote\n`), `no remote:\n${r.out}`);
+assert.ok(r.out.includes(`${lonelyDirty}\n  no remote\n  uncommitted changes\n`), `no remote, dirty:\n${r.out}`);
 assert.ok(r.out.includes(`${broken}\n  Unknown: fetch failed`), `unreachable remote:\n${r.out}`);
 assert.ok(!r.out.includes('node_modules'), `node_modules skipped:\n${r.out}`);
-assert.ok(r.out.trimEnd().endsWith('2 with Drift, 1 Unknown, 1 no remote; 4 repos scanned'), `totals:\n${r.out}`);
+assert.ok(r.out.trimEnd().endsWith('3 with Drift, 1 Unknown, 2 no remote; 5 repos scanned'), `totals:\n${r.out}`);
 
 fs.mkdirSync(path.join(home, 'proj'));
 clone('mine', path.join(home, 'proj'));

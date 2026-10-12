@@ -8,8 +8,10 @@ const os = require('os');
 const path = require('path');
 const { execFile } = require('child_process');
 
-const FETCH_TIMEOUT = 15000; // under the 30 s hook timeout setup.sh registers
+const FETCH_TIMEOUT = 15000;
+const SESSION_DEADLINE = 25000; // under the 30 s hook timeout setup.sh registers: a killed hook would print nothing
 const ROOTS = path.join(os.homedir(), '.claude', 'drift-roots');
+// A copy of the Drift rule in global.md, which stays the source: change both together.
 const ASK =
   'Per global.md: before changing any file, ask the owner with AskUserQuestion: `pull --ff-only`, leave it, or stop.';
 // No password, SSH or credential-manager prompt may hang the check: a fetch that needs one fails, and so is Unknown.
@@ -27,7 +29,7 @@ function git(cwd, args, timeout = 10000) {
 
 // Fetches, then reads every local branch's tracking state and the working tree.
 async function inspect(dir) {
-  const s = { dir, unknown: null, noRemote: false, dirty: false, branches: [], current: null, def: 'main' };
+  const s = { dir, unknown: null, noRemote: false, dirty: false, branches: [], current: null, defaultBranch: 'main' };
   try {
     if (!(await git(dir, ['remote'])).trim()) s.noRemote = true;
     else await git(dir, ['fetch', '--all', '--quiet'], FETCH_TIMEOUT).catch((e) => { s.unknown = `fetch failed: ${e.message}`; });
@@ -38,7 +40,7 @@ async function inspect(dir) {
       s.branches.push({ name, upstream: track === '[gone]' ? '' : upstream, ahead: n('ahead'), behind: n('behind') });
     }
     s.current = (await git(dir, ['branch', '--show-current'])).trim() || null; // null: detached HEAD
-    s.def = (await git(dir, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD']).catch(() => 'origin/main'))
+    s.defaultBranch = (await git(dir, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD']).catch(() => 'origin/main'))
       .trim().replace(/^origin\//, '');
     s.dirty = !!(await git(dir, ['--no-optional-locks', 'status', '--porcelain'])).trim(); // untracked files count
   } catch (e) {
@@ -57,29 +59,34 @@ function branchDrift(b) {
 async function session() {
   let input = {};
   try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch {}
-  const cwd = process.env.CLAUDE_PROJECT_DIR || input.cwd || process.cwd();
+  const cwd = input.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd(); // cwd first, as in the Guard: it names the worktree
   let top;
-  try { top = (await git(cwd, ['rev-parse', '--show-toplevel'])).trim(); } catch { return; } // not a repo: nothing to say
+  try { top = (await git(cwd, ['rev-parse', '--show-toplevel'])).trim(); } catch { return null; } // not a repo: nothing to say
   const s = await inspect(top);
   const lines = [];
   let ask = !!s.unknown;
   if (s.unknown) lines.push(`Unknown: ${s.unknown}`);
   if (s.noRemote) lines.push('no remote');
   else for (const b of s.branches) {
-    const d = b.name === s.current ? branchDrift(b) : b.name === s.def && b.behind ? `behind ${b.upstream} by ${b.behind}` : '';
+    const d = b.name === s.current ? branchDrift(b)
+      : b.name === s.defaultBranch && b.behind ? `behind ${b.upstream} by ${b.behind}` : '';
     if (!d) continue;
     lines.push(`branch ${b.name}: ${d}`);
     if (b.behind) ask = true;
   }
-  if (s.dirty && !s.noRemote) lines.push('uncommitted changes');
-  if (!lines.length) return;
-  const text = `Drift in ${top}:\n${lines.map((l) => `- ${l}`).join('\n')}${ask ? `\n${ASK}` : ''}`;
-  process.stdout.write(JSON.stringify({ systemMessage: text,
-    hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text } }));
+  if (s.dirty) lines.push('uncommitted changes');
+  if (!lines.length) return null;
+  return `Drift check for ${top}:\n${lines.map((l) => `- ${l}`).join('\n')}${ask ? `\n${ASK}` : ''}`;
+}
+
+// Written synchronously: the deadline below exits right after.
+function emit(text) {
+  fs.writeSync(1, JSON.stringify({ systemMessage: text, hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text } }));
 }
 
 // A directory holding a .git directory is a repo; nothing inside it is searched.
 // A .git file is a linked worktree or submodule: its branches already count in its main repo.
+// ponytail: symlinked and junction directories are not followed (no loop guard needed); list their targets as roots instead.
 function find(dir, repos, unreadable) {
   let entries;
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { unreadable.push(dir); return; }
@@ -112,29 +119,28 @@ async function cli() {
   for (const d of unreadable) console.log(`${d}\n  Unknown: cannot read directory`);
   if (!repos.length) { console.error(`drift: no git repos found under ${roots.join(', ')}. ${usage}`); return 2; }
 
-  const t = { drift: 0, unknown: unreadable.length, noRemote: 0 };
+  const totals = { drift: 0, unknown: unreadable.length, noRemote: 0 };
   for (const s of await pool(repos, 8, inspect)) {
     const lines = [];
-    if (s.unknown) { lines.push(`Unknown: ${s.unknown}`); t.unknown++; }
-    if (s.noRemote) { lines.push('no remote'); t.noRemote++; }
-    else {
-      const before = lines.length;
-      for (const b of s.branches) { const d = branchDrift(b); if (d) lines.push(`branch ${b.name}: ${d}`); }
-      if (s.dirty) lines.push('uncommitted changes');
-      if (lines.length > before) t.drift++;
-    }
+    if (s.unknown) { lines.push(`Unknown: ${s.unknown}`); totals.unknown++; }
+    if (s.noRemote) { lines.push('no remote'); totals.noRemote++; }
+    const before = lines.length;
+    if (!s.noRemote) for (const b of s.branches) { const d = branchDrift(b); if (d) lines.push(`branch ${b.name}: ${d}`); }
+    if (s.dirty) lines.push('uncommitted changes');
+    if (lines.length > before) totals.drift++;
     if (lines.length) console.log(`${s.dir}\n${lines.map((l) => `  ${l}`).join('\n')}`);
   }
-  console.log(`${t.drift} with Drift, ${t.unknown} Unknown, ${t.noRemote} no remote; ${repos.length} repos scanned`);
-  return missing.length || t.unknown || t.drift ? 1 : 0;
+  console.log(`${totals.drift} with Drift, ${totals.unknown} Unknown, ${totals.noRemote} no remote; ${repos.length} repos scanned`);
+  return missing.length || totals.unknown || totals.drift ? 1 : 0;
 }
 
-if (process.argv[2] === '--session') {
-  session().catch((e) => { // a check that broke is Unknown, never silence
-    const text = `Drift: Unknown, the check itself failed (${e.message}).\n${ASK}`;
-    process.stdout.write(JSON.stringify({ systemMessage: text,
-      hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text } }));
-  });
+if (process.argv[2] === '--session') { // a check that broke or ran out of time is Unknown, never silence
+  const deadline = setTimeout(() => {
+    emit(`Drift check: Unknown, it did not finish within ${SESSION_DEADLINE / 1000}s.\n${ASK}`);
+    process.exit(0);
+  }, SESSION_DEADLINE);
+  session().then((text) => { if (text) emit(text); }, (e) => emit(`Drift check: Unknown, the check itself failed (${e.message}).\n${ASK}`))
+    .finally(() => clearTimeout(deadline));
 } else {
   cli().then((code) => { process.exitCode = code; }, (e) => { console.error(`drift: Unknown, the check failed: ${e.message}`); process.exitCode = 2; });
 }
