@@ -72,8 +72,8 @@ Done when: every draft is taken, added to an existing Proposal, or dropped.
    EOF
    ```
 
-Report the commit (hash and message) first. If the kit has a remote, hand over the push in its own `bash` block:
+Report the commit (hash and message) first. If the kit has a remote, hand over the push as `workflow.md` says, written for the owner's shell:
 
-```bash
+```
 git -C ~/.claude/kit push
 ```
