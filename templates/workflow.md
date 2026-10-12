@@ -8,6 +8,8 @@ Everything that differs per project lives in `docs/agents/project.md`: `Worktree
 
 Anything with a design decision the owner has to make starts with a grill, then takes one of the **Routes** below to `main`. `project.md` lists changes that are always a design decision; they always get a grill, not necessarily a spec.
 
+**A purely technical decision is yours**, as long as no existing behaviour changes: make it and give a one-line reason, instead of asking. What goes to the owner is what changes behaviour, what `project.md` lists as always a design decision, and anything the owner said they want to try first. Being handed a decision ("that's technical, you decide") settles who decides; it is not leave to act on it — see "Say where the authorization came from".
+
 Do these without a grill (unlike Direct, which is grilled first):
 
 - Bugs: use `diagnosing-bugs`.
