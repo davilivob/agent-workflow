@@ -48,7 +48,7 @@ When one grill splits into several specs, or a new spec intersects another spec 
 
 An old spec that only says "follows X" without saying which kind: judge it once by the rules above, then decide whether to wait.
 
-1. **Grill**: `/grill-with-docs`. Updates `CONTEXT.md` and ADRs inline. A grill always lands in writing — a spec, an ADR, or (Direct) commit messages plus `CONTEXT.md` — never in chat alone. In the last round the owner decides `Merge:` (auto, ask or manual); the agent states the Route and whether it needs a plan, with a one-line reason, and the owner may overrule.
+1. **Grill**: `/grill-with-docs`. Updates `CONTEXT.md` and ADRs inline. A grill always lands in writing — a spec, an ADR, or (Direct) commit messages plus `CONTEXT.md` — never in chat alone (see **What is said in chat goes into its file**). In the last round the owner decides `Merge:` (auto, ask or manual); the agent states the Route and whether it needs a plan, with a one-line reason, and the owner may overrule.
 2. **Spec**: the owner runs `/to-spec`. Output is `.scratch/<slug>/spec.md`, headed by `Status: ready-for-agent`, `Merge: auto | ask | manual` (missing means `manual`), `Plan: yes | no` (missing means `yes`) and `Execute: sdd | inline` (missing means `sdd`; `inline` always goes with `Plan: no`). Body in Traditional Chinese; template headings and `CONTEXT.md` terms stay in English as written in the glossary. **The owner reviews the spec**, then one commit carries the spec, `CONTEXT.md` and any ADR: `[<slug>] spec: ...`.
 3. **Plan**: `/superpowers:writing-plans .scratch/<slug>/spec.md`. Output is `.scratch/<slug>/plan.md`, not `docs/superpowers/plans/`. In English; the owner does not read it. Commit when written, without asking, on the branch it belongs to (see **Commits**).
    - **Write a plan only for a committed spec**: `git log main --oneline --grep=<slug>`. A spec still sitting in the working tree means the owner is still reading it; a plan written now is wasted.
@@ -75,6 +75,10 @@ Before the first change in a batch of work, write one line: "I take <the owner's
 
 - **A ruling is not a write permission.** The owner settling how the system should behave is not leave to edit files; the two are asked for separately.
 - **The scope does not grow by itself.** It covers what the owner named, not a file inferred along the way.
+
+## What is said in chat goes into its file
+
+What is said in chat that changes what gets built goes into its file in the same turn: not at the end of the task, not once it settles. The spec, `CONTEXT.md`, an ADR or `project.md`, whichever the statement belongs to. The conversation is lost at the next compaction, and the next session reads only files. A grill landing in writing (step 1) is one case of this.
 
 ## "Continue"
 
