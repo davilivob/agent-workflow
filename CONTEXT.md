@@ -34,3 +34,15 @@ _Avoid_: queue, backlog
 **Triage**:
 The first look at a Proposal the owner picks from the Inbox: what it says, why, what it would touch, and a recommended verdict — apply, drop, or grill. The owner decides; triage only recommends.
 _Avoid_: review, screening
+
+**Drift**:
+A local repo differing from its remote: behind, ahead, uncommitted changes, or a branch with no upstream.
+_Avoid_: out of sync, unsynced
+
+**Unknown**:
+The state when Drift cannot be checked (the remote could not be reached). Never the same as no Drift.
+_Avoid_: synced, clean
+
+**Silent failure**:
+A toolchain or environment failure that reports nothing, or reports something other than its cause, and cost more than half an hour. Recorded per repo so nobody follows the wrong lead twice; unlike a lesson, it says how a tool misleads, not how the agent should work.
+_Avoid_: gotcha, landmine, known issue

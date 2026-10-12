@@ -10,7 +10,7 @@ Anything with a design decision the owner has to make starts with a grill, then 
 
 Do these without a grill (unlike Direct, which is grilled first):
 
-- Bugs: use `diagnosing-bugs`.
+- Bugs: use `diagnosing-bugs`; read `docs/silent-failures.md` first, if it exists.
 - Small changes with no design decision (copy, a single value).
   - **Ask first, even during a grill.** When the answer to a grill question settles a change too small to need a spec, first use `AskUserQuestion` to ask "do it now / put it in the spec", and act only once answered; do not announce it and then change and commit. This exemption only decides whether a spec is needed; it does not mean you may skip asking.
 - Pure content writes, as `project.md` defines them.
@@ -48,9 +48,9 @@ When one grill splits into several specs, or a new spec intersects another spec 
 
 An old spec that only says "follows X" without saying which kind: judge it once by the rules above, then decide whether to wait.
 
-1. **Grill**: `/grill-with-docs`. Updates `CONTEXT.md` and ADRs inline. A grill always lands in writing — a spec, an ADR, or (Direct) commit messages plus `CONTEXT.md` — never in chat alone. In the last round the owner decides `Merge:` (auto, ask or manual); the agent states the Route and whether it needs a plan, with a one-line reason, and the owner may overrule.
+1. **Grill**: `/grill-with-docs`. Updates `CONTEXT.md` and ADRs inline. A grill always lands in writing — a spec, an ADR, or (Direct) commit messages plus `CONTEXT.md` — never in chat alone (see **What is said in chat goes into its file**). In the last round the owner decides `Merge:` (auto, ask or manual); the agent states the Route and whether it needs a plan, with a one-line reason, and the owner may overrule.
 2. **Spec**: the owner runs `/to-spec`. Output is `.scratch/<slug>/spec.md`, headed by `Status: ready-for-agent`, `Merge: auto | ask | manual` (missing means `manual`), `Plan: yes | no` (missing means `yes`) and `Execute: sdd | inline` (missing means `sdd`; `inline` always goes with `Plan: no`). Body in Traditional Chinese; template headings and `CONTEXT.md` terms stay in English as written in the glossary. **The owner reviews the spec**, then one commit carries the spec, `CONTEXT.md` and any ADR: `[<slug>] spec: ...`.
-3. **Plan**: `/superpowers:writing-plans .scratch/<slug>/spec.md`. Output is `.scratch/<slug>/plan.md`, not `docs/superpowers/plans/`. In English; the owner does not read it. Commit when written, without asking.
+3. **Plan**: `/superpowers:writing-plans .scratch/<slug>/spec.md`. Output is `.scratch/<slug>/plan.md`, not `docs/superpowers/plans/`. In English; the owner does not read it. Commit when written, without asking, on the branch it belongs to (see **Commits**).
    - **Write a plan only for a committed spec**: `git log main --oneline --grep=<slug>`. A spec still sitting in the working tree means the owner is still reading it; a plan written now is wasted.
    - **Write a plan only once whatever `After:` (or `Overlaps: high`) names is on `main`**: `git log main --oneline --grep=<slug>`. A plan names exact files and code shapes; written against a dependency still on another branch, it goes stale when that one merges.
    - **A `plan.md` that already exists, committed or not, is someone else's**: stop and tell the owner; never overwrite it. An uncommitted one means another session is writing it.
@@ -75,6 +75,10 @@ Before the first change in a batch of work, write one line: "I take <the owner's
 
 - **A ruling is not a write permission.** The owner settling how the system should behave is not leave to edit files; the two are asked for separately.
 - **The scope does not grow by itself.** It covers what the owner named, not a file inferred along the way.
+
+## What is said in chat goes into its file
+
+What is said in chat that changes what gets built goes into its file in the same turn: not at the end of the task, not once it settles. The spec, `CONTEXT.md`, an ADR or `project.md`, whichever the statement belongs to. The conversation is lost at the next compaction, and the next session reads only files. A grill landing in writing (step 1) is one case of this.
 
 ## "Continue"
 
@@ -113,18 +117,21 @@ One line each: slug, one sentence on what it is, `Merge:`. Whatever another sess
 
 - On `main`, commit only what passed verification. Leave failing work uncommitted and say so. Task commits on a worktree branch are exempt.
 - `git add` only the files this session touched. Mention anything else left uncommitted in the working tree; do not touch it.
+- **A commit lands only on the branch of the work it belongs to.** What belongs to the work a branch was opened for — its code, and corrections to its own spec found while executing — stays on that branch and reaches `main` with the merge. Anything else goes onto `main` at once, without asking: another spec's plan, a lesson for `project.md`, a `docs/silent-failures.md` entry, an ADR, a `CONTEXT.md` term, a rule. Check first with `git branch --show-current`. Not on `main`: open `git worktree add .claude/worktrees/<name> -b <name> main` and commit there; then, in that worktree, `git merge main`, and bring `main` forward to it. If `git worktree list` shows a checkout on `main`, run `git -C <that checkout> merge --ff-only <name>` (its files move with it, and it refuses rather than touch uncommitted work there); if none is on `main`, `git fetch . <name>:main` (no checkout moves).
 - Prefix: `[<slug>]` for a feature — the full `.scratch/` directory name, or the slug picked for a Direct change; `project.md` lists any other prefixes; none otherwise.
 
 ## Owner boundary
 
 The rule that production writes, SSH and `git push` belong to the owner is in `global.md`. `project.md` lists exactly what counts as production and which operations are whose.
 
-The boundary is this agreement, not whatever the permission classifier allows on a given day. Never attempt what belongs to the owner. When a command that belongs to you is declined, say "this command was declined" and hand over the exact command; never say "I have no permission".
+The boundary is this agreement, not whatever the permission classifier allows on a given day. Never attempt what belongs to the owner. When a command that belongs to you is declined, say "this command was declined", quote the refusal, and hand over that exact command; never say "I have no permission". Hand over only a command that was itself run and declined: never one because a different command was declined earlier, or because it might be. Step 4's wrap-up (`git worktree remove`, deleting the branch) is yours like any other.
 
 Handing over an owner command: when the work is done, read the Terminal panel with `read_terminal` first to see which shell the owner's terminal runs, and write each command for that shell, not for your own Bash tool: its paths, its syntax, and a fenced block tagged with its name (` ```bash `, ` ```powershell `). One command per block, no prompt, no output inside, `cd` to the repo first if the session sits in a worktree. The desktop app turns that block into a Run button in the Terminal panel. Once the owner has run it, read the output with `read_terminal` and report what it says — don't ask them to paste it.
 
 ## Project lessons
 
-A lesson learned about this project goes into `docs/agents/` (usually `project.md`), not into memory. Memory holds only what is specific to one device, such as a local path, because memory does not travel to the owner's other machines.
+A lesson learned about this project goes into `docs/agents/` (usually `project.md`), not into memory, and onto `main` at once (see **Commits**). Memory holds only what is specific to one device, such as a local path, because memory does not travel to the owner's other machines.
 
 A lesson about the workflow itself (this file, a kit skill, the Guard) belongs to the kit, `~/.claude/kit`, which a session outside it never edits. When one surfaces, say so in one line and suggest `/propose-to-kit`; the owner decides whether to run it.
+
+A **silent failure** — a toolchain or environment failure that cost more than half an hour and whose message pointed at the wrong cause, or said nothing — goes into `docs/silent-failures.md`, not into `project.md`: a lesson says how to work, this says how a tool misleads. One entry each: the toolchain and its version, what you see, what it actually was, how to tell, what to do; a symptom index at the top, updated with each entry. A wrong lead is recorded as one, so nobody follows it twice. The project's own code does not go here. A resolved entry stays, marked with the version or change that resolved it. Not a diary, not a changelog. Write an entry without asking and put it on `main` at once (see **Commits**); create the file with its first entry.
