@@ -10,7 +10,10 @@ const { execFileSync } = require('child_process');
 const BRAINSTORM =
   'Guard: this repo follows the kit workflow — grill plus /to-spec replace superpowers:brainstorming. ' +
   'Do not retry; run the grill instead.';
-const PUSH = 'Guard: `git push` belongs to the owner (global.md). Approve only if you meant to push.';
+const PUSH = 'Guard: an agent pushes only when the owner asks (global.md). Approve only if you asked for this push.';
+const PUSH_OWNER =
+  'Guard: force, delete, tag, mirror and refspec pushes belong to the owner (global.md). ' +
+  'Do not retry; hand the command over.';
 const COMMIT =
   'Guard: on the main checkout `git commit` must take paths — other sessions share the index (global.md). ' +
   "Retry as `git commit <paths> -F - <<'EOF'` with the message in the heredoc, or `git commit -m <msg> -- <paths>`. " +
@@ -19,6 +22,18 @@ const COMMIT =
 const KIT_EDIT =
   "Guard: a session outside the kit does not edit the kit; only its inbox/ takes Proposals (the kit's docs/agents/project.md). " +
   'Do not retry; write a Proposal with /propose-to-kit instead.';
+
+// Push options that rewrite, remove or publish more than the current branch's fast-forward.
+const PUSH_OWNER_LONG = new Set(['--force', '--force-with-lease', '--force-if-includes', '--delete', '--tags',
+  '--follow-tags', '--mirror', '--all', '--branches', '--prune']);
+
+// True when a push is more than a plain fast-forward to its upstream: an owner-only flag, or a refspec with + or :.
+// ponytail: a bare tag name as refspec (`git push origin v1`) looks like a branch here; the ask still catches it.
+function ownerPush(args) {
+  const refspecs = args.filter((a) => !a.startsWith('-')).slice(1); // the first positional is the repository
+  return args.some((a) => PUSH_OWNER_LONG.has(a.split('=')[0]) || (/^-[^-]/.test(a) && /[fd]/.test(a.slice(1))))
+    || refspecs.some((r) => /^\+|:/.test(r));
+}
 
 // Options of `git commit` that consume the next argument when not written as --opt=value.
 const VALUE_LONG = new Set(['--message', '--file', '--reuse-message', '--reedit-message', '--author', '--date',
@@ -174,7 +189,7 @@ function checkBash(command, cwd) {
     if (seg[0] === 'cd' && seg.length === 2) { dir = path.resolve(dir, seg[1]); continue; }
     const call = gitCall(seg);
     if (!call) continue;
-    if (call.sub === 'push') { ask = true; continue; }
+    if (call.sub === 'push') { if (ownerPush(call.args)) return ['deny', PUSH_OWNER]; ask = true; continue; }
     if (call.sub !== 'commit') continue;
     const s = commitShape(call.args);
     if ((s.paths && !s.all) || (s.amend && s.only)) continue;

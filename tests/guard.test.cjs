@@ -51,11 +51,18 @@ expect(skill(path.join(T, 'x'), 'superpowers:brainstorming', { CLAUDE_PROJECT_DI
 expect(skill(main, 'superpowers:brainstorming'), 'none', 'brainstorming, no workflow');
 expect(skill(flow, 'superpowers:writing-plans'), 'none', 'other skill');
 
-// push: always ask, however it is written.
+// push: a plain push asks, however it is written; force, delete, tag, mirror and refspec pushes are denied.
 expect(bash(main, 'git push'), 'ask', 'git push');
 expect(bash(main, `git -C ${wt} push origin feature`), 'ask', 'git -C push');
 expect(bash(main, 'npm test && git push'), 'ask', 'push after &&');
-expect(bash(main, 'git status; git push --force'), 'ask', 'push after ;');
+expect(bash(main, 'git push -u origin main'), 'ask', 'push -u');
+expect(bash(main, 'git push git@github.com:o/r.git main'), 'ask', 'push to an scp-style URL');
+expect(bash(main, 'git status; git push --force'), 'deny', 'push --force after ;');
+for (const p of ['-f', '-uf', '--force-with-lease', '--force-with-lease=main', '--delete', '-d', '--tags',
+  '--follow-tags', '--mirror', '--all', '--prune', 'origin +main', 'origin :old', 'origin HEAD:main']) {
+  expect(bash(main, `git push ${p}`), 'deny', `git push ${p}`);
+}
+expect(bash(main, 'git push -f && git commit -am x'), 'deny', 'force push before a pathless commit');
 expect(bash(main, "# don't forget\ngit push"), 'ask', 'apostrophe in a # comment');
 expect(bash(main, 'ls # ; git push'), 'none', '; inside a # comment');
 expect(bash(main, '# note\ngit commit -m msg'), 'deny', 'commit after a # comment line');
