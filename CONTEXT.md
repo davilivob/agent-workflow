@@ -5,7 +5,7 @@ The owner's agent workflow: the rules, templates and skills every project and de
 ## Language
 
 **Owner**:
-The one person who decides designs, reviews specs, and alone runs `git push`, production writes and SSH.
+The one person who decides designs, reviews specs, and alone runs production writes and SSH — and `git push` where a project reserves it. An agent pushes only when the owner asks.
 _Avoid_: user, maintainer
 
 **Template**:
