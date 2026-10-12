@@ -38,6 +38,10 @@ Production in this repo — these commands belong to the owner:
 
 {{PRODUCTION}}
 
+## Remote
+
+{{REMOTE}}
+
 ## Rules and lessons
 
 - None yet.
