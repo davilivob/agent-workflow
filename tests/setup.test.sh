@@ -41,7 +41,15 @@ done
 grep -q '"Edit|Write|NotebookEdit"' "$T/.claude/settings.json" || fail "Guard lacks the Edit matcher"
 grep -q '"keep-me"' "$T/.claude/settings.json" || fail "existing settings key lost"
 grep -q 'echo mine' "$T/.claude/settings.json" || fail "existing hook lost"
-grep -q '"language": "Traditional Chinese' "$T/.claude/settings.json" || fail "language not set"
+grep -q '"language": "Traditional Chinese (繁體中文, never Simplified); code' "$T/.claude/settings.json" || fail "language not set intact"
+
+# A device with the full Guard but no language gains just the language.
+"$NODE" -e '
+const fs = require("fs"); const f = process.argv[1]; const s = JSON.parse(fs.readFileSync(f, "utf8"));
+delete s.language; fs.writeFileSync(f, JSON.stringify(s));' "$T/.claude/settings.json"
+HOME="$T" sh "$KIT/setup.sh" | grep -q 'Guard hook' && fail "full Guard reinstalled"
+grep -q '繁體中文' "$T/.claude/settings.json" || fail "language not added to a full Guard install"
+[ "$(grep -c 'kit/hooks/guard.cjs' "$T/.claude/settings.json")" = 3 ] || fail "language re-run touched the Guard"
 
 # A language the owner set is kept.
 "$NODE" -e '

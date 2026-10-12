@@ -83,8 +83,8 @@ if ! grep -qs '"superpowers@' "$HOME/.claude/plugins/installed_plugins.json"; th
   todo "in Claude Code, run: /plugin install superpowers@claude-plugins-official"
 fi
 
-# 4. Guard: a PreToolUse hook backing the mechanical rules in global.md and workflow.md.
-#    language: puts global.md's reply language into the system prompt, where it outlasts a long session. --check leaves both alone.
+# 4. Guard and language. The Guard is a PreToolUse hook backing the mechanical rules in global.md and workflow.md;
+#    language puts global.md's reply-language rule into the system prompt, where it outlasts a long session. --check leaves both alone.
 SETTINGS="$HOME/.claude/settings.json"
 GUARD_CMD='node "$HOME/.claude/kit/hooks/guard.cjs"'
 if [ -n "$CHECK" ]; then :
@@ -100,16 +100,17 @@ if (fs.existsSync(file)) {
 const pre = ((s.hooks ??= {}).PreToolUse ??= []);
 const has = (m) => pre.some((e) => e.matcher === m && JSON.stringify(e).includes("kit/hooks/guard.cjs"));
 const missing = ["Skill", "Bash", "Edit|Write|NotebookEdit"].filter((m) => !has(m));
-const lang = !("language" in s);  // a language the owner set stays
-if (!missing.length && !lang) process.exit(0);
+const needLang = !("language" in s);  // a language the owner set stays
+if (!missing.length && !needLang) process.exit(0);
 for (const matcher of missing) pre.push({ matcher, hooks: [{ type: "command", command }] });
-if (lang) s.language = "Traditional Chinese (繁體中文, never Simplified)";
+// A copy of the first rule in global.md, which stays the source: change both together.
+if (needLang) s.language = "Traditional Chinese (繁體中文, never Simplified); code, commit messages and glossary terms stay in their original language";
 fs.writeFileSync(file, JSON.stringify(s, null, 2) + "\n");
 if (missing.length) console.log(`installed the Guard hook for ${missing.join(", ")} in ${file}`);
-if (lang) console.log(`set language in ${file}`);
+if (needLang) console.log(`set language in ${file}`);
 ' "$SETTINGS" "$GUARD_CMD"
 else
-  echo "TODO: install Node.js, then re-run setup.sh: without it the Guard hook is not installed"
+  echo "TODO: install Node.js, then re-run setup.sh: without it the Guard hook is not installed and language is not set"
 fi
 
 [ -z "$CHECK" ] || [ -z "$BAD" ] || exit 1

@@ -5,7 +5,7 @@ The owner's agent workflow, shared by every project and device:
 - `templates/` — the workflow docs `/sync-workflow` writes into a repo. `templates/workflow.md` is the single source; each repo carries it verbatim under a `Template: <sha>` line.
 - `skills/` — skills linked into `~/.claude/skills/` by `setup.sh`.
 - `hooks/guard.cjs` — the Guard, a PreToolUse hook `setup.sh` installs in `~/.claude/settings.json`; it backs the push, commit and brainstorming rules, and keeps sessions outside the kit to its `inbox/`.
-- `setup.sh` also sets `language` in `~/.claude/settings.json` (unless already set), so the reply language sits in the system prompt and does not fade over a long session.
+- `setup.sh` — installs all of the above on a device, and sets `language` in `~/.claude/settings.json` (unless already set) so `global.md`'s reply-language rule sits in the system prompt and does not fade over a long session.
 - `global.md` — rules for every session, imported from `~/.claude/CLAUDE.md`.
 
 ## New device
