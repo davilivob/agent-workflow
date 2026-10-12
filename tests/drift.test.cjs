@@ -86,7 +86,7 @@ const home = path.join(T, 'home');
 fs.mkdirSync(path.join(home, '.claude'), { recursive: true });
 const roots = (...lines) => fs.writeFileSync(path.join(home, '.claude', 'drift-roots'), lines.join('\n'));
 function cli() {
-  const r = spawnSync('node', [DRIFT], { env: { ...env, HOME: home, USERPROFILE: home }, encoding: 'utf8' }); // os.homedir() reads USERPROFILE on Windows
+  const r = spawnSync('node', [DRIFT], { cwd: T, env: { ...env, HOME: home, USERPROFILE: home }, encoding: 'utf8' }); // os.homedir() reads USERPROFILE on Windows
   return { code: r.status, out: r.stdout, err: r.stderr };
 }
 const noDrift = /0 with Drift, 0 Unknown/;
@@ -133,8 +133,8 @@ assert.ok(r.out.includes(`${broken}\n  Unknown: fetch failed`), `unreachable rem
 assert.ok(!r.out.includes('node_modules'), `node_modules skipped:\n${r.out}`);
 assert.ok(r.out.trimEnd().endsWith('3 with Drift, 1 Unknown, 2 no remote; 5 repos scanned'), `totals:\n${r.out}`);
 
-// Retired repos: a `!` line skips that repo and every repo under it, and only counts them.
-roots(root, `!${behind}x`, `!${path.join(root, 'group')}`, `!${broken}`, `  !${lonely}  `);
+// Retired repos: a `!` line retires that directory and every repo under it, which are only counted.
+roots(root, '!', `!${behind}x`, `!${path.join(root, 'group')}`, `!${broken}`, `  !${lonely}  `);
 r = cli();
 for (const p of [behind, broken, lonely]) assert.ok(!r.out.split('\n').includes(p), `retired ${p} not listed:\n${r.out}`);
 assert.ok(r.out.includes(lonelyDirty), `a sibling sharing a name prefix is not retired:\n${r.out}`);

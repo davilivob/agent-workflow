@@ -110,16 +110,23 @@ async function pool(items, n, fn) {
 // Every local branch: behind, ahead, no upstream. Lists only repos with something to say, then the totals.
 async function cli() {
   const usage = `Create ${ROOTS} with one directory per line, each holding your repos, e.g.\n  ${path.join(os.homedir(), 'proj')}`;
-  let lines = [];
+  const roots = [];
+  const retired = [];
+  // ponytail: case is folded on Windows only and symlinks are not resolved; use realpath if a ! line ever misses.
+  const key = (p) => { const k = path.resolve(p); return process.platform === 'win32' ? k.toLowerCase() : k; };
   try {
-    lines = fs.readFileSync(ROOTS, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
-      .map((l) => l.replace(/^(!?)\s*~(?=$|[\\/])/, `$1${os.homedir()}`));
+    for (let l of fs.readFileSync(ROOTS, 'utf8').split(/\r?\n/).map((l) => l.trim())) {
+      if (!l || l.startsWith('#')) continue;
+      const retire = l.startsWith('!');
+      l = (retire ? l.slice(1).trim() : l).replace(/^~(?=$|[\\/])/, os.homedir());
+      if (retire) { if (l) retired.push(key(l)); } else roots.push(l); // a bare ! names nothing
+    }
   } catch {}
   // A `!` line retires that directory and every repo under it: found and counted, never inspected.
-  const key = (p) => (process.platform === 'win32' ? path.resolve(p).toLowerCase() : path.resolve(p));
-  const retired = lines.filter((l) => l.startsWith('!')).map((l) => key(l.slice(1).trim()));
-  const isRetired = (dir) => retired.some((r) => key(dir) === r || key(dir).startsWith(r + path.sep));
-  const roots = lines.filter((l) => !l.startsWith('!'));
+  const isRetired = (dir) => {
+    const k = key(dir);
+    return retired.some((r) => k === r || k.startsWith(r.endsWith(path.sep) ? r : r + path.sep)); // a drive root ends in sep
+  };
   if (!roots.length) { console.error(`drift: no roots configured. ${usage}`); return 2; }
   let repos = [];
   let unreadable = [];
