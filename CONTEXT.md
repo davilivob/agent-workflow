@@ -30,3 +30,7 @@ _Avoid_: feedback, suggestion, issue
 **Inbox**:
 Where Proposals wait in the kit until a grill takes them up or the owner drops them. The only part of the kit a session outside it may write.
 _Avoid_: queue, backlog
+
+**Triage**:
+The first look at a Proposal the owner picks from the Inbox: what it says, why, what it would touch, and a recommended verdict — apply, drop, or grill. The owner decides; triage only recommends.
+_Avoid_: review, screening
