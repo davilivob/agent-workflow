@@ -87,8 +87,9 @@ async function session() {
 }
 
 function device() {
-  try { const code = fs.readFileSync(DEVICE, 'utf8').trim(); if (code) return `Device: ${code}`; } catch {}
-  return `Device: ? (no ${DEVICE}: use ? as the Device code in the Session title)`;
+  let code = '';
+  try { code = fs.readFileSync(DEVICE, 'utf8').trim(); } catch {}
+  return code ? `Device: ${code}` : `Device: ? (no Device code in ${DEVICE})`;
 }
 
 // Written synchronously: the deadline below exits right after. The Device line is for the agent only.
