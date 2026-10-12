@@ -43,6 +43,10 @@ _Avoid_: out of sync, unsynced
 The state when Drift cannot be checked (the remote could not be reached). Never the same as no Drift.
 _Avoid_: synced, clean
 
+**Retired repo**:
+A repo the owner no longer works on from this device, listed so this device's Drift scan skips it. It is counted, never silently hidden; a session opened in it still checks its Drift.
+_Avoid_: archived, ignored, old repo
+
 **Silent failure**:
 A toolchain or environment failure that reports nothing, or reports something other than its cause, and cost more than half an hour. Recorded per repo so nobody follows the wrong lead twice; unlike a lesson, it says how a tool misleads, not how the agent should work.
 _Avoid_: gotcha, landmine, known issue
