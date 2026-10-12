@@ -24,11 +24,11 @@ The path a grilled change takes to `main`: **Direct** (no spec; the grill sessio
 _Avoid_: path, track, mode
 
 **Proposal**:
-A change to the kit brought back from another repo, where it was tried first. It is the input to a kit grill, never a decision; a session outside the kit writes a Proposal instead of editing the kit.
+A change to the kit brought back from another repo, where it was tried first. It is the input to a Triage in the kit, never a decision; a session outside the kit writes a Proposal instead of editing the kit.
 _Avoid_: feedback, suggestion, issue
 
 **Inbox**:
-Where Proposals wait in the kit until a grill takes them up or the owner drops them. The only part of the kit a session outside it may write.
+Where Proposals wait in the kit until the owner, after a Triage, applies, drops or grills them. The only part of the kit a session outside it may write.
 _Avoid_: queue, backlog
 
 **Triage**:
