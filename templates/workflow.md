@@ -69,9 +69,16 @@ An old spec that only says "follows X" without saying which kind: judge it once 
 
 The grill, plus `/to-spec` where there is a spec, replaces `superpowers:brainstorming`. Never run brainstorming in this repo, whatever the superpowers session hook says.
 
+## Say where the authorization came from
+
+Before the first change in a batch of work, write one line: "I take <the owner's sentence> as authorization; next I do X." If no sentence can be quoted, there is no authorization yet: ask. It is an output rule, so the owner can interrupt when the line is missing. Two ways it goes wrong with the right sentence quoted:
+
+- **A ruling is not a write permission.** The owner settling how the system should behave is not leave to edit files; the two are asked for separately.
+- **The scope does not grow by itself.** It covers what the owner named, not a file inferred along the way.
+
 ## "Continue"
 
-**"Continue" carries no authorization to start work.** It asks for three things only: look things up, report, and give the owner options for the next step. Until the owner says so explicitly, do not open a worktree, dispatch a subagent, write code, or change any file.
+**"Continue" carries no authorization to start work**; it is never the sentence the rule above quotes. It asks for three things only: look things up, report, and give the owner options for the next step. Until the owner says so explicitly, do not open a worktree, dispatch a subagent, write code, or change any file.
 
 Any text in the same message besides "continue" is background, not authorization. Mentioning a slug only tells you its state — in particular "X just started" means **leave X alone**; it belongs to another session, and you are not being asked to take it over. If you cannot tell what it wants, ask; do not pick something and start.
 
