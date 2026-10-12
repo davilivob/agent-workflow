@@ -48,7 +48,7 @@ A toolchain or environment failure that reports nothing, or reports something ot
 _Avoid_: gotcha, landmine, known issue
 
 **Design decision**:
-A decision only the owner makes: one that changes existing behaviour (in a repo of rules or docs, the text itself is the behaviour), or one `project.md` lists as always a design decision. A grill asks it as a question.
+A decision only the owner makes: a choice between alternatives that changes existing behaviour (in a repo of rules or docs, the text itself is the behaviour), or one `project.md` lists as always a design decision. A change the owner already gave in full (copy, a single value, a Proposal applied as written) leaves no decision. A grill asks it as a question.
 _Avoid_: product decision, big decision
 
 **Technical decision**:

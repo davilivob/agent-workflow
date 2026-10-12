@@ -8,7 +8,7 @@ Everything that differs per project lives in `docs/agents/project.md`: `Worktree
 
 Anything with a design decision the owner has to make starts with a grill, then takes one of the **Routes** below to `main`. `project.md` lists changes that are always a design decision, including anything the owner said they want to try first; they always get a grill, not necessarily a spec.
 
-**A technical decision is yours**: one that changes no existing behaviour — what the user or the owner can observe; in a repo of rules or docs the text itself is the behaviour, so changing it is never technical. Make it and give a one-line reason instead of asking. In a grill, write it into the round as "Decided: X, because Y", so the owner can overrule it; the reason lands where the work is recorded — the spec, or the commit message where there is none. Everything else is a design decision.
+**A technical decision is yours**: one that changes no existing behaviour — what the user or the owner can observe; in a repo of rules or docs the text itself is the behaviour, so changing it is never technical. Make it and give a one-line reason instead of asking. In a grill, write it into the round as "Decided: X, because Y", so the owner can overrule it; the reason lands where the work is recorded — the spec, or the commit message where there is none. A behaviour change is a design decision only while it leaves the owner something to choose; one the owner already gave in full (copy, a single value, a Proposal applied as written) leaves nothing.
 
 Do these without a grill (unlike Direct, which is grilled first):
 
