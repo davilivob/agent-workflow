@@ -40,7 +40,7 @@ Step 1 is every Route's; steps 2–4 are Inline's and SDD's. One new session per
 
 When one grill splits into several specs, or a new spec intersects another spec that has not merged yet, write the relationship at the top of the spec. A Direct change in progress counts too: a slug with a Claim but no spec. First decide which kind it is:
 
-- **A real dependency**: this spec uses the other one's code, schema or decisions. Write `After: <slug>`. **Before starting, confirm that one is already on `main`**: `git log main --oneline --grep=<slug>`. If not, wait.
+- **A real dependency**: this spec uses the other one's code, schema or decisions. Write `After: <slug>`. **Before writing its plan or starting it, confirm that one is already on `main`**: `git log main --oneline --grep=<slug>`. If not, wait.
 - **Only touching the same file**: not a dependency; do not queue because of it. Look at which parts of the file each spec will change, assess the merge-conflict risk, and write `Overlaps: <slug> — low|medium|high: <one-sentence reason>`:
   - **Low** (different blocks of the same file, each adding its own things): does not block; run in parallel; the note is enough.
   - **Medium** (both change the same block, but the intents are separable): does not block; run in parallel. Write the merge resolution in the spec: the spec that merges later resolves it, which part follows whom, and which verification to run after resolving.
@@ -52,6 +52,7 @@ An old spec that only says "follows X" without saying which kind: judge it once 
 2. **Spec**: the owner runs `/to-spec`. Output is `.scratch/<slug>/spec.md`, headed by `Status: ready-for-agent`, `Merge: auto | ask | manual` (missing means `manual`), `Plan: yes | no` (missing means `yes`) and `Execute: sdd | inline` (missing means `sdd`; `inline` always goes with `Plan: no`). Body in Traditional Chinese; template headings and `CONTEXT.md` terms stay in English as written in the glossary. **The owner reviews the spec**, then one commit carries the spec, `CONTEXT.md` and any ADR: `[<slug>] spec: ...`.
 3. **Plan**: `/superpowers:writing-plans .scratch/<slug>/spec.md`. Output is `.scratch/<slug>/plan.md`, not `docs/superpowers/plans/`. In English; the owner does not read it. Commit when written, without asking.
    - **Write a plan only for a committed spec**: `git log main --oneline --grep=<slug>`. A spec still sitting in the working tree means the owner is still reading it; a plan written now is wasted.
+   - **Write a plan only once whatever `After:` (or `Overlaps: high`) names is on `main`**: `git log main --oneline --grep=<slug>`. A plan names exact files and code shapes; written against a dependency still on another branch, it goes stale when that one merges.
    - **A `plan.md` that already exists, committed or not, is someone else's**: stop and tell the owner; never overwrite it. An uncommitted one means another session is writing it.
    - **Claim it first**: once the spec is confirmed committed, and before invoking the skill, write `plan.md` containing the single line `Writing`, and do not commit it. Overwrite it with the full plan, then commit.
    - A spec with `Plan: no` skips this step; step 4 works straight from the spec.
@@ -82,9 +83,9 @@ Scan `.scratch/*/spec.md` (committed ones only) and list four groups. First look
 The groups:
 
 - **In progress**: slugs with a Claim, and only here, in none of the other groups. Say which kind (writing the plan, or executing) and how long since it last moved: the stub's modification time, or the branch's last commit. Never judge a Claim stale yourself; report the time and let the owner decide whether to take it over.
-- **Needs a plan**: specs with `Plan: yes` (or none written) and no `plan.md` in the directory.
+- **Needs a plan**: specs with `Plan: yes` (or none written), no `plan.md` in the directory, and whatever `After:` (or `Overlaps: high`) names is already on `main`.
 - **Ready**: has `plan.md` (or `Plan: no`), `Status` not yet `done`, and whatever `After:` names is already on `main`. Low or medium `Overlaps:` still count as Ready; note after them whom they overlap and at what risk.
-- **Blocked**: same conditions as Ready, but what `After:` (or `Overlaps: high`) names is not on `main` yet; say which one it waits for, and whether it is a real dependency or a high conflict risk.
+- **Blocked**: would be Needs a plan or Ready, but what `After:` (or `Overlaps: high`) names is not on `main` yet; say which one it waits for, whether it is a real dependency or a high conflict risk, and whether it still needs a plan.
 
 One line each: slug, one sentence on what it is, `Merge:`. Whatever another session is already working on goes under In progress: a Claim, or the owner saying so. Start only after the owner picks.
 
