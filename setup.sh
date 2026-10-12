@@ -121,7 +121,7 @@ else
 fi
 
 # 5. The drift command. Its roots and PATH differ per device, so setup.sh only says what is missing.
-[ -f "$HOME/.claude/drift-roots" ] || todo "create ~/.claude/drift-roots listing the directories that hold your repos, one per line (e.g. ~/proj), for the drift command"
+[ -f "$HOME/.claude/drift-roots" ] || todo "create ~/.claude/drift-roots listing the directories that hold your repos, one per line (e.g. ~/proj; a !<path> line retires a repo or directory), for the drift command"
 if ! command -v drift >/dev/null 2>&1; then
   BIN="$KIT/bin"; [ -z "$WINDOWS" ] || BIN=$(cygpath -w "$BIN")
   todo "add $BIN to PATH (macOS: in ~/.zshrc; Windows: the user Path environment variable), so the drift command works"

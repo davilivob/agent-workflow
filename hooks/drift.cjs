@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Drift check: one check, two entry points.
 //   --session  SessionStart hook: reads hook JSON on stdin, checks the session's repo, prints context for the agent.
-//   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots.
+//   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots,
+//              except Retired repos (under a `!` line there), which it only counts.
 // The only write it makes to a repo is `git fetch`. Whatever it cannot confirm is Unknown, never "no Drift".
 const fs = require('fs');
 const os = require('os');
@@ -109,19 +110,27 @@ async function pool(items, n, fn) {
 // Every local branch: behind, ahead, no upstream. Lists only repos with something to say, then the totals.
 async function cli() {
   const usage = `Create ${ROOTS} with one directory per line, each holding your repos, e.g.\n  ${path.join(os.homedir(), 'proj')}`;
-  let roots = [];
+  let lines = [];
   try {
-    roots = fs.readFileSync(ROOTS, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
-      .map((l) => l.replace(/^~(?=$|[\\/])/, os.homedir()));
+    lines = fs.readFileSync(ROOTS, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
+      .map((l) => l.replace(/^(!?)\s*~(?=$|[\\/])/, `$1${os.homedir()}`));
   } catch {}
+  // A `!` line retires that directory and every repo under it: found and counted, never inspected.
+  const key = (p) => (process.platform === 'win32' ? path.resolve(p).toLowerCase() : path.resolve(p));
+  const retired = lines.filter((l) => l.startsWith('!')).map((l) => key(l.slice(1).trim()));
+  const isRetired = (dir) => retired.some((r) => key(dir) === r || key(dir).startsWith(r + path.sep));
+  const roots = lines.filter((l) => !l.startsWith('!'));
   if (!roots.length) { console.error(`drift: no roots configured. ${usage}`); return 2; }
-  const repos = [];
-  const unreadable = [];
+  let repos = [];
+  let unreadable = [];
   const missing = roots.filter((r) => !fs.statSync(r, { throwIfNoEntry: false })?.isDirectory());
   for (const r of roots) if (!missing.includes(r)) find(r, repos, unreadable);
+  const found = repos.length;
+  repos = repos.filter((d) => !isRetired(d));
+  unreadable = unreadable.filter((d) => !isRetired(d));
   for (const r of missing) console.log(`missing root: ${r}`);
   for (const d of unreadable) console.log(`${d}\n  Unknown: cannot read directory`);
-  if (!repos.length) { console.error(`drift: no git repos found under ${roots.join(', ')}. ${usage}`); return 2; }
+  if (!found) { console.error(`drift: no git repos found under ${roots.join(', ')}. ${usage}`); return 2; }
 
   const totals = { drift: 0, unknown: unreadable.length, noRemote: 0 };
   for (const s of await pool(repos, 8, inspect)) {
@@ -134,7 +143,7 @@ async function cli() {
     if (lines.length > before) totals.drift++;
     if (lines.length) console.log(`${s.dir}\n${lines.map((l) => `  ${l}`).join('\n')}`);
   }
-  console.log(`${totals.drift} with Drift, ${totals.unknown} Unknown, ${totals.noRemote} no remote; ${repos.length} repos scanned`);
+  console.log(`${totals.drift} with Drift, ${totals.unknown} Unknown, ${totals.noRemote} no remote; ${repos.length} repos scanned${found > repos.length ? `, ${found - repos.length} retired` : ''}`);
   return missing.length || totals.unknown || totals.drift ? 1 : 0;
 }
 

@@ -133,9 +133,24 @@ assert.ok(r.out.includes(`${broken}\n  Unknown: fetch failed`), `unreachable rem
 assert.ok(!r.out.includes('node_modules'), `node_modules skipped:\n${r.out}`);
 assert.ok(r.out.trimEnd().endsWith('3 with Drift, 1 Unknown, 2 no remote; 5 repos scanned'), `totals:\n${r.out}`);
 
+// Retired repos: a `!` line skips that repo and every repo under it, and only counts them.
+roots(root, `!${behind}x`, `!${path.join(root, 'group')}`, `!${broken}`, `  !${lonely}  `);
+r = cli();
+for (const p of [behind, broken, lonely]) assert.ok(!r.out.split('\n').includes(p), `retired ${p} not listed:\n${r.out}`);
+assert.ok(r.out.includes(lonelyDirty), `a sibling sharing a name prefix is not retired:\n${r.out}`);
+assert.ok(r.out.trimEnd().endsWith('2 with Drift, 0 Unknown, 1 no remote; 2 repos scanned, 3 retired'), `retired totals:\n${r.out}`);
+assert.ok(session(broken).includes('Unknown: fetch failed'), 'a session in a retired repo still checks it');
+roots(root, `!${root}`);
+r = cli();
+assert.strictEqual(r.code, 0, `all retired: ${JSON.stringify(r)}`);
+assert.strictEqual(r.out.trim(), '0 with Drift, 0 Unknown, 0 no remote; 0 repos scanned, 5 retired', 'all retired: only the totals');
+
 fs.mkdirSync(path.join(home, 'proj'));
 clone('mine', path.join(home, 'proj'));
 roots('~/proj');
 assert.strictEqual(cli().code, 0, '~ expands to the home directory');
+const old = clone('old', path.join(home, 'proj')); advance(old);
+roots('~/proj', '!~/proj/old');
+assert.ok(cli().out.trimEnd().endsWith('1 repos scanned, 1 retired'), '~ expands in a ! line');
 
 console.log('PASS');
