@@ -83,15 +83,17 @@ if ! grep -qs '"superpowers@' "$HOME/.claude/plugins/installed_plugins.json"; th
   todo "in Claude Code, run: /plugin install superpowers@claude-plugins-official"
 fi
 
-# 4. Guard and language. The Guard is a PreToolUse hook backing the mechanical rules in global.md and workflow.md;
-#    language puts global.md's reply-language rule into the system prompt, where it outlasts a long session. --check leaves both alone.
+# 4. Guard, Drift check and language. The Guard is a PreToolUse hook backing the mechanical rules in global.md and workflow.md;
+#    the Drift check is a SessionStart hook reporting Drift in the session's repo;
+#    language puts global.md's reply-language rule into the system prompt, where it outlasts a long session. --check leaves all three alone.
 SETTINGS="$HOME/.claude/settings.json"
 GUARD_CMD='node "$HOME/.claude/kit/hooks/guard.cjs"'
+DRIFT_CMD='node "$HOME/.claude/kit/hooks/drift.cjs" --session'
 if [ -n "$CHECK" ]; then :
 elif command -v node >/dev/null 2>&1; then
   node -e '
 const fs = require("fs");
-const [file, command] = process.argv.slice(1);
+const [file, command, driftCmd] = process.argv.slice(1);
 let s = {};
 if (fs.existsSync(file)) {
   try { s = JSON.parse(fs.readFileSync(file, "utf8")); }
@@ -100,17 +102,29 @@ if (fs.existsSync(file)) {
 const pre = ((s.hooks ??= {}).PreToolUse ??= []);
 const has = (m) => pre.some((e) => e.matcher === m && JSON.stringify(e).includes("kit/hooks/guard.cjs"));
 const missing = ["Skill", "Bash", "Edit|Write|NotebookEdit"].filter((m) => !has(m));
+const start = (s.hooks.SessionStart ??= []);
+const needDrift = !start.some((e) => JSON.stringify(e).includes("kit/hooks/drift.cjs"));
 const needLang = !("language" in s);  // a language the owner set stays
-if (!missing.length && !needLang) process.exit(0);
+if (!missing.length && !needDrift && !needLang) process.exit(0);
 for (const matcher of missing) pre.push({ matcher, hooks: [{ type: "command", command }] });
+// no compact: the session already had its report when it started
+if (needDrift) start.push({ matcher: "startup|resume|clear", hooks: [{ type: "command", command: driftCmd, timeout: 30 }] });
 // A copy of the first rule in global.md, which stays the source: change both together.
 if (needLang) s.language = "Traditional Chinese (繁體中文, never Simplified); code, commit messages and glossary terms stay in their original language";
 fs.writeFileSync(file, JSON.stringify(s, null, 2) + "\n");
 if (missing.length) console.log(`installed the Guard hook for ${missing.join(", ")} in ${file}`);
+if (needDrift) console.log(`installed the Drift check hook in ${file}`);
 if (needLang) console.log(`set language in ${file}`);
-' "$SETTINGS" "$GUARD_CMD"
+' "$SETTINGS" "$GUARD_CMD" "$DRIFT_CMD"
 else
-  echo "TODO: install Node.js, then re-run setup.sh: without it the Guard hook is not installed and language is not set"
+  echo "TODO: install Node.js, then re-run setup.sh: without it the Guard and Drift check hooks are not installed and language is not set"
+fi
+
+# 5. The drift command. Its roots and PATH differ per device, so setup.sh only says what is missing.
+[ -f "$HOME/.claude/drift-roots" ] || todo "create ~/.claude/drift-roots listing the directories that hold your repos, one per line (e.g. ~/proj), for the drift command"
+if ! command -v drift >/dev/null 2>&1; then
+  BIN="$KIT/bin"; [ -z "$WINDOWS" ] || BIN=$(cygpath -w "$BIN")
+  todo "add $BIN to PATH (macOS: in ~/.zshrc; Windows: the user Path environment variable), so the drift command works"
 fi
 
 [ -z "$CHECK" ] || [ -z "$BAD" ] || exit 1

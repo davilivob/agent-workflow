@@ -14,7 +14,9 @@ trap 'rm -rf "$T" "$KIT/skills/zz-test-standin"' EXIT
 mkdir -p "$T/bin" "$T/.claude/plugins"
 printf '#!/bin/sh\necho "$*" >> "$NPXLOG"\n' > "$T/bin/npx"
 printf '#!/bin/sh\n' > "$T/bin/graphify"
-chmod +x "$T/bin/npx" "$T/bin/graphify"
+cp "$T/bin/graphify" "$T/bin/drift"  # the drift command "on PATH"
+chmod +x "$T/bin/npx" "$T/bin/graphify" "$T/bin/drift"
+touch "$T/.claude/drift-roots"
 NODE=$(command -v node)  # captured once: the shell caches lookups, so a later `command -v` can find the fake
 ln -s "$NODE" "$T/bin/node"  # the real node: the Guard section needs it
 echo '{"plugins":{"superpowers@x":[]}}' > "$T/.claude/plugins/installed_plugins.json"
@@ -24,7 +26,8 @@ KEEP="grill-with-docs grilling domain-modeling to-spec diagnosing-bugs writing-f
 for n in $KEEP; do mkdir -p "$T/.claude/skills/$n"; done  # keep list "present": no network install
 printf 'existing line' > "$T/.claude/CLAUDE.md"    # no trailing newline, on purpose
 cat > "$T/.claude/settings.json" <<'EOF'
-{"model": "keep-me", "hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "echo mine"}]}]}}
+{"model": "keep-me", "hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "echo mine"}]}],
+ "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "echo my-start"}]}]}}
 EOF
 
 HOME="$T" sh "$KIT/setup.sh" >/dev/null
@@ -41,6 +44,9 @@ done
 grep -q '"Edit|Write|NotebookEdit"' "$T/.claude/settings.json" || fail "Guard lacks the Edit matcher"
 grep -q '"keep-me"' "$T/.claude/settings.json" || fail "existing settings key lost"
 grep -q 'echo mine' "$T/.claude/settings.json" || fail "existing hook lost"
+[ "$(grep -c 'kit/hooks/drift.cjs' "$T/.claude/settings.json")" = 1 ] || fail "Drift check hook not registered exactly once"
+grep -q '"startup|resume|clear"' "$T/.claude/settings.json" || fail "Drift check hook lacks its matcher"
+grep -q 'echo my-start' "$T/.claude/settings.json" || fail "existing SessionStart hook lost"
 grep -q '"language": "Traditional Chinese (繁體中文, never Simplified); code' "$T/.claude/settings.json" || fail "language not set intact"
 
 # A device with the full Guard but no language gains just the language.
@@ -50,6 +56,15 @@ delete s.language; fs.writeFileSync(f, JSON.stringify(s));' "$T/.claude/settings
 HOME="$T" sh "$KIT/setup.sh" | grep -q 'Guard hook' && fail "full Guard reinstalled"
 grep -q '繁體中文' "$T/.claude/settings.json" || fail "language not added to a full Guard install"
 [ "$(grep -c 'kit/hooks/guard.cjs' "$T/.claude/settings.json")" = 3 ] || fail "language re-run touched the Guard"
+
+# A device with the Guard and language but no Drift check gains just the Drift check.
+"$NODE" -e '
+const fs = require("fs"); const f = process.argv[1]; const s = JSON.parse(fs.readFileSync(f, "utf8"));
+s.hooks.SessionStart = s.hooks.SessionStart.filter((e) => !JSON.stringify(e).includes("drift.cjs")); fs.writeFileSync(f, JSON.stringify(s));' "$T/.claude/settings.json"
+out=$(HOME="$T" sh "$KIT/setup.sh")
+echo "$out" | grep -q 'Drift check hook' || fail "missing Drift check not reported"
+echo "$out" | grep -q 'Guard hook' && fail "Drift check upgrade reinstalled the Guard"
+[ "$(grep -c 'kit/hooks/drift.cjs' "$T/.claude/settings.json")" = 1 ] || fail "Drift check not re-added exactly once"
 
 # A language the owner set is kept.
 "$NODE" -e '
@@ -95,6 +110,16 @@ echo "$out" | grep -q 'TODO.*-s wizard retro -y' || fail "--check TODO lacks ins
 cmp -s "$T/.claude/CLAUDE.md" "$T/before" || fail "--check changed CLAUDE.md"
 cmp -s "$T/.claude/settings.json" "$T/before-settings" || fail "--check changed settings.json"
 if HOME="$T" sh "$KIT/setup.sh" --bogus 2>/dev/null; then fail "unknown argument accepted"; fi
+
+# The drift command's roots file and PATH: a TODO each when missing, and --check fails.
+mkdir "$T/.claude/skills/wizard" "$T/.claude/skills/retro"
+rm "$T/.claude/drift-roots" "$T/bin/drift"
+rc=0; out=$(HOME="$T" sh "$KIT/setup.sh" --check) || rc=$?
+[ "$rc" = 1 ] || fail "--check exit $rc without drift-roots and drift, want 1"
+echo "$out" | grep -q 'TODO: create ~/.claude/drift-roots' || fail "no TODO for a missing drift-roots"
+echo "$out" | grep -q 'TODO: add .*bin to PATH' || fail "no TODO for drift not on PATH"
+touch "$T/.claude/drift-roots"; cp "$T/bin/graphify" "$T/bin/drift"
+rmdir "$T/.claude/skills/wizard" "$T/.claude/skills/retro"
 
 # Extras: recorded as mattpocock/skills, dir exists, not kept -> reported, never deleted.
 # A lock entry whose dir is gone is stale and stays silent.
