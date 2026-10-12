@@ -124,7 +124,7 @@ One line each: slug, one sentence on what it is, `Merge:`. Whatever another sess
 
 ## Owner boundary
 
-The rule that production writes, SSH and `git push` belong to the owner is in `global.md`. `project.md` lists exactly what counts as production and which operations are whose.
+The rules that production writes and SSH belong to the owner, and that you push only when asked, are in `global.md`. `project.md` lists exactly what counts as production and which operations are whose, including whether `git push` stays the owner's.
 
 The boundary is this agreement, not whatever the permission classifier allows on a given day. Never attempt what belongs to the owner. When a command that belongs to you is declined, say "this command was declined", quote the refusal, and hand over that exact command; never say "I have no permission". Hand over only a command that was itself run and declined: never one because a different command was declined earlier, or because it might be. Step 4's wrap-up (`git worktree remove`, deleting the branch) is yours like any other.
 
