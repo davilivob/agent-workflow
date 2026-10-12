@@ -10,7 +10,7 @@ Anything with a design decision the owner has to make starts with a grill, then 
 
 Do these without a grill (unlike Direct, which is grilled first):
 
-- Bugs: use `diagnosing-bugs`.
+- Bugs: use `diagnosing-bugs`; check `docs/silent-failures.md` first.
 - Small changes with no design decision (copy, a single value).
   - **Ask first, even during a grill.** When the answer to a grill question settles a change too small to need a spec, first use `AskUserQuestion` to ask "do it now / put it in the spec", and act only once answered; do not announce it and then change and commit. This exemption only decides whether a spec is needed; it does not mean you may skip asking.
 - Pure content writes, as `project.md` defines them.
@@ -133,3 +133,5 @@ Handing over an owner command: when the work is done, read the Terminal panel wi
 A lesson learned about this project goes into `docs/agents/` (usually `project.md`), not into memory, and onto `main` at once (see **Commits**). Memory holds only what is specific to one device, such as a local path, because memory does not travel to the owner's other machines.
 
 A lesson about the workflow itself (this file, a kit skill, the Guard) belongs to the kit, `~/.claude/kit`, which a session outside it never edits. When one surfaces, say so in one line and suggest `/propose-to-kit`; the owner decides whether to run it.
+
+A **silent failure** — a toolchain or environment failure that cost more than half an hour and whose message pointed at the wrong cause, or said nothing — goes into `docs/silent-failures.md`, not into `project.md`: a lesson says how to work, this says how a tool misleads. One entry each: the toolchain and its version, what you see, what it actually was, how to tell, what to do; a symptom index at the top. A wrong lead is recorded as one, so nobody follows it twice. The project's own code does not go here; fix it instead. A resolved entry stays, marked with the version or change that resolved it. Not a diary, not a changelog. Write an entry without asking and put it on `main` at once (see **Commits**); create the file with its first entry. Read it before debugging.
