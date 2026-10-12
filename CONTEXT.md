@@ -46,3 +46,11 @@ _Avoid_: synced, clean
 **Silent failure**:
 A toolchain or environment failure that reports nothing, or reports something other than its cause, and cost more than half an hour. Recorded per repo so nobody follows the wrong lead twice; unlike a lesson, it says how a tool misleads, not how the agent should work.
 _Avoid_: gotcha, landmine, known issue
+
+**Design decision**:
+A decision only the owner makes: one that changes existing behaviour (in a repo of rules or docs, the text itself is the behaviour), or one `project.md` lists as always a design decision. A grill asks it as a question.
+_Avoid_: product decision, big decision
+
+**Technical decision**:
+A decision that changes no existing behaviour. The agent makes it and writes a one-line reason where the work is recorded; the owner may overrule. Deciding it is not leave to act on it.
+_Avoid_: implementation detail, minor decision
