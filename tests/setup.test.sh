@@ -127,6 +127,23 @@ rc=0; out=$(HOME="$T" sh "$KIT/setup.sh" --check) || rc=$?
 [ "$rc" = 1 ] || fail "--check exit $rc with an empty device file, want 1"
 echo "$out" | grep -q 'TODO: create ~/.claude/device' || fail "no TODO for an empty device file"
 echo win > "$T/.claude/device"
+
+# Section 4 under --check: a TODO naming what settings.json lacks, --check fails, nothing written.
+cp "$T/.claude/settings.json" "$T/full-settings"
+node -e 'const fs = require("fs"); const f = process.argv[1]; const s = JSON.parse(fs.readFileSync(f, "utf8"));
+delete s.language; s.hooks.SessionStart = []; fs.writeFileSync(f, JSON.stringify(s));' "$T/.claude/settings.json"
+cp "$T/.claude/settings.json" "$T/before-settings"
+rc=0; out=$(HOME="$T" sh "$KIT/setup.sh" --check) || rc=$?
+[ "$rc" = 1 ] || fail "--check exit $rc without the Drift check hook and language, want 1"
+echo "$out" | grep -q 'TODO: .*lacks the Drift check hook, language; run: sh ~/.claude/kit/setup.sh' || fail "no TODO for the missing Drift check hook and language"
+echo "$out" | grep -q 'Guard hook' && fail "--check reported a Guard that is present"
+cmp -s "$T/.claude/settings.json" "$T/before-settings" || fail "--check changed settings.json"
+cp "$T/full-settings" "$T/.claude/settings.json"
+rm "$T/bin/node"
+rc=0; out=$(HOME="$T" sh "$KIT/setup.sh" --check) || rc=$?
+[ "$rc" = 1 ] || fail "--check exit $rc without node, want 1"
+echo "$out" | grep -q 'TODO: install Node.js' || fail "--check gave no TODO without node"
+ln -s "$NODE" "$T/bin/node"
 rmdir "$T/.claude/skills/wizard" "$T/.claude/skills/retro"
 
 # Extras: recorded as mattpocock/skills, dir exists, not kept -> reported, never deleted.

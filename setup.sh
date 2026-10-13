@@ -85,15 +85,14 @@ fi
 
 # 4. Guard, Drift check and language. The Guard is a PreToolUse hook backing the mechanical rules in global.md and workflow.md;
 #    the Drift check is a SessionStart hook reporting Drift in the session's repo;
-#    language puts global.md's reply-language rule into the system prompt, where it outlasts a long session. --check leaves all three alone.
+#    language puts global.md's reply-language rule into the system prompt, where it outlasts a long session. --check writes nothing and reports what is missing.
 SETTINGS="$HOME/.claude/settings.json"
 GUARD_CMD='node "$HOME/.claude/kit/hooks/guard.cjs"'
 DRIFT_CMD='node "$HOME/.claude/kit/hooks/drift.cjs" --session'
-if [ -n "$CHECK" ]; then :
-elif command -v node >/dev/null 2>&1; then
+if command -v node >/dev/null 2>&1; then
   node -e '
 const fs = require("fs");
-const [file, command, driftCmd] = process.argv.slice(1);
+const [file, command, driftCmd, check] = process.argv.slice(1);
 let s = {};
 if (fs.existsSync(file)) {
   try { s = JSON.parse(fs.readFileSync(file, "utf8")); }
@@ -106,6 +105,11 @@ const start = (s.hooks.SessionStart ??= []);
 const needDrift = !start.some((e) => JSON.stringify(e).includes("kit/hooks/drift.cjs"));
 const needLang = !("language" in s);  // a language the owner set stays
 if (!missing.length && !needDrift && !needLang) process.exit(0);
+if (check) {
+  const lacks = [missing.length && `the Guard hook for ${missing.join(", ")}`, needDrift && "the Drift check hook", needLang && "language"].filter(Boolean);
+  console.log(`TODO: ${file} lacks ${lacks.join(", ")}; run: sh ~/.claude/kit/setup.sh`);
+  process.exit(1);
+}
 for (const matcher of missing) pre.push({ matcher, hooks: [{ type: "command", command }] });
 // no compact: the session already had its report when it started
 if (needDrift) start.push({ matcher: "startup|resume|clear", hooks: [{ type: "command", command: driftCmd, timeout: 30 }] });
@@ -115,9 +119,9 @@ fs.writeFileSync(file, JSON.stringify(s, null, 2) + "\n");
 if (missing.length) console.log(`installed the Guard hook for ${missing.join(", ")} in ${file}`);
 if (needDrift) console.log(`installed the Drift check hook in ${file}`);
 if (needLang) console.log(`set language in ${file}`);
-' "$SETTINGS" "$GUARD_CMD" "$DRIFT_CMD"
+' "$SETTINGS" "$GUARD_CMD" "$DRIFT_CMD" "$CHECK" || if [ -n "$CHECK" ]; then BAD=1; else exit 1; fi
 else
-  echo "TODO: install Node.js, then re-run setup.sh: without it the Guard and Drift check hooks are not installed and language is not set"
+  todo "install Node.js, then re-run setup.sh: without it the Guard and Drift check hooks are not installed and language is not set"
 fi
 
 # 5. The drift command. Its roots and PATH differ per device, so setup.sh only says what is missing.
