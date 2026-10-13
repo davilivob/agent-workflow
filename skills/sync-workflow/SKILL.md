@@ -45,7 +45,7 @@ Ask all four in one `AskUserQuestion`, the detected or suggested answer first an
 1. Stack — the detected one vs. the others.
 2. Verification command — the suggestion (Unity: all three OS lines together) vs. "Other"; with no suggestion (stack `other`, or web without a `test` or `check` script), "None yet" vs. "Other".
 3. Worktree — the stack's default vs. the other value.
-4. What counts as production (commands only the owner runs: deploys, production writes, SSH) — "None yet" vs. "Other". If a push deploys automatically, ask next for its Deploy paths: the paths whose change triggers it.
+4. What counts as production (commands only the owner runs: deploys, production writes, SSH) — "None yet" vs. "Other". If a push to `main` deploys automatically, ask for its Deploy paths (the paths whose change triggers it) in a follow-up `AskUserQuestion`.
 
 Done when: you have a stack, a verification command or "none yet", `yes|no` for Worktree, and a production list (with the Deploy paths, if a push deploys) or "none yet".
 
