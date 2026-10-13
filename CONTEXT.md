@@ -15,6 +15,10 @@ A file in `templates/` that `/sync-workflow` copies into a repo; `workflow.md` i
 The hook that mechanically enforces the owner boundary and the commit rules. The written rule stays the single source; the guard is its backstop.
 _Avoid_: guardrail, git hook
 
+**Deploy paths**:
+In a repo where a push to `main` deploys automatically, the allowlist of paths whose change triggers that deploy; a push touching none of them deploys nothing. Listed in the repo's owner boundary.
+_Avoid_: deploy filter, trigger paths, paths-ignore
+
 **Claim**:
 The visible trace that a session is working on a slug: an uncommitted `plan.md` while a plan is being written, a worktree or branch named after the slug while it is executed.
 _Avoid_: lock, reservation
