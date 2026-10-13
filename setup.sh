@@ -107,7 +107,7 @@ const needLang = !("language" in s);  // a language the owner set stays
 if (!missing.length && !needDrift && !needLang) process.exit(0);
 if (check) {
   const lacks = [missing.length && `the Guard hook for ${missing.join(", ")}`, needDrift && "the Drift check hook", needLang && "language"].filter(Boolean);
-  console.log(`TODO: ${file} lacks ${lacks.join(", ")}; run: sh ~/.claude/kit/setup.sh`);
+  console.log(`TODO: run sh ~/.claude/kit/setup.sh; ${file} lacks ${lacks.join("; ")}`);
   process.exit(1);
 }
 for (const matcher of missing) pre.push({ matcher, hooks: [{ type: "command", command }] });
