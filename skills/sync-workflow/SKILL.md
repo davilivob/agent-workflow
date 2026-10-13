@@ -45,9 +45,9 @@ Ask all four in one `AskUserQuestion`, the detected or suggested answer first an
 1. Stack — the detected one vs. the others.
 2. Verification command — the suggestion (Unity: all three OS lines together) vs. "Other"; with no suggestion (stack `other`, or web without a `test` or `check` script), "None yet" vs. "Other".
 3. Worktree — the stack's default vs. the other value.
-4. What counts as production (commands only the owner runs: deploys, production writes, SSH) — "None yet" vs. "Other".
+4. What counts as production (commands only the owner runs: deploys, production writes, SSH) — "None yet" vs. "Other". If a push deploys automatically, ask next for its Deploy paths: the paths whose change triggers it.
 
-Done when: you have a stack, a verification command or "none yet", `yes|no` for Worktree, and a production list or "none yet".
+Done when: you have a stack, a verification command or "none yet", `yes|no` for Worktree, and a production list (with the Deploy paths, if a push deploys) or "none yet".
 
 ## 3. Write (new, existing)
 
@@ -56,7 +56,7 @@ Build each file's intended content:
 | Repo file | Content |
 | --- | --- |
 | `docs/agents/workflow.md` | `Template: $KIT_SHA` line, then `templates/workflow.md` |
-| `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command, or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 7. Every other line, including the `- None yet.` sections, stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
+| `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command (a push that deploys reads "`git push` of `main` touching <Deploy paths> — deploys to production"), or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 7. Every other line, including the `- None yet.` sections, stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
 | `docs/agents/issue-tracker.md`, `domain.md` | the same-named template, verbatim |
 | `CLAUDE.md` | each `## ` section of `templates/claude-section.md`: replaces the repo's section with the same heading, else is appended; every other line of the repo's `CLAUDE.md` stays |
 
