@@ -27,16 +27,16 @@ _Avoid_: lock, reservation
 The path a grilled change takes to `main`: **Direct** (no spec; the grill session implements it), **Inline** (a spec; a new session implements it itself), or **SDD** (a spec, with or without a plan; subagents implement it).
 _Avoid_: path, track, mode
 
-**Proposal**:
-A change to the kit brought back from another repo, where it was tried first. It is the input to a Triage in the kit, never a decision; a session outside the kit writes a Proposal instead of editing the kit.
-_Avoid_: feedback, suggestion, issue
+**Request**:
+A GitHub issue one repo files in another, asking it to change something. It waits there until the owner, after a Triage, applies, drops or grills it. A spec that needs it done first names it in `After:`.
+_Avoid_: issue (that is a local ticket under a spec), ticket, dispatch
 
-**Inbox**:
-Where Proposals wait in the kit until the owner, after a Triage, applies, drops or grills them. The only part of the kit a session outside it may write.
-_Avoid_: queue, backlog
+**Proposal**:
+A Request to the kit, brought back from another repo where it was tried first. A session outside the kit files a Proposal instead of editing the kit.
+_Avoid_: feedback, suggestion, inbox
 
 **Triage**:
-The first look at a Proposal the owner picks from the Inbox: what it says, why, what it would touch, and a recommended verdict — apply, drop, or grill. The owner decides; triage only recommends.
+The first look at a Request the owner picks: what it says, why, what it would touch, and a recommended verdict — apply, drop, or grill. The owner decides; triage only recommends.
 _Avoid_: review, screening
 
 **OS-bound verification**:
