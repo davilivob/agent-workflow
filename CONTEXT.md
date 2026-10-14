@@ -19,6 +19,18 @@ _Avoid_: guardrail, git hook
 In a repo where a push to `main` deploys automatically, the allowlist of paths whose change triggers that deploy; a push touching none of them deploys nothing. Listed in the repo's owner boundary.
 _Avoid_: deploy filter, trigger paths, paths-ignore
 
+**Production URL**:
+The public address a deployed project serves, named in its owner-boundary entry. A project with one gets a Production check after each deploy; one without gets none.
+_Avoid_: site URL, live link
+
+**Deploy check**:
+Watching the deploy runs a push triggered until they conclude: success, failure, or Unknown when they cannot be seen through. Only for a push the agent made.
+_Avoid_: CI check, post-deploy check
+
+**Production check**:
+Looking at the Production URL after a Deploy check succeeds, as a visitor would and with reads only: the page loads, the console is clean, and a visible change shows. Distinct from the Deploy check, because a deploy can succeed while production stays broken.
+_Avoid_: smoke test, post-deploy check
+
 **Claim**:
 The visible trace that a session is working on a slug: an uncommitted `plan.md` while a plan is being written, a worktree or branch named after the slug while it is executed.
 _Avoid_: lock, reservation
@@ -48,7 +60,7 @@ A local repo differing from its remote: behind, ahead, uncommitted changes, or a
 _Avoid_: out of sync, unsynced
 
 **Unknown**:
-The state when Drift cannot be checked (the remote could not be reached). Never the same as no Drift.
+The state when something cannot be checked: Drift (the remote could not be reached), a Request's state, a Deploy check that timed out. Never the same as a pass.
 _Avoid_: synced, clean
 
 **Retired repo**:
