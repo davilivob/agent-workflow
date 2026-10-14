@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Drift check: one check, two entry points.
-//   --session  SessionStart hook: reads hook JSON on stdin, checks the session's repo, prints context for the agent,
+//   --session  SessionStart hook: reads hook JSON on stdin, checks the session's repo and the kit (~/.claude/kit),
+//              and whether the repo's workflow.md is older than the kit's template; prints context for the agent,
 //              always headed by this device's Device code (from ~/.claude/device) for the Session title.
 //   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots,
 //              except Retired repos (under a `!` line there), which it only counts.
@@ -14,12 +15,15 @@ const FETCH_TIMEOUT = 15000;
 const SESSION_DEADLINE = 25000; // under the 30 s hook timeout setup.sh registers: a killed hook would print nothing
 const ROOTS = path.join(os.homedir(), '.claude', 'drift-roots');
 const DEVICE = path.join(os.homedir(), '.claude', 'device');
-// Copies of the Drift rule in global.md, which stays the source: change both together.
+const KIT = path.join(os.homedir(), '.claude', 'kit');
+// Copies of the Drift rules in global.md, which stays the source: change both together.
 const ASK =
   'Per global.md: before changing any file, ask the owner with AskUserQuestion: `pull --ff-only`, leave it, or stop.';
 const FF =
   'Per global.md: fast-forward each behind branch with `pull --ff-only` without asking, in its own checkout if that one is clean, ' +
   'and report it in one line; a dirty checkout: ask first. If a fast-forward fails, stop and tell the owner.';
+const PUSH =
+  'Per global.md: offer to push each ahead branch, in its own checkout; the Guard asks the owner. A rejected push: stop and tell the owner.';
 // No password, SSH or credential-manager prompt may hang the check: a fetch that needs one fails, and so is Unknown.
 // ponytail: GIT_SSH_COMMAND wins over a core.sshCommand in git config; pass that one through if a device ever uses it.
 const ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never',
@@ -61,29 +65,65 @@ function branchDrift(b) {
     .filter(Boolean).join(', ');
 }
 
-// Current branch: behind, ahead, no upstream. Default branch: behind. Behind or Unknown asks the owner first.
+// One repo's Drift. Current branch: behind, ahead, no upstream; default branch: behind, ahead.
+// Unknown, a branch both behind and ahead, or behind with uncommitted changes asks the owner; behind fast-forwards; ahead offers a push.
+function report(s) {
+  const lines = [];
+  let behind = false, ahead = false, diverged = false;
+  if (s.unknown) lines.push(`Unknown: ${s.unknown}`);
+  if (s.noRemote) lines.push('no remote');
+  else for (const b of s.branches) {
+    const d = b.name === s.current ? branchDrift(b) : b.name === s.defaultBranch && b.upstream ? branchDrift(b) : '';
+    if (!d) continue;
+    lines.push(`branch ${b.name}: ${d}`);
+    if (b.behind && b.ahead) diverged = true;
+    else if (b.behind) behind = true;
+    else if (b.ahead) ahead = true;
+  }
+  if (s.dirty) lines.push('uncommitted changes');
+  const rules = s.unknown || diverged || (behind && s.dirty) ? [ASK] : [behind && FF, ahead && PUSH].filter(Boolean);
+  return { lines, rules };
+}
+
+const block = (title, r) => [`${title}:`, ...r.lines.map((l) => `- ${l}`), ...r.rules].join('\n');
+
+// The kit's real path, or null when there is none (only in tests: this hook runs from it) or the session's repo is the kit.
+async function kitDir(top) {
+  let kit;
+  try { kit = fs.realpathSync(KIT); } catch { return null; }
+  const common = async (d) => fs.realpathSync(path.resolve(d, (await git(d, ['rev-parse', '--git-common-dir'])).trim()));
+  const same = await Promise.all([common(kit), common(top)]).then(([a, b]) => a === b, () => false);
+  return same ? null : kit;
+}
+
+// The repo's workflow.md against the local kit, by content: an old-format sha (the kit's HEAD then) with today's template passes.
+async function template(top, kit) {
+  let first;
+  try { first = fs.readFileSync(path.join(top, 'docs', 'agents', 'workflow.md'), 'utf8').split('\n')[0].trim(); } catch { return null; }
+  const sha = /^Template: ([0-9a-f]{40})$/.exec(first)?.[1];
+  if (!sha) return null;
+  if (!(await git(kit, ['cat-file', '-e', `${sha}^{commit}`]).then(() => true, () => false)))
+    return `workflow.md: Template ${sha.slice(0, 7)} is not in the local kit, which may be behind`;
+  const changed = await git(kit, ['diff', '--quiet', sha, 'HEAD', '--', 'templates/workflow.md']).then(() => false, () => true);
+  return changed ? "workflow.md: older than the kit's template; suggest /sync-workflow, do not run it" : null;
+}
+
 async function session() {
   let input = {};
   try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch {}
   const cwd = input.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd(); // cwd first, as in the Guard: it names the worktree
   let top;
   try { top = (await git(cwd, ['rev-parse', '--show-toplevel'])).trim(); } catch { return null; } // not a repo: nothing to say
-  const s = await inspect(top);
-  const lines = [];
-  let behind = false;
-  if (s.unknown) lines.push(`Unknown: ${s.unknown}`);
-  if (s.noRemote) lines.push('no remote');
-  else for (const b of s.branches) {
-    const d = b.name === s.current ? branchDrift(b)
-      : b.name === s.defaultBranch && b.behind ? `behind ${b.upstream} by ${b.behind}` : '';
-    if (!d) continue;
-    lines.push(`branch ${b.name}: ${d}`);
-    if (b.behind) behind = true;
-  }
-  if (s.dirty) lines.push('uncommitted changes');
-  if (!lines.length) return null;
-  const rule = s.unknown || (behind && s.dirty) ? ASK : behind ? FF : '';
-  return `Drift check for ${top}:\n${lines.map((l) => `- ${l}`).join('\n')}${rule ? `\n${rule}` : ''}`;
+  const kit = await kitDir(top);
+  // In parallel: the kit's fetch shares the session repo's deadline.
+  const [s, k, t] = await Promise.all([inspect(top), kit && inspect(kit), kit && template(top, kit)]);
+  const blocks = [];
+  const r = report(s);
+  if (t) r.lines.push(t);
+  if (r.lines.length) blocks.push(block(`Drift check for ${top}`, r));
+  const kr = k && report(k);
+  if (kr?.lines.length) blocks.push(block(`Drift check for the kit (${kit})`, kr));
+  return blocks.length ? blocks.join('\n') : null;
 }
 
 function device() {

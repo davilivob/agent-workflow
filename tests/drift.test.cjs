@@ -51,11 +51,12 @@ function session(cwd) {
   assert.strictEqual(out.systemMessage, text ?? undefined, 'owner sees the Drift report, without the Device line');
   return text;
 }
-const RULES = { ask: 'ask the owner with AskUserQuestion', ff: 'without asking' };
-function expect(text, has, rule, what) { // rule: 'ask', 'ff' or false
+const RULES = { ask: 'ask the owner with AskUserQuestion', ff: 'without asking', push: 'offer to push' };
+function expect(text, has, rule, what) { // rule: 'ask', 'ff', 'push', a list of them, or false
+  const want = [rule].flat().filter(Boolean);
   assert.ok(text, `${what}: no output`);
   for (const h of has) assert.ok(text.includes(h), `${what}: missing "${h}" in:\n${text}`);
-  for (const [k, v] of Object.entries(RULES)) assert.strictEqual(text.includes(v), rule === k, `${what}: ${k} should be ${rule === k}:\n${text}`);
+  for (const [k, v] of Object.entries(RULES)) assert.strictEqual(text.includes(v), want.includes(k), `${what}: ${k} should be ${want.includes(k)}:\n${text}`);
 }
 
 // SessionStart.
@@ -69,7 +70,7 @@ expect(session(d), ['branch main: behind origin/main by 1'], 'ff', 'behind, clea
 fs.writeFileSync(path.join(d, 'a.txt'), 'changed');
 expect(session(d), ['branch main: behind origin/main by 1', 'uncommitted changes'], 'ask', 'behind, dirty');
 d = clone('ahead'); commit(d, 'x.txt');
-expect(session(d), ['branch main: ahead of origin/main by 1'], false, 'ahead');
+expect(session(d), ['branch main: ahead of origin/main by 1'], 'push', 'ahead');
 d = clone('dirty'); fs.writeFileSync(path.join(d, 'a.txt'), 'changed');
 expect(session(d), ['uncommitted changes'], false, 'tracked file changed');
 d = clone('untracked'); fs.writeFileSync(path.join(d, 'new.txt'), 'x');
@@ -83,6 +84,15 @@ d = clone('wt-main'); advance(d);
 const wt = path.join(d, '.claude', 'worktrees', 'x');
 sh(d, 'worktree', 'add', '-q', wt, '-b', 'x');
 expect(session(wt), ['branch x: no upstream', 'branch main: behind origin/main by 1'], 'ff', 'worktree, main behind');
+d = clone('diverged'); advance(d); commit(d, 'y.txt');
+expect(session(d), ['branch main: behind origin/main by 1, ahead of origin/main by 1'], 'ask', 'diverged: asks, never offers a push');
+d = clone('wt-ahead'); commit(d, 'z.txt');
+const wtAhead = path.join(d, '.claude', 'worktrees', 'x');
+sh(d, 'worktree', 'add', '-q', wtAhead, '-b', 'x');
+expect(session(wtAhead), ['branch x: no upstream', 'branch main: ahead of origin/main by 1'], 'push', 'worktree, main ahead');
+d = clone('behind-and-ahead'); sh(d, 'checkout', '-q', '-b', 'dev'); sh(d, 'push', '-q', '-u', 'origin', 'dev'); commit(d, 'w.txt');
+advance(d);
+expect(session(d), ['branch dev: ahead of origin/dev by 1', 'branch main: behind origin/main by 1'], ['ff', 'push'], 'one branch behind, another ahead');
 d = clone('no-remote'); sh(d, 'remote', 'remove', 'origin');
 expect(session(d), ['no remote'], false, 'no remote');
 assert.ok(!session(d).includes('no upstream'), 'no remote: branches are not reported as no upstream');
@@ -92,6 +102,60 @@ d = clone('bad-remote'); sh(d, 'remote', 'set-url', 'origin', path.join(T, 'gone
 expect(session(d), ['Unknown: fetch failed'], 'ask', 'remote unreachable');
 fs.mkdirSync(path.join(T, 'plain'));
 assert.strictEqual(session(path.join(T, 'plain')), null, 'not a repo: silent');
+
+// The kit, reached through ~/.claude/kit as on a device (a symlink; a junction on Windows). Its template is templates/workflow.md.
+const kit = clone('kit-real');
+const KIT_LINK = path.join(HOME, '.claude', 'kit');
+const head = (dir) => execFileSync('git', ['rev-parse', 'HEAD'], { cwd: dir, env, encoding: 'utf8' }).trim();
+function tmpl(text) {
+  fs.mkdirSync(path.join(kit, 'templates'), { recursive: true });
+  fs.writeFileSync(path.join(kit, 'templates', 'workflow.md'), text);
+  sh(kit, 'add', 'templates'); sh(kit, 'commit', '-q', '-m', 'tmpl'); sh(kit, 'push', '-q');
+}
+tmpl('v1\n');
+const tmplSha = head(kit);
+fs.symlinkSync(kit, KIT_LINK, 'junction');
+// A project on the template: docs/agents/workflow.md under `Template: <sha>`, committed and pushed.
+function project(name, sha) {
+  const p = clone(name);
+  fs.mkdirSync(path.join(p, 'docs', 'agents'), { recursive: true });
+  fs.writeFileSync(path.join(p, 'docs', 'agents', 'workflow.md'), `Template: ${sha}\r\nbody\n`); // CRLF as on Windows
+  sh(p, 'add', 'docs'); sh(p, 'commit', '-q', '-m', 'wf'); sh(p, 'push', '-q');
+  return p;
+}
+const p = project('on-template', tmplSha);
+assert.strictEqual(session(p), null, 'kit and project in sync, template current: silent');
+
+advance(kit);
+expect(session(p), ['Drift check for the kit (', 'branch main: behind origin/main by 1'], 'ff', 'kit behind, clean');
+assert.ok(!session(p).includes(`Drift check for ${p}`), 'the project itself has nothing to say');
+fs.writeFileSync(path.join(kit, 'scratch.txt'), 'x');
+expect(session(p), ['Drift check for the kit (', 'uncommitted changes'], 'ask', 'kit behind, dirty');
+fs.rmSync(path.join(kit, 'scratch.txt')); sh(kit, 'pull', '-q', '--ff-only');
+commit(kit, 'k.txt');
+expect(session(p), [`Drift check for the kit (${kit})`, 'branch main: ahead of origin/main by 1'], 'push', 'kit ahead: real path shown, push offered');
+const kitUrl = execFileSync('git', ['remote', 'get-url', 'origin'], { cwd: kit, encoding: 'utf8' }).trim();
+sh(kit, 'remote', 'set-url', 'origin', path.join(T, 'gone.git'));
+expect(session(p), ['Drift check for the kit (', 'Unknown: fetch failed'], 'ask', 'kit unreachable');
+sh(kit, 'remote', 'set-url', 'origin', kitUrl);
+let k = session(kit);
+assert.ok(!k.includes('Drift check for the kit'), `session in the kit: checked once:\n${k}`);
+expect(k, [`Drift check for ${kit}`, 'branch main: ahead of origin/main by 1'], 'push', 'session in the kit');
+const kitWt = path.join(kit, '.claude', 'worktrees', 'kw');
+sh(kit, 'worktree', 'add', '-q', kitWt, '-b', 'kw');
+k = session(kitWt);
+assert.ok(!k.includes('Drift check for the kit'), `session in a kit worktree: checked once:\n${k}`);
+sh(kit, 'worktree', 'remove', kitWt); sh(kit, 'branch', '-q', '-D', 'kw');
+sh(kit, 'push', '-q');
+
+// The project's Template, compared by content: an old-format sha (the kit's HEAD then) passes while the template is unchanged.
+const oldFormat = project('old-format', head(kit)); // k.txt changed after the template: HEAD is not the template's commit
+assert.strictEqual(session(oldFormat), null, 'old-format sha, same template: silent');
+tmpl('v2\n');
+expect(session(oldFormat), [`Drift check for ${oldFormat}`, 'workflow.md: older than the kit\'s template', '/sync-workflow'], false, 'template changed since');
+expect(session(p), ['workflow.md: older than the kit\'s template'], false, 'new-format sha, template changed since');
+const stranger = project('stranger', 'f'.repeat(40));
+expect(session(stranger), ['workflow.md: Template fffffff is not in the local kit'], false, 'sha unknown to this kit');
 
 // The drift command.
 const home = path.join(T, 'home');
