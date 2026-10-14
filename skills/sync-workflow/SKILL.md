@@ -138,7 +138,7 @@ This run never changes the kit. An ahead or conflict item worth carrying back is
 Apply:
 
 1. Template-side items: edit the repo's `docs/agents/workflow.md`.
-2. If step 1 changed anything, set the first line to `Template: $KIT_SHA` (insert it if missing). Otherwise leave the first line alone.
+2. If step 1 changed anything, or the first line is not a `Template:` line, set the first line to `Template: $KIT_SHA` (insert it if missing). Otherwise leave the first line alone.
 
 `project.md` is never compared; section 7 reads its `Remote:` line, and adds one if it is missing.
 
@@ -205,17 +205,27 @@ done
 Then find the tracked files the new attributes would renormalize — those committed with CRLF:
 
 ```bash
-RENORM=$(git ls-files --eol | awk '$1 == "i/crlf" || $1 == "i/mixed" { sub(/^[^\t]*\t/, ""); print }')
+RENORM=$(git -c core.quotePath=false ls-files --eol | awk '$1 == "i/crlf" || $1 == "i/mixed" { sub(/^[^\t]*\t/, ""); print }')
 ```
 
-If `RENORM` is empty, this section ends. Otherwise, after section 6's commit, list the files and ask one `AskUserQuestion`: renormalize them in a commit of their own (recommended) / leave them. On yes — `git add --renormalize` plus `git commit <paths>` does not work (a path commit re-reads the working tree, and keeps CRLF because the committed blob has it), so strip the working copies instead:
+`core.quotePath=false` keeps non-ASCII paths unquoted, so the commands below can open them.
+
+If `RENORM` is empty, this section ends. Otherwise, after section 6's commit, check those files for uncommitted changes:
 
 ```bash
-printf '%s\n' "$RENORM" | while IFS= read -r f; do perl -pi -e 's/\r$//' "$f"; done
-printf '%s\n' "$RENORM" | tr '\n' '\0' | xargs -0 git commit -m "Normalize line endings per .gitattributes" --
+printf '%s\n' "$RENORM" | tr '\n' '\0' | xargs -0 git -c core.quotePath=false status --porcelain --
+```
+
+If it prints anything, do not renormalize: tell the owner which files have uncommitted changes, and that renormalizing waits until they are committed or reverted (a later `/sync-workflow` offers it again). This section ends.
+
+Otherwise list the files and ask one `AskUserQuestion`: renormalize them in a commit of their own (recommended) / leave them. On yes — `git add --renormalize` plus `git commit <paths>` does not work (a path commit re-reads the working tree, and keeps CRLF because the committed blob has it), so strip the working copies instead:
+
+```bash
+printf '%s\n' "$RENORM" | tr '\n' '\0' | xargs -0 perl -pi -e 's/\r$//' &&
+printf '%s\n' "$RENORM" | tr '\n' '\0' | xargs -0 git commit -m "Normalize line endings per .gitattributes" -- &&
 printf '%s\n' "$RENORM" | while IFS= read -r f; do rm -f "$f"; git checkout -- "$f"; done
 ```
 
-The last line re-checks them out, so `*.bat`, `*.cmd` and `*.ps1` get CRLF back in the working tree. Report this commit with section 6's.
+The three commands are chained with `&&`: if the strip or the commit fails, stop and show the owner the output; never re-check the files out then. The last line re-checks them out, so `*.bat`, `*.cmd` and `*.ps1` get CRLF back in the working tree. Report this commit with section 6's.
 
-Done when: `.gitattributes` holds the four lines, and either `RENORM` was empty, the owner declined, or `git ls-files --eol` shows no `i/crlf` or `i/mixed` left.
+Done when: `.gitattributes` holds the four lines, and either `RENORM` was empty, a RENORM file had uncommitted changes (and the owner was told), the owner declined, or `git ls-files --eol` shows no `i/crlf` or `i/mixed` left.
