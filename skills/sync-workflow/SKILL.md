@@ -149,16 +149,16 @@ Apply:
 1. Template-side items: edit the repo's `docs/agents/workflow.md`.
 2. If step 1 changed anything, or the first line is not a `Template:` line, set the first line to `Template: $KIT_SHA` (insert it if missing). Otherwise leave the first line alone.
 
-`project.md` is never compared; section 7 reads its `Remote:` line, and adds one if it is missing.
+`project.md` is not compared with any template; section 7 reads its `Remote:` line and adds one if it is missing, and the step below may add a Production URL.
 
-**Production URL**: if an Owner boundary bullet of `docs/agents/project.md` contains `deploys to` but neither `Production URL` nor `no Production URL`, ask one `AskUserQuestion` for that bullet: "Other" lists one or more URLs, comma-separated, or "None". Append `, Production URL <url>, <url>` or `, no Production URL` to the bullet's end, and show it with this run's other changes. A bullet that already has either is not asked about.
+**Production URL**: if an Owner boundary bullet of `docs/agents/project.md` contains `deploys to` but not `Production URL` (which `no Production URL` contains too), ask one `AskUserQuestion` for that bullet: "Other" lists one or more URLs, comma-separated, or "None". Append `, Production URL <url>, <url>` or `, no Production URL` to the bullet's end; section 6 commits it, and the report shows the bullet. A bullet that already has either is not asked about.
 
-Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | diff --strip-trailing-cr - ~/.claude/kit/templates/workflow.md` shows only the items kept as is — list those for the owner; they will be reported as ahead next time, and `/generate-kit-proposal` is how one reaches the kit.
+Done when: every item has a decision, every deploy bullet has a Production URL or `no Production URL`, and `tail -n +2 docs/agents/workflow.md | diff --strip-trailing-cr - ~/.claude/kit/templates/workflow.md` shows only the items kept as is — list those for the owner; they will be reported as ahead next time, and `/generate-kit-proposal` is how one reaches the kit.
 
 ## 6. Commit and report
 
 - Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update; `, add Remote: to project.md` appended when section 7 wrote it, `, add Production URL to project.md` when section 5 did).
-- Nothing written (in sync, `.gitattributes` complete): no commit, and say so.
+- Nothing written (in sync, `.gitattributes` complete, no `Remote:` or Production URL added): no commit, and say so.
 - After the commit (and section 8's, if any), offer to push the target per `global.md`: the sooner it is on the remote, the shorter the time another device can sync on top of a stale base.
 - EC2 with the workflow written: hand over the four repo secrets, each command in its own `bash` block, with `<repo>` the `Remote:` value. The owner runs them and types each value; a secret's value never passes through you. `SSH_KEY` is multi-line, so it reads the key file the owner names:
   - `gh secret set SSH_KEY -R <repo> < ~/.ssh/<key file>`
