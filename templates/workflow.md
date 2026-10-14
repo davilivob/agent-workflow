@@ -94,7 +94,7 @@ Scan `.scratch/*/spec.md` (committed ones only) and list six groups, the last fr
 
 - Writing the plan: `.scratch/<slug>/plan.md` exists but is not committed.
 - Executing: `git worktree list` shows `.claude/worktrees/<slug>`, or a branch named `<slug>` exists.
-- Awaiting OS-bound verification: a branch `origin/<slug>` exists (as the session's Drift check fetched it) and its spec, `git show origin/<slug>:.scratch/<slug>/spec.md`, is not `done` and has an `Awaiting OS-bound verification (<os>)` line.
+- Awaiting OS-bound verification: a branch `origin/<slug>` exists (as the session's Drift check fetched it), is not yet in `main` (`git merge-base --is-ancestor origin/<slug> main` fails), and its spec, `git show origin/<slug>:.scratch/<slug>/spec.md`, is not `done` and has an `Awaiting OS-bound verification (<os>)` line.
 
 The groups:
 
