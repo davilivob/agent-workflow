@@ -20,8 +20,8 @@ const COMMIT =
   'An amend that only rewrites the message takes `--only`.';
 
 const KIT_EDIT =
-  "Guard: a session outside the kit does not edit the kit; only its inbox/ takes Proposals (the kit's docs/agents/project.md). " +
-  'Do not retry; write a Proposal with /propose-to-kit instead.';
+  'Guard: a session outside the kit does not edit the kit (workflow.md, Project lessons). ' +
+  'Do not retry; file a Proposal with /file-request to the kit instead.';
 
 // Push options that do more than fast-forward the current branch: rewrite, delete, or push tags or other branches.
 const PUSH_OWNER_LONG = new Set(['--force', '--force-with-lease', '--force-if-includes', '--delete', '--tags',
@@ -245,7 +245,7 @@ function checkEdit(file, cwd) {
   if (!file) return null;
   const kit = real(path.join(os.homedir(), '.claude', 'kit'));
   const target = real(path.resolve(cwd, file));
-  if (!inside(target, kit) || inside(real(cwd), kit) || inside(target, path.join(kit, 'inbox'))) return null;
+  if (!inside(target, kit) || inside(real(cwd), kit)) return null;
   return ['deny', KIT_EDIT];
 }
 

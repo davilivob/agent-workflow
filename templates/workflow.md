@@ -43,6 +43,7 @@ Step 1 is every Route's; steps 2–4 are Inline's and SDD's. One new session per
 When one grill splits into several specs, or a new spec intersects another spec that has not merged yet, write the relationship at the top of the spec. A Direct change in progress counts too: a slug with a Claim but no spec. First decide which kind it is:
 
 - **A real dependency**: this spec uses the other one's code, schema or decisions. Write `After: <slug>`. **Before writing its plan or starting it, confirm that one is already on `main`**: `git log main --oneline --grep=<slug>`. If not, wait.
+  - **In another repo**: write `After: <owner/repo>#<n>`, the Request filed there (see **Requests**). It counts as on `main` once `gh issue view <n> -R <owner/repo> --json state` says `CLOSED`. If that call fails, it is Unknown: never treat it as closed.
 - **Only touching the same file**: not a dependency; do not queue because of it. Look at which parts of the file each spec will change, assess the merge-conflict risk, and write `Overlaps: <slug> — low|medium|high: <one-sentence reason>`:
   - **Low** (different blocks of the same file, each adding its own things): does not block; run in parallel; the note is enough.
   - **Medium** (both change the same block, but the intents are separable): does not block; run in parallel. Write the merge resolution in the spec: the spec that merges later resolves it, which part follows whom, and which verification to run after resolving.
@@ -51,14 +52,14 @@ When one grill splits into several specs, or a new spec intersects another spec 
 An old spec that only says "follows X" without saying which kind: judge it once by the rules above, then decide whether to wait.
 
 1. **Grill**: `/grill-with-docs`. Updates `CONTEXT.md` and ADRs inline. A grill always lands in writing — a spec, an ADR, or (Direct) commit messages plus `CONTEXT.md` — never in chat alone (see **What is said in chat goes into its file**). In the last round the owner decides `Merge:` (auto, ask or manual); the agent states the Route and whether it needs a plan, with a one-line reason, and the owner may overrule.
-2. **Spec**: the owner runs `/to-spec`. Output is `.scratch/<slug>/spec.md`, headed by `Status: ready-for-agent`, `Merge: auto | ask | manual` (missing means `manual`), `Plan: yes | no` (missing means `yes`) and `Execute: sdd | inline` (missing means `sdd`; `inline` always goes with `Plan: no`). Body in Traditional Chinese; template headings and `CONTEXT.md` terms stay in English as written in the glossary. **The owner reviews the spec**, then one commit carries the spec, `CONTEXT.md` and any ADR: `[<slug>] spec: ...`.
+2. **Spec**: the owner runs `/to-spec`. Output is `.scratch/<slug>/spec.md`, headed by `Status: ready-for-agent`, `Merge: auto | ask | manual` (missing means `manual`), `Plan: yes | no` (missing means `yes`) and `Execute: sdd | inline` (missing means `sdd`; `inline` always goes with `Plan: no`); a spec grilled from a Request also carries `Request: #<n>`. Body in Traditional Chinese; template headings and `CONTEXT.md` terms stay in English as written in the glossary. **The owner reviews the spec**, then one commit carries the spec, `CONTEXT.md` and any ADR: `[<slug>] spec: ...`.
 3. **Plan**: `/superpowers:writing-plans .scratch/<slug>/spec.md`. Output is `.scratch/<slug>/plan.md`, not `docs/superpowers/plans/`. In English; the owner does not read it. Commit when written, without asking, on the branch it belongs to (see **Commits**).
    - **Write a plan only for a committed spec**: `git log main --oneline --grep=<slug>`. A spec still sitting in the working tree means the owner is still reading it; a plan written now is wasted.
    - **Write a plan only once whatever `After:` (or `Overlaps: high`) names is on `main`**: `git log main --oneline --grep=<slug>`. A plan names exact files and code shapes; written against a dependency still on another branch, it goes stale when that one merges.
    - **A `plan.md` that already exists, committed or not, is someone else's**: stop and tell the owner; never overwrite it. An uncommitted one means another session is writing it.
    - **Claim it first**: once the spec is confirmed committed, and before invoking the skill, write `plan.md` containing the single line `Writing`, and do not commit it. Overwrite it with the full plan, then commit.
    - A spec with `Plan: no` skips this step; step 4 works straight from the spec.
-4. **Execute**: on a branch. The last commit sets the spec to `Status: done`.
+4. **Execute**: on a branch. The last commit sets the spec to `Status: done`, and, with `Request: #<n>`, carries `Fixes #<n>` in its message.
    - `Execute: sdd`: `superpowers:subagent-driven-development`. Its built-in reviews are the review; do not also run `code-review`.
    - `Execute: inline`: the session implements it itself, then runs the `code-review` skill (Standards and Spec) against `main` before merging.
    - With `Worktree: yes` in `project.md`: **open a real worktree**, not a branch on the main checkout: `git worktree add .claude/worktrees/<slug> -b <slug> main`. Nobody commits on the main checkout. Wrap-up: after merging, `git worktree remove .claude/worktrees/<slug>`, then confirm `git merge-base --is-ancestor <slug> main` and delete with `git branch -D <slug>`. Not `git branch -d`: it judges "merged" against the current checkout's HEAD, not `main`, so it refuses whenever it runs in a checkout that is not on `main`, such as another worktree. `project.md` lists anything else a worktree needs set up or removed.
@@ -88,7 +89,7 @@ What is said in chat that changes what gets built goes into its file in the same
 
 Any text in the same message besides "continue" is background, not authorization. Mentioning a slug only tells you its state — in particular "X just started" means **leave X alone**; it belongs to another session, and you are not being asked to take it over. If you cannot tell what it wants, ask; do not pick something and start.
 
-Scan `.scratch/*/spec.md` (committed ones only) and list four groups. First look for each slug's **Claim**, the trace that a session is working on it; a Claim with no spec is a Direct change and goes under In progress too:
+Scan `.scratch/*/spec.md` (committed ones only) and list five groups. First look for each slug's **Claim**, the trace that a session is working on it; a Claim with no spec is a Direct change and goes under In progress too:
 
 - Writing the plan: `.scratch/<slug>/plan.md` exists but is not committed.
 - Executing: `git worktree list` shows `.claude/worktrees/<slug>`, or a branch named `<slug>` exists.
@@ -98,9 +99,20 @@ The groups:
 - **In progress**: slugs with a Claim, and only here, in none of the other groups. Say which kind (writing the plan, or executing) and how long since it last moved: the stub's modification time, or the branch's last commit. Never judge a Claim stale yourself; report the time and let the owner decide whether to take it over.
 - **Needs a plan**: specs with `Plan: yes` (or none written), no `plan.md` in the directory, and whatever `After:` (or `Overlaps: high`) names is already on `main`.
 - **Ready**: has `plan.md` (or `Plan: no`), `Status` not yet `done`, and whatever `After:` names is already on `main`. Low or medium `Overlaps:` still count as Ready; note after them whom they overlap and at what risk.
-- **Blocked**: would be Needs a plan or Ready, but what `After:` (or `Overlaps: high`) names is not on `main` yet; say which one it waits for, whether it is a real dependency or a high conflict risk, and whether it still needs a plan.
+- **Blocked**: would be Needs a plan or Ready, but what `After:` (or `Overlaps: high`) names is not on `main` yet; say which one it waits for, whether it is a real dependency or a high conflict risk, and whether it still needs a plan. An `After:` Request whose state is Unknown goes here too, marked Unknown.
+- **Requests**: the open Requests in this repo, from `gh issue list --state open --json number,createdAt,body`. One line each: number, date opened, its `From:` and the first sentence of its `## What`. If `gh` fails (not installed, not logged in, offline, origin not on GitHub), the group is Unknown, never empty. A Request the owner picks gets a Triage (see **Requests**).
 
 One line each: slug, one sentence on what it is, `Merge:`. Whatever another session is already working on goes under In progress: a Claim, or the owner saying so. Start only after the owner picks.
+
+## Requests
+
+A **Request** is a GitHub issue one repo files in another, asking it to change something; a **Proposal** is a Request to the kit. It lives in the repo it asks to change, so filing one commits nothing anywhere. File one with `/file-request`: the owner sees its title and full body, and agrees, before it is sent.
+
+A Request the owner picks (from Continue, or by its number) gets a **Triage** first, not a grill. In plain words, one short block each: what it says; why (what the source repo ran into); what in this repo it would touch; and a recommended verdict with a one-line reason — any conflict with a rule here or another Request goes in that reason. Ask for the verdict with `AskUserQuestion`, and change nothing until the owner picks:
+
+- **Apply**: no design decision for the owner, so it is a small change the grill rule exempts. Pick a slug as for Direct and make the change as usual, with verification and no spec. The last commit's message carries `Fixes #<n>`, so the Request closes when that commit is pushed to the default branch (see `global.md` for when to push).
+- **Drop**: `gh issue close <n> --comment "<the owner's reason>"`. The owner's pick is the consent to close it.
+- **Grill**: list the decisions the owner has to make, and stop; the owner runs `/grill-with-docs <the Request's URL>` by hand. Its spec carries `Request: #<n>`.
 
 ## Spec and Plan
 
@@ -136,6 +148,6 @@ Handing over an owner command: when the work is done, read the Terminal panel wi
 
 A lesson learned about this project goes into `docs/agents/` (usually `project.md`), not into memory, and onto `main` at once (see **Commits**). Memory holds only what is specific to one device, such as a local path, because memory does not travel to the owner's other machines.
 
-A lesson about the workflow itself (this file, a kit skill, the Guard) belongs to the kit, `~/.claude/kit`, which a session outside it never edits. When one surfaces, say so in one line and suggest `/propose-to-kit`; the owner decides whether to run it.
+A lesson about the workflow itself (this file, a kit skill, the Guard) belongs to the kit, `~/.claude/kit`, which a session outside it never edits. When one surfaces, say so in one line and suggest `/file-request` to the kit, a Proposal; the owner decides whether to run it.
 
 A **silent failure** — a toolchain or environment failure that cost more than half an hour and whose message pointed at the wrong cause, or said nothing — goes into `docs/silent-failures.md`, not into `project.md`: a lesson says how to work, this says how a tool misleads. One entry each: the toolchain and its version, what you see, what it actually was, how to tell, what to do; a symptom index at the top, updated with each entry. A wrong lead is recorded as one, so nobody follows it twice. The project's own code does not go here. A resolved entry stays, marked with the version or change that resolved it. Not a diary, not a changelog. Write an entry without asking and put it on `main` at once (see **Commits**); create the file with its first entry.

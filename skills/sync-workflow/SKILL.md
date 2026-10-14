@@ -15,7 +15,7 @@ In a repo on the **template**, `docs/agents/workflow.md` is `~/.claude/kit/templ
 3. If `git -C ~/.claude/kit remote` prints a name, run `git -C ~/.claude/kit pull --ff-only`. On failure stop and show the owner the output.
 4. Run `sh ~/.claude/kit/setup.sh --check`. If any line it prints mentions graphify, stop and ask the owner to run `sh ~/.claude/kit/setup.sh`. Keep its `TODO:` lines for the report in section 6.
 5. `KIT_SHA=$(git -C ~/.claude/kit rev-parse HEAD)`.
-6. `ORIGIN=$(git remote get-url origin 2>/dev/null)`; empty means no origin. If set, `REMOTE` is its `owner/repo`: `sed -E 's#\.git$##; s#.*[:/]([^/:]+/[^/:]+)$#\1#'` of it (the same as `/propose-to-kit`); and if it does not contain `github.com`, keep a note for the report: origin is not on GitHub, so the Claude desktop app, seen from another device, will not give this repo its own group in the sidebar.
+6. `ORIGIN=$(git remote get-url origin 2>/dev/null)`; empty means no origin. If set, `REMOTE` is its `owner/repo`: `sed -E 's#\.git$##; s#.*[:/]([^/:]+/[^/:]+)$#\1#'` of it (the same as `/file-request`); and if it does not contain `github.com`, keep a note for the report: origin is not on GitHub, so the Claude desktop app, seen from another device, will not give this repo its own group in the sidebar.
 7. Pick the **mode**:
    - `docs/agents/workflow.md` exists → **update**: sections 5, 7, 4, 6.
    - None of `CLAUDE.md`, `docs/`, `.scratch/`, `CONTEXT.md` exists → **new**: sections 2, 7, 3, 4, 6.

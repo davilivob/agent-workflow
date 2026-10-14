@@ -92,7 +92,7 @@ expect(bash(wt, 'git commit -m msg'), 'none', 'worktree, -m only');
 expect(bash(main, `git -C ${wt} commit -m msg`), 'none', 'git -C worktree');
 expect(bash(main, `cd ${wt} && git commit -m msg`), 'none', 'cd worktree &&');
 
-// Edits to the kit (~/.claude/kit, a symlink as on a real device): only from inside it, or into inbox/.
+// Edits to the kit (~/.claude/kit, a symlink as on a real device): only from inside it.
 const home = path.join(T, 'home');
 fs.mkdirSync(path.join(home, '.claude'), { recursive: true });
 fs.symlinkSync(kit, path.join(home, '.claude', 'kit'), 'junction'); // a junction on Windows, as setup.sh makes; the type is ignored elsewhere
@@ -104,8 +104,11 @@ expect(edit('Edit', flow, viaLink('global.md')), 'deny', 'Edit kit via the symli
 expect(edit('Write', flow, path.join(kit, 'skills', 'new', 'SKILL.md')), 'deny', 'Write a new kit file by its real path');
 expect(edit('NotebookEdit', flow, viaLink('n.ipynb')), 'deny', 'NotebookEdit in the kit');
 expect(edit('Write', flow, path.join(kitWt, 'global.md')), 'deny', 'Write into a kit worktree from another repo');
-expect(edit('Write', flow, viaLink('inbox/2026-01-01-flow-x.md')), 'none', 'Write a Proposal into inbox/');
-expect(edit('Write', flow, viaLink('inbox-not/x.md')), 'deny', 'a sibling named like inbox');
+expect(edit('Write', flow, viaLink('inbox/2026-01-01-flow-x.md')), 'deny', 'Write into the retired inbox/');
+{
+  const r = spawnSync('node', [GUARD], { input: JSON.stringify({ tool_name: 'Edit', tool_input: { file_path: viaLink('global.md') }, cwd: flow }), env: { ...env, HOME: home, USERPROFILE: home }, encoding: 'utf8' });
+  assert.match(JSON.parse(r.stdout).hookSpecificOutput.permissionDecisionReason, /\/file-request/, 'the denial points to /file-request');
+}
 expect(edit('Edit', kit, viaLink('global.md')), 'none', 'Edit from the kit checkout');
 expect(edit('Edit', kitWt, path.join(kitWt, 'global.md')), 'none', 'Edit from a kit worktree');
 expect(edit('Edit', flow, path.join(flow, 'a.txt')), 'none', 'Edit outside the kit');
