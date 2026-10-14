@@ -5,11 +5,11 @@ The owner's agent workflow: the rules, templates and skills every project and de
 ## Language
 
 **Owner**:
-The one person who decides designs, reviews specs, and alone runs production writes and SSH — and `git push` where a project reserves it. An agent pushes only when the owner asks.
+The one person who decides designs, reviews specs, and alone runs production writes and SSH — and `git push` where a project reserves it. Elsewhere an agent may push, but every push waits for the owner's consent at the Guard's prompt.
 _Avoid_: user, maintainer
 
 **Template**:
-A file in `templates/` that `/sync-workflow` copies into a repo; `workflow.md` is carried verbatim under a `Template: <sha>` line.
+A file in `templates/` that `/sync-workflow` copies into a repo; `workflow.md` is carried verbatim under a `Template: <sha>` line naming the last kit commit that changed it.
 
 **Guard**:
 The hook that mechanically enforces the owner boundary and the commit rules. The written rule stays the single source; the guard is its backstop.
@@ -38,6 +38,10 @@ _Avoid_: queue, backlog
 **Triage**:
 The first look at a Proposal the owner picks from the Inbox: what it says, why, what it would touch, and a recommended verdict — apply, drop, or grill. The owner decides; triage only recommends.
 _Avoid_: review, screening
+
+**OS-bound verification**:
+A verification step that runs only on one operating system. A change that needs it is verified and merged from a device on that OS, whichever device wrote it.
+_Avoid_: platform test, Windows test
 
 **Drift**:
 A local repo differing from its remote: behind, ahead, uncommitted changes, or a branch with no upstream.
