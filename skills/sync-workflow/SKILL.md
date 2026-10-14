@@ -14,14 +14,19 @@ In a repo on the **template**, `docs/agents/workflow.md` is `~/.claude/kit/templ
 2. `git -C ~/.claude/kit branch --show-current` prints `main`. Otherwise stop: the installed kit must be on `main`, or a sha from another branch would not exist on other devices.
 3. If `git -C ~/.claude/kit remote` prints a name, run `git -C ~/.claude/kit pull --ff-only`. On failure stop and show the owner the output.
 4. Run `sh ~/.claude/kit/setup.sh --check`. If any line it prints mentions graphify, stop and ask the owner to run `sh ~/.claude/kit/setup.sh`. Keep its `TODO:` lines for the report in section 6.
-5. `KIT_SHA=$(git -C ~/.claude/kit rev-parse HEAD)`.
-6. `ORIGIN=$(git remote get-url origin 2>/dev/null)`; empty means no origin. If set, `REMOTE` is its `owner/repo`: `sed -E 's#\.git$##; s#.*[:/]([^/:]+/[^/:]+)$#\1#'` of it (the same as `/file-request`); and if it does not contain `github.com`, keep a note for the report: origin is not on GitHub, so the Claude desktop app, seen from another device, will not give this repo its own group in the sidebar.
-7. Pick the **mode**:
-   - `docs/agents/workflow.md` exists → **update**: sections 5, 7, 4, 6.
-   - None of `CLAUDE.md`, `docs/`, `.scratch/`, `CONTEXT.md` exists → **new**: sections 2, 7, 3, 4, 6.
-   - Otherwise → **existing**: sections 2, 7, 3, 4, 6.
+5. If `git -C ~/.claude/kit remote` prints a name and `git -C ~/.claude/kit rev-list --count @{u}..HEAD` prints more than `0`, stop: the kit has commits no other device has, so a sha written now would not exist there. Offer to push the kit per `global.md` (`git -C ~/.claude/kit push`), then re-run.
+6. The target: `git branch --show-current` must print `main`; otherwise stop and say which branch it is on — the sync's commit belongs on `main`. If `git remote` prints a name and `main` has an upstream (`git rev-parse --verify -q @{u}`), `git fetch --quiet`, then `git rev-list --left-right --count main...@{u}` (ahead, behind) and `git status --porcelain`:
+   - behind only, and the status is empty → `git pull --ff-only`; on failure stop and show the owner the output;
+   - ahead and behind, or behind with a non-empty status → one `AskUserQuestion`: deal with it first (stop here) / stop;
+   - otherwise go on. Write nothing to any file before this step passes.
+7. `KIT_SHA=$(git -C ~/.claude/kit log -1 --format=%H -- templates/workflow.md)`: the last kit commit that changed the template, the same on every device whose kit holds it, and unchanged by any other kit commit.
+8. `ORIGIN=$(git remote get-url origin 2>/dev/null)`; empty means no origin. If set, `REMOTE` is its `owner/repo`: `sed -E 's#\.git$##; s#.*[:/]([^/:]+/[^/:]+)$#\1#'` of it (the same as `/file-request`); and if it does not contain `github.com`, keep a note for the report: origin is not on GitHub, so the Claude desktop app, seen from another device, will not give this repo its own group in the sidebar.
+9. Pick the **mode**:
+   - `docs/agents/workflow.md` exists → **update**: sections 5, 7, 4, 8, 6.
+   - None of `CLAUDE.md`, `docs/`, `.scratch/`, `CONTEXT.md` exists → **new**: sections 2, 7, 3, 4, 8, 6.
+   - Otherwise → **existing**: sections 2, 7, 3, 4, 8, 6.
 
-Done when: the kit is clean, on `main` and current, graphify is on PATH, you have a mode and `ORIGIN` (empty if none).
+Done when: the kit is clean, on `main`, current and not ahead; the target is on `main` and not behind; graphify is on PATH; you have `KIT_SHA`, a mode and `ORIGIN` (empty if none).
 
 ## 2. Project values (new, existing)
 
@@ -77,6 +82,22 @@ Done when: every approved file is written, and `tail -n +2 docs/agents/workflow.
 
 1. If `CLAUDE.md` has a `## graphify` line **and** `.claude/settings.json` mentions `graphify`, it is installed: skip to 3.
 2. Otherwise run `graphify claude install`, then `graphify update .` for the first graph (AST only, no API cost). If it is installed but `graphify-out/graph.json` is missing (fresh clone; it is gitignored), run `graphify update .` alone.
+   Right after `graphify claude install`: it writes graphify's absolute path into `.claude/settings.json` (e.g. `/Users/<name>/.local/bin/graphify hook-guard search`), which differs per device and would make each device's sync a different commit. Rewrite the home-directory prefix to `$HOME`, as the kit's own hooks are written:
+
+   ```bash
+   node -e '
+   const fs = require("fs"), os = require("os");
+   const f = ".claude/settings.json", s = JSON.parse(fs.readFileSync(f, "utf8"));
+   const homes = [os.homedir(), os.homedir().replace(/\\/g, "/")];
+   for (const e of Object.values(s.hooks ?? {}).flat()) for (const h of e.hooks ?? []) {
+     const m = /^(.*?graphify(?:\.exe)?)((?: .*)?)$/.exec(h.command ?? "");
+     const home = m && homes.find((p) => m[1].startsWith(p));
+     if (home) h.command = `"$HOME${m[1].slice(home.length).replace(/\\/g, "/")}"${m[2]}`;
+   }
+   fs.writeFileSync(f, JSON.stringify(s, null, 2) + "\n");'
+   ```
+
+   A graphify command that still names an absolute path afterwards (graphify outside the home directory) is left as it is; note it in the report.
 3. If `.gitignore` has no `graphify-out/` line, append one.
 
 Done when: `CLAUDE.md` has `## graphify`, `.claude/settings.json` mentions `graphify`, and `.gitignore` has `graphify-out/`.
@@ -98,7 +119,7 @@ Classify — the first matching row wins:
 
 | Case | Result | Items |
 | --- | --- | --- |
-| `repo.md` = `tmpl.md` | **in sync** | none; if the `Template:` line is missing or not `$KIT_SHA`, set it and commit (section 6) |
+| `repo.md` = `tmpl.md` | **in sync** | none. A missing `Template:` line is set to `$KIT_SHA` (section 6 commits it); any other `Template:` line stays as it is, old format included — rewriting it would be a commit with no content, which two devices make differently |
 | no base | **unknown** | each hunk of `diff -u tmpl.md repo.md` is a **conflict** |
 | `repo.md` = `base.md` | **behind** | each hunk of `diff -u base.md tmpl.md` |
 | `tmpl.md` = `base.md` | **ahead** | each hunk of `diff -u base.md repo.md` |
@@ -117,7 +138,7 @@ This run never changes the kit. An ahead or conflict item worth carrying back is
 Apply:
 
 1. Template-side items: edit the repo's `docs/agents/workflow.md`.
-2. Set the first line to `Template: $KIT_SHA` (insert it if missing).
+2. If step 1 changed anything, set the first line to `Template: $KIT_SHA` (insert it if missing). Otherwise leave the first line alone.
 
 `project.md` is never compared; section 7 reads its `Remote:` line, and adds one if it is missing.
 
@@ -126,6 +147,8 @@ Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | 
 ## 6. Commit and report
 
 - Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update; `, add Remote: to project.md` appended when section 7 wrote it).
+- Nothing written (in sync, `.gitattributes` complete): no commit, and say so.
+- After the commit (and section 8's, if any), offer to push the target per `global.md`: the sooner it is on the remote, the shorter the time another device can sync on top of a stale base.
 - List the pipeline's missing dependencies: relay verbatim the `TODO:` lines `setup.sh --check` printed in the preflight, and section 7's `gh` one; each carries its own fix. The owner runs them, not you.
 
 Report: the mode, every file written, every commit (hash and message, up front), missing dependencies, and the remote: the `Remote:` value, any warning, mismatch or non-GitHub note, and the `gh repo create` command if one is handed over.
@@ -158,3 +181,41 @@ On create:
 Write: new and existing fill `{{REMOTE}}` in section 3. Update, when the line was missing: add it to `docs/agents/project.md` under a `## Remote` heading, placed as in `templates/project.md`.
 
 Done when: the `Remote:` value is decided and written, or (update) the existing line is checked against `REMOTE`.
+
+## 8. Line endings (every mode)
+
+Without `.gitattributes`, line endings follow each device's `core.autocrlf`, and one Windows device set wrong commits CRLF: every line differs from the Mac's. Make sure `.gitattributes` holds these four lines, appending only the missing ones (create the file if needed; every other line stays):
+
+```
+* text=auto eol=lf
+*.bat eol=crlf
+*.cmd eol=crlf
+*.ps1 eol=crlf
+```
+
+```bash
+touch .gitattributes
+for l in '* text=auto eol=lf' '*.bat eol=crlf' '*.cmd eol=crlf' '*.ps1 eol=crlf'; do
+  grep -qxF -- "$l" .gitattributes || { [ -s .gitattributes ] && [ -n "$(tail -c 1 .gitattributes)" ] && echo >> .gitattributes; echo "$l" >> .gitattributes; }
+done
+```
+
+`.gitattributes` goes into section 6's commit if this wrote to it.
+
+Then find the tracked files the new attributes would renormalize — those committed with CRLF:
+
+```bash
+RENORM=$(git ls-files --eol | awk '$1 == "i/crlf" || $1 == "i/mixed" { sub(/^[^\t]*\t/, ""); print }')
+```
+
+If `RENORM` is empty, this section ends. Otherwise, after section 6's commit, list the files and ask one `AskUserQuestion`: renormalize them in a commit of their own (recommended) / leave them. On yes — `git add --renormalize` plus `git commit <paths>` does not work (a path commit re-reads the working tree, and keeps CRLF because the committed blob has it), so strip the working copies instead:
+
+```bash
+printf '%s\n' "$RENORM" | while IFS= read -r f; do perl -pi -e 's/\r$//' "$f"; done
+printf '%s\n' "$RENORM" | tr '\n' '\0' | xargs -0 git commit -m "Normalize line endings per .gitattributes" --
+printf '%s\n' "$RENORM" | while IFS= read -r f; do rm -f "$f"; git checkout -- "$f"; done
+```
+
+The last line re-checks them out, so `*.bat`, `*.cmd` and `*.ps1` get CRLF back in the working tree. Report this commit with section 6's.
+
+Done when: `.gitattributes` holds the four lines, and either `RENORM` was empty, the owner declined, or `git ls-files --eol` shows no `i/crlf` or `i/mixed` left.
