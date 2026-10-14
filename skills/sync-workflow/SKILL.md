@@ -151,9 +151,9 @@ Apply:
 
 `project.md` is not compared with any template; section 7 reads its `Remote:` line and adds one if it is missing, and the step below may add a Production URL.
 
-**Production URL**: if an Owner boundary bullet of `docs/agents/project.md` contains `deploys to` but not `Production URL` (which `no Production URL` contains too), ask one `AskUserQuestion` for that bullet: "Other" lists one or more URLs, comma-separated, or "None". Append `, Production URL <url>, <url>` or `, no Production URL` to the bullet's end; section 6 commits it, and the report shows the bullet. A bullet that already has either is not asked about.
+**Production URL**: if an owner-boundary entry of `docs/agents/project.md` contains `deploys to` but not `Production URL` (which `no Production URL` contains too), ask one `AskUserQuestion` for that entry: "Other" lists one or more URLs, comma-separated, or "None". Append `, Production URL <url>, <url>` or `, no Production URL` to the entry's end; section 6 commits it, and the report shows the entry. An entry that already has either is not asked about.
 
-Done when: every item has a decision, every deploy bullet has a Production URL or `no Production URL`, and `tail -n +2 docs/agents/workflow.md | diff --strip-trailing-cr - ~/.claude/kit/templates/workflow.md` shows only the items kept as is — list those for the owner; they will be reported as ahead next time, and `/generate-kit-proposal` is how one reaches the kit.
+Done when: every item has a decision, every entry that deploys has a Production URL or `no Production URL`, and `tail -n +2 docs/agents/workflow.md | diff --strip-trailing-cr - ~/.claude/kit/templates/workflow.md` shows only the items kept as is — list those for the owner; they will be reported as ahead next time, and `/generate-kit-proposal` is how one reaches the kit.
 
 ## 6. Commit and report
 
