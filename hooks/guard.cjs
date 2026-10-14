@@ -10,7 +10,7 @@ const { execFileSync } = require('child_process');
 const BRAINSTORM =
   'Guard: this repo follows the kit workflow — grill plus /to-spec replace superpowers:brainstorming. ' +
   'Do not retry; run the grill instead.';
-const PUSH = 'Guard: an agent pushes only when the owner asks (global.md). Approve only if you asked for this push.';
+const PUSH = 'Guard: every push waits for the owner here (global.md). Approve to push; deny to keep the commits on this device.';
 const PUSH_OWNER =
   'Guard: force, delete, tag, mirror and refspec pushes belong to the owner (global.md). ' +
   'Do not retry; hand the command over.';
