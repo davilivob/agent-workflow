@@ -93,6 +93,7 @@ Done when: every approved file is written, and `tail -n +2 docs/agents/workflow.
      const m = /^(.*?graphify(?:\.exe)?)((?: .*)?)$/.exec(h.command ?? "");
      const home = m && homes.find((p) => m[1].startsWith(p));
      if (home) h.command = `"$HOME${m[1].slice(home.length).replace(/\\/g, "/")}"${m[2]}`;
+     if (h.command) h.command = h.command.replace(/graphify\.exe(?=["\x27 ]|$)/, "graphify"); // Git Bash finds graphify.exe for graphify; macOS has no .exe
    }
    fs.writeFileSync(f, JSON.stringify(s, null, 2) + "\n");'
    ```
@@ -205,10 +206,10 @@ done
 Then find the tracked files the new attributes would renormalize — those committed with CRLF:
 
 ```bash
-RENORM=$(git -c core.quotePath=false ls-files --eol | awk '$1 == "i/crlf" || $1 == "i/mixed" { sub(/^[^\t]*\t/, ""); print }')
+RENORM=$(git -c core.quotePath=false ls-files --eol | awk '($1 == "i/crlf" || $1 == "i/mixed") && substr($0, 1, index($0, "\t")) !~ /-text|binary/ { sub(/^[^\t]*\t/, ""); print }')
 ```
 
-`core.quotePath=false` keeps non-ASCII paths unquoted, so the commands below can open them.
+`core.quotePath=false` keeps non-ASCII paths unquoted, so the commands below can open them. Rows whose attr field says `-text` or `binary` are skipped: the owner already marked those files to keep their line endings.
 
 If `RENORM` is empty, this section ends. Otherwise, after section 6's commit, check those files for uncommitted changes:
 

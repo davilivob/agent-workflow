@@ -23,7 +23,7 @@ const FF =
   'Per global.md: fast-forward each behind branch with `pull --ff-only` without asking, in its own checkout if that one is clean, ' +
   'and report it in one line; a dirty checkout: ask first. If a fast-forward fails, stop and tell the owner.';
 const PUSH =
-  'Per global.md: offer to push each ahead branch, in its own checkout; the Guard asks the owner. A rejected push: stop and tell the owner.';
+  'Per global.md: offer to push each ahead branch global.md allows (`main`, or an OS-bound verification handover), in its own checkout; the Guard asks the owner. A rejected push: stop and tell the owner.';
 // No password, SSH or credential-manager prompt may hang the check: a fetch that needs one fails, and so is Unknown.
 // ponytail: GIT_SSH_COMMAND wins over a core.sshCommand in git config; pass that one through if a device ever uses it.
 const ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never',
