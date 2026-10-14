@@ -50,7 +50,7 @@ Ask all four in one `AskUserQuestion`, the detected or suggested answer first an
 1. Stack — the detected one vs. the others.
 2. Verification command — the suggestion (Unity: all three OS lines together) vs. "Other"; with no suggestion (stack `other`, or web without a `test` or `check` script), "None yet" vs. "Other".
 3. Worktree — the stack's default vs. the other value.
-4. What counts as production (commands only the owner runs: deploys, production writes, SSH) — "None yet" vs. "Other". If a push to `main` deploys automatically, ask for its Deploy paths (the paths whose change triggers it) in a follow-up `AskUserQuestion`, together with "Does it deploy to EC2?" (yes / no).
+4. What counts as production (commands only the owner runs: deploys, production writes, SSH) — "None yet" vs. "Other". If a push to `main` deploys automatically, ask for its Deploy paths (the paths whose change triggers it) in a follow-up `AskUserQuestion`, together with "Does it deploy to EC2?" (yes / no) and its Production URL: "Other" lists one or more URLs (the public addresses it serves, comma-separated), or "None".
 
 **EC2**, on yes. `DEPLOY_WF` is `.github/workflows/deploy.yml` if it exists, else the first workflow that builds an image or runs compose (`grep -lE 'docker/build-push-action|docker compose|docker-compose' .github/workflows/* 2>/dev/null | head -n 1`); empty means none.
 
@@ -59,7 +59,7 @@ Ask all four in one `AskUserQuestion`, the detected or suggested answer first an
 
 The template carries no `Template:` line, and no later run of this skill compares or rewrites the written workflow: it is the repo's from then on.
 
-Done when: you have a stack, a verification command or "none yet", `yes|no` for Worktree, and a production list (with the Deploy paths, if a push deploys, and for EC2 the host, port and either the template's parameters or `DEPLOY_WF`) or "none yet".
+Done when: you have a stack, a verification command or "none yet", `yes|no` for Worktree, and a production list (with the Deploy paths and Production URLs or "None", if a push deploys, and for EC2 the host, port and either the template's parameters or `DEPLOY_WF`) or "none yet".
 
 ## 3. Write (new, existing)
 
@@ -68,7 +68,7 @@ Build each file's intended content:
 | Repo file | Content |
 | --- | --- |
 | `docs/agents/workflow.md` | `Template: $KIT_SHA` line, then `templates/workflow.md` |
-| `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command (a push that deploys reads "`git push` of `main` touching <Deploy paths> — deploys to production"; for EC2 the ending is instead "— deploys to EC2, host <host>, port <port>", and, when section 3 writes the workflow, a bullet follows: "Repo secrets `SSH_KEY`, `VPS_HOST`, `VPS_USER`, `DEPLOY_PATH` — their values are set by the owner (`gh secret set`)"), or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 7. Every other line, including the `- None yet.` sections, stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
+| `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command (a push that deploys reads "`git push` of `main` touching <Deploy paths> — deploys to production"; for EC2 the ending is instead "— deploys to EC2, host <host>, port <port>"; either ending then takes ", Production URL <url>, <url>" or, for "None", ", no Production URL"; and, when section 3 writes the workflow, a bullet follows: "Repo secrets `SSH_KEY`, `VPS_HOST`, `VPS_USER`, `DEPLOY_PATH` — their values are set by the owner (`gh secret set`)"), or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 7. Every other line, including the `- None yet.` sections, stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
 | `docs/agents/issue-tracker.md`, `domain.md` | the same-named template, verbatim |
 | `.github/workflows/deploy.yml` | EC2 with `DEPLOY_WF` empty only: `templates/deploy-ec2.yml` with `{{DEPLOY_PATHS}}` → one `      - <path>` line per Deploy path, quoted when it starts with `!` or `*`; `{{VERIFY_STEPS}}` → steps indented like the others that set up the stack's toolchain on the runner, install, and run the verification command (e.g. `oven-sh/setup-bun@v2`, `bun install --frozen-lockfile`, the command), each with `working-directory:` when the project sits in a subdirectory, or, when there is none or it cannot run on a Linux runner (Unity, an OS-bound command), these placeholder lines and the comment above them removed; the `Build and push {{IMAGE}}` step (not the comment above it) repeated once per image, `{{IMAGE}}` → its name, `{{CONTEXT}}` → its context; `{{PORT}}` → the liveness port. No `{{UPPERCASE}}` placeholder may remain (`grep -E '\{\{[A-Z_]+\}\}'` prints nothing; `${{ ... }}` is GitHub's own) |
 | `CLAUDE.md` | each `## ` section of `templates/claude-section.md`: replaces the repo's section with the same heading, else is appended; every other line of the repo's `CLAUDE.md` stays |
@@ -151,11 +151,13 @@ Apply:
 
 `project.md` is never compared; section 7 reads its `Remote:` line, and adds one if it is missing.
 
+**Production URL**: if an Owner boundary bullet of `docs/agents/project.md` contains `deploys to` but neither `Production URL` nor `no Production URL`, ask one `AskUserQuestion` for that bullet: "Other" lists one or more URLs, comma-separated, or "None". Append `, Production URL <url>, <url>` or `, no Production URL` to the bullet's end, and show it with this run's other changes. A bullet that already has either is not asked about.
+
 Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | diff --strip-trailing-cr - ~/.claude/kit/templates/workflow.md` shows only the items kept as is — list those for the owner; they will be reported as ahead next time, and `/generate-kit-proposal` is how one reaches the kit.
 
 ## 6. Commit and report
 
-- Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update; `, add Remote: to project.md` appended when section 7 wrote it).
+- Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update; `, add Remote: to project.md` appended when section 7 wrote it, `, add Production URL to project.md` when section 5 did).
 - Nothing written (in sync, `.gitattributes` complete): no commit, and say so.
 - After the commit (and section 8's, if any), offer to push the target per `global.md`: the sooner it is on the remote, the shorter the time another device can sync on top of a stale base.
 - EC2 with the workflow written: hand over the four repo secrets, each command in its own `bash` block, with `<repo>` the `Remote:` value. The owner runs them and types each value; a secret's value never passes through you. `SSH_KEY` is multi-line, so it reads the key file the owner names:

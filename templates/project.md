@@ -38,7 +38,7 @@ A command that runs on one operating system only ends in `(windows)` or `(macos)
 
 Production in this repo — these commands belong to the owner:
 
-A push that deploys to a host also names the host and port, so projects sharing a host can see which ports are taken.
+A push that deploys to a host also names the host and port, so projects sharing a host can see which ports are taken. A push that deploys ends with its Production URLs (`, Production URL <url>`, several comma-separated) or `, no Production URL`: a URL gets a Production check after each deploy.
 
 {{PRODUCTION}}
 
