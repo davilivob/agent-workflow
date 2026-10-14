@@ -31,7 +31,7 @@ Only these three: subagents need a spec to work from (and would flood the grill 
 
 1. It fits one branch and one merge.
 2. It has no `After:` or `Overlaps:` relationship with any spec not yet merged.
-3. It needs no plan, and the whole implementation fits in the current session.
+3. It needs no plan, and the whole implementation, verification included, fits in the current session: a change with an OS-bound verification this device cannot run is never Direct.
 4. The owner can accept the grill's decisions from the diff, without first reading a document.
 
 Direct, step by step: pick a slug; commit what the grill wrote to `CONTEXT.md` and ADRs on `main` as `[<slug>] context: ...`; then do step 4 as `Execute: inline`, with no spec to set to `done` (give `code-review` the grill's decisions as its spec), and with the `Merge:` the owner chose in the grill's last round, written into the last commit's message. Interrupted halfway: write the spec to hand over, then continue as Inline or SDD.
@@ -67,6 +67,7 @@ An old spec that only says "follows X" without saying which kind: judge it once 
    - `Merge: manual`: stop before merging, show the evidence (test output; screenshots for UI changes), merge when the owner says so.
    - `Merge: ask`: once verification has all passed, use `AskUserQuestion` to ask whether to merge; merge only on yes.
    - `Merge: auto`: merge locally only if every verification passed. Anything failed: treat as `manual`.
+   - **OS-bound verification**: `project.md` marks a verification command that runs on one operating system only with `(windows)` or `(macos)` after it. When this device cannot run one: run every other verification; at the bottom of the spec, under `## Comments`, add one line per command it could not run, ``- Awaiting OS-bound verification (<os>): `<command>` ``, and commit it on the branch; push the branch, `git push -u origin <slug>` (`global.md`); do not merge, whatever `Merge:` says. Then remove the worktree, and once `git rev-parse <slug>` equals `git rev-parse origin/<slug>`, delete the local branch with `git branch -D <slug>`: the pushed branch is the handover now. A session on that OS takes it from Continue: `git worktree add .claude/worktrees/<slug> <slug>` (with `Worktree: no`, `git switch <slug>`), runs the awaiting commands and, on a pass, replaces each line with ``- OS-bound verification (<os>) passed: `<command>` `` in the commit that sets `Status: done`, merges as `Merge:` says, offers to push `main`, does the wrap-up, and hands the owner `git push origin --delete <slug>`. A failure: stop and show the owner the output.
    - A merge hits a conflict: resolve it as the spec's `Overlaps:` says, then run the verification it names. If no resolution is written, or it does not cover the actual conflict, stop and ask the owner.
    - No PR.
 
@@ -89,10 +90,11 @@ What is said in chat that changes what gets built goes into its file in the same
 
 Any text in the same message besides "continue" is background, not authorization. Mentioning a slug only tells you its state — in particular "X just started" means **leave X alone**; it belongs to another session, and you are not being asked to take it over. If you cannot tell what it wants, ask; do not pick something and start.
 
-Scan `.scratch/*/spec.md` (committed ones only) and list five groups, the last from GitHub. First look for each slug's **Claim**, the trace that a session is working on it; a Claim with no spec is a Direct change and goes under In progress too:
+Scan `.scratch/*/spec.md` (committed ones only) and list six groups, the last from GitHub. First look for each slug's **Claim**, the trace that a session is working on it; a Claim with no spec is a Direct change and goes under In progress too:
 
 - Writing the plan: `.scratch/<slug>/plan.md` exists but is not committed.
 - Executing: `git worktree list` shows `.claude/worktrees/<slug>`, or a branch named `<slug>` exists.
+- Awaiting OS-bound verification: a branch `origin/<slug>` exists (as the session's Drift check fetched it) and its spec, `git show origin/<slug>:.scratch/<slug>/spec.md`, is not `done` and has an `Awaiting OS-bound verification (<os>)` line.
 
 The groups:
 
@@ -100,6 +102,7 @@ The groups:
 - **Needs a plan**: specs with `Plan: yes` (or none written), no `plan.md` in the directory, and whatever `After:` (or `Overlaps: high`) names is already on `main`.
 - **Ready**: has `plan.md` (or `Plan: no`), `Status` not yet `done`, and whatever `After:` names is already on `main`. Low or medium `Overlaps:` still count as Ready; note after them whom they overlap and at what risk.
 - **Blocked**: would be Needs a plan or Ready, but what `After:` (or `Overlaps: high`) names is not on `main` yet; say which one it waits for, whether it is a real dependency or a high conflict risk, and whether it still needs a plan. An `After:` Request whose state is Unknown goes here too, marked Unknown.
+- **Awaiting <OS> verification**: the slugs awaiting OS-bound verification on this device's OS (`macos` or `windows`), here instead of under In progress; on any other OS they stay under In progress. One line each: slug, the awaiting commands, `Merge:`.
 - **Requests**: the open Requests in this repo, from `gh issue list --state open --json number,createdAt,body`. One line each: number, date opened, its `From:` and the first sentence of its `## What`. If `gh` fails (not installed, not logged in, offline, origin not on GitHub), the group is Unknown, never empty. A Request the owner picks gets a Triage (see **Requests**).
 
 One line each: slug, one sentence on what it is, `Merge:`. Whatever another session is already working on goes under In progress: a Claim, or the owner saying so. Start only after the owner picks.
@@ -136,7 +139,7 @@ A Request the owner picks (from Continue, or by its number) gets a **Triage** fi
 
 ## Owner boundary
 
-The rules that production writes and SSH belong to the owner, and that you push only when asked, are in `global.md`. `project.md` lists exactly what counts as production and which operations are whose, including whether `git push` stays the owner's.
+The rules that production writes and SSH belong to the owner, and when and what you push, are in `global.md`. `project.md` lists exactly what counts as production and which operations are whose, including whether `git push` stays the owner's.
 
 **Deploy paths**: where a push to `main` deploys automatically, the deploy triggers on an allowlist of the paths that reach production (GitHub Actions `on.push.paths`, GitLab `rules:changes`), never on the whole branch and never on a denylist. This workflow commits specs, plans, ADRs, `CONTEXT.md` and `project.md` straight to `main`: without an allowlist each of those pushes redeploys for nothing, and a denylist misses every new docs or spec directory. `project.md` names the Deploy paths in that push's owner-boundary entry, and may override this rule for its repo. A change that makes the build use a new path adds it to the allowlist and to `project.md` in the same commit. Editing the deploy config is an ordinary change; the push stays as `project.md` says.
 
