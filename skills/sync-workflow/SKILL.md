@@ -50,9 +50,16 @@ Ask all four in one `AskUserQuestion`, the detected or suggested answer first an
 1. Stack — the detected one vs. the others.
 2. Verification command — the suggestion (Unity: all three OS lines together) vs. "Other"; with no suggestion (stack `other`, or web without a `test` or `check` script), "None yet" vs. "Other".
 3. Worktree — the stack's default vs. the other value.
-4. What counts as production (commands only the owner runs: deploys, production writes, SSH) — "None yet" vs. "Other". If a push to `main` deploys automatically, ask for its Deploy paths (the paths whose change triggers it) in a follow-up `AskUserQuestion`.
+4. What counts as production (commands only the owner runs: deploys, production writes, SSH) — "None yet" vs. "Other". If a push to `main` deploys automatically, ask for its Deploy paths (the paths whose change triggers it) in a follow-up `AskUserQuestion`, together with "Does it deploy to EC2?" (yes / no).
 
-Done when: you have a stack, a verification command or "none yet", `yes|no` for Worktree, and a production list (with the Deploy paths, if a push deploys) or "none yet".
+**EC2**, on yes. `DEPLOY_WF` is the first file under `.github/workflows/` whose name or content mentions `deploy` (`grep -lis deploy .github/workflows/* 2>/dev/null | head -n 1`); empty means none.
+
+- `DEPLOY_WF` empty: one more `AskUserQuestion` for the template's parameters: each image's name and build context (default: the repo's directory name and `.`; "Other" lists several, one `<name> <context>` per line — names lowercase, as GHCR wants), the liveness port, and the host (a name the owner recognises it by, e.g. the EC2 instance's; not its address — that goes into the `VPS_HOST` secret). Section 3 writes the workflow.
+- `DEPLOY_WF` set: never overwrite it. Ask only the liveness port and the host, for `project.md`, and keep `diff -u ~/.claude/kit/templates/deploy-ec2.yml "$DEPLOY_WF"` for the report: the owner decides whether to align it by hand. The repo's own growth (two images, a subdirectory) stays.
+
+The template carries no `Template:` line, and no later run of this skill compares or rewrites the written workflow: it is the repo's from then on.
+
+Done when: you have a stack, a verification command or "none yet", `yes|no` for Worktree, and a production list (with the Deploy paths, if a push deploys, and for EC2 the host, port and either the template's parameters or `DEPLOY_WF`) or "none yet".
 
 ## 3. Write (new, existing)
 
@@ -61,8 +68,9 @@ Build each file's intended content:
 | Repo file | Content |
 | --- | --- |
 | `docs/agents/workflow.md` | `Template: $KIT_SHA` line, then `templates/workflow.md` |
-| `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command (a push that deploys reads "`git push` of `main` touching <Deploy paths> — deploys to production"), or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 7. Every other line, including the `- None yet.` sections, stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
+| `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command (a push that deploys reads "`git push` of `main` touching <Deploy paths> — deploys to production"; to EC2, "— deploys to EC2, host <host>, port <port>", followed by a bullet "Repo secrets `SSH_KEY`, `VPS_HOST`, `VPS_USER`, `DEPLOY_PATH` — their values are set by the owner (`gh secret set`)"), or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 7. Every other line, including the `- None yet.` sections, stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
 | `docs/agents/issue-tracker.md`, `domain.md` | the same-named template, verbatim |
+| `.github/workflows/deploy.yml` | EC2 with `DEPLOY_WF` empty only: `templates/deploy-ec2.yml` with `{{DEPLOY_PATHS}}` → one `      - <path>` line per Deploy path, quoted when it starts with `!` or `*`; `{{VERIFY_STEPS}}` → the steps that set up the stack's toolchain on the runner and run the verification command (e.g. `oven-sh/setup-bun@v2`, the install, then the command), or, when there is none or it cannot run on a Linux runner (Unity, an OS-bound command), these placeholder lines and the comment above them removed; the `Build and push {{IMAGE}}` step repeated once per image, `{{IMAGE}}` → its name, `{{CONTEXT}}` → its context; `{{PORT}}` → the liveness port. No `{{UPPERCASE}}` placeholder may remain (`grep -E '\{\{[A-Z_]+\}\}'` prints nothing; `${{ ... }}` is GitHub's own) |
 | `CLAUDE.md` | each `## ` section of `templates/claude-section.md`: replaces the repo's section with the same heading, else is appended; every other line of the repo's `CLAUDE.md` stays |
 
 Copy `workflow.md` with the shell so it stays byte-exact:
@@ -150,6 +158,13 @@ Done when: every item has a decision, and `tail -n +2 docs/agents/workflow.md | 
 - Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update; `, add Remote: to project.md` appended when section 7 wrote it).
 - Nothing written (in sync, `.gitattributes` complete): no commit, and say so.
 - After the commit (and section 8's, if any), offer to push the target per `global.md`: the sooner it is on the remote, the shorter the time another device can sync on top of a stale base.
+- EC2 with the workflow written: hand over the four repo secrets, each command in its own `bash` block, with `<repo>` the `Remote:` value. The owner runs them and types each value; a secret's value never passes through you. `SSH_KEY` is multi-line, so it reads the key file the owner names:
+  - `gh secret set SSH_KEY -R <repo> < ~/.ssh/<key file>`
+  - `gh secret set VPS_HOST -R <repo>`
+  - `gh secret set VPS_USER -R <repo>`
+  - `gh secret set DEPLOY_PATH -R <repo>`
+
+  Then say that the host's `DEPLOY_PATH` needs a `compose.yaml` whose images are `ghcr.io/<owner, lowercase>/<name>:latest`, and the host's own `.env`; both are the owner's. With `DEPLOY_WF` set, give the kept diff instead, and no secret commands.
 - List the pipeline's missing dependencies: relay verbatim the `TODO:` lines `setup.sh --check` printed in the preflight, and section 7's `gh` one; each carries its own fix. The owner runs them, not you.
 
 Report: the mode, every file written, every commit (hash and message, up front), missing dependencies, and the remote: the `Remote:` value, any warning, mismatch or non-GitHub note, and the `gh repo create` command if one is handed over.

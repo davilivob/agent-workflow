@@ -38,6 +38,8 @@ A command that runs on one operating system only ends in `(windows)` or `(macos)
 
 Production in this repo — these commands belong to the owner:
 
+A push that deploys names its Deploy paths and, when it deploys to a host, the host and port, so projects sharing a host can see which ports are taken.
+
 {{PRODUCTION}}
 
 ## Remote
