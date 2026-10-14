@@ -116,8 +116,8 @@ tmpl('v1\n');
 const tmplSha = head(kit);
 fs.symlinkSync(kit, KIT_LINK, 'junction');
 // A project on the template: docs/agents/workflow.md under `Template: <sha>`, committed and pushed.
-function project(name, sha) {
-  const p = clone(name);
+function project(name, sha, parent) {
+  const p = clone(name, parent);
   fs.mkdirSync(path.join(p, 'docs', 'agents'), { recursive: true });
   fs.writeFileSync(path.join(p, 'docs', 'agents', 'workflow.md'), `Template: ${sha}\r\nbody\n`); // CRLF as on Windows
   sh(p, 'add', 'docs'); sh(p, 'commit', '-q', '-m', 'wf'); sh(p, 'push', '-q');
@@ -228,5 +228,18 @@ assert.strictEqual(cli().code, 0, '~ expands to the home directory');
 const old = clone('old', path.join(home, 'proj')); advance(old);
 roots('~/proj', '!~/proj/old');
 assert.ok(cli().out.trimEnd().endsWith('1 repos scanned, 1 retired'), '~ expands in a ! line');
+
+// The drift command reports each repo's workflow.md against the kit; an old one is not Drift, an unknown sha is Unknown.
+const tr = path.join(T, 'tmpl-root');
+const stale = project('stale', tmplSha, tr);
+project('current', head(kit), tr);
+const foreign = project('foreign', 'f'.repeat(40), tr);
+roots(tr);
+r = cli();
+assert.strictEqual(r.code, 1, `an unknown Template is Unknown: ${JSON.stringify(r)}`);
+assert.ok(r.out.includes(`${stale}\n  workflow.md: older than the kit's template`), `old workflow.md:\n${r.out}`);
+assert.ok(r.out.includes(`${foreign}\n  workflow.md: Template fffffff is not in the local kit`), `unknown Template:\n${r.out}`);
+assert.ok(!r.out.includes(path.join(tr, 'current')), `current workflow.md not listed:\n${r.out}`);
+assert.ok(r.out.trimEnd().endsWith('0 with Drift, 1 Unknown, 0 no remote, 1 with an old workflow.md; 3 repos scanned'), `template totals:\n${r.out}`);
 
 console.log('PASS');

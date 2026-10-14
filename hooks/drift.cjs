@@ -4,7 +4,8 @@
 //              and whether the repo's workflow.md is older than the kit's template; prints context for the agent,
 //              always headed by this device's Device code (from ~/.claude/device) for the Session title.
 //   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots,
-//              except Retired repos (under a `!` line there), which it only counts.
+//              except Retired repos (under a `!` line there), which it only counts; also says which repos'
+//              workflow.md is older than the kit's template (not counted as Drift).
 // The only write it makes to a repo is `git fetch`. Whatever it cannot confirm is Unknown, never "no Drift".
 const fs = require('fs');
 const os = require('os');
@@ -189,10 +190,13 @@ async function cli() {
   for (const d of unreadable) console.log(`${d}\n  Unknown: cannot read directory`);
   if (!found) { console.error(`drift: no git repos found under ${roots.join(', ')}. ${usage}`); return 2; }
 
-  const totals = { drift: 0, unknown: unreadable.length, noRemote: 0 };
-  for (const s of await pool(repos, 8, inspect)) {
+  let kit = null;
+  try { kit = fs.realpathSync(KIT); } catch {} // no kit on this device: no template check
+  const totals = { drift: 0, unknown: unreadable.length, noRemote: 0, oldWorkflow: 0 };
+  for (const s of await pool(repos, 8, async (d) => ({ ...(await inspect(d)), t: kit && (await template(d, kit)) }))) {
     const lines = [];
     if (s.unknown) { lines.push(`Unknown: ${s.unknown}`); totals.unknown++; }
+    if (s.t) { lines.push(s.t); if (s.t.includes('not in the local kit')) totals.unknown++; else totals.oldWorkflow++; }
     if (s.noRemote) { lines.push('no remote'); totals.noRemote++; }
     const before = lines.length;
     if (!s.noRemote) for (const b of s.branches) { const d = branchDrift(b); if (d) lines.push(`branch ${b.name}: ${d}`); }
@@ -200,7 +204,7 @@ async function cli() {
     if (lines.length > before) totals.drift++;
     if (lines.length) console.log(`${s.dir}\n${lines.map((l) => `  ${l}`).join('\n')}`);
   }
-  console.log(`${totals.drift} with Drift, ${totals.unknown} Unknown, ${totals.noRemote} no remote; ${repos.length} repos scanned${found > repos.length ? `, ${found - repos.length} retired` : ''}`);
+  console.log(`${totals.drift} with Drift, ${totals.unknown} Unknown, ${totals.noRemote} no remote${totals.oldWorkflow ? `, ${totals.oldWorkflow} with an old workflow.md` : ''}; ${repos.length} repos scanned${found > repos.length ? `, ${found - repos.length} retired` : ''}`);
   return missing.length || totals.unknown || totals.drift ? 1 : 0;
 }
 
