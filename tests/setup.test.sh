@@ -31,8 +31,16 @@ cat > "$T/.claude/settings.json" <<'EOF'
  "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "echo my-start"}]}]}}
 EOF
 
+# Dangling links: one to a deleted kit skill (removed), one foreign (kept). Skipped where ln -s cannot make one.
+GONE= ; FOREIGN=
+ln -s "$KIT/skills/zz-gone" "$T/.claude/skills/zz-gone" 2>/dev/null && [ -L "$T/.claude/skills/zz-gone" ] && GONE=1
+ln -s "$T/nowhere" "$T/.claude/skills/zz-foreign" 2>/dev/null && [ -L "$T/.claude/skills/zz-foreign" ] && FOREIGN=1
+
 HOME="$T" sh "$KIT/setup.sh" >/dev/null
 HOME="$T" sh "$KIT/setup.sh" >/dev/null
+
+[ -z "$GONE" ] || [ ! -L "$T/.claude/skills/zz-gone" ] || fail "link to a deleted kit skill kept"
+[ -z "$FOREIGN" ] || [ -L "$T/.claude/skills/zz-foreign" ] || fail "foreign dangling link removed"
 
 [ "$(grep -cxF '@~/.claude/kit/global.md' "$T/.claude/CLAUDE.md")" = 1 ] || fail "import line not present exactly once"
 grep -qxF 'existing line' "$T/.claude/CLAUDE.md" || fail "existing CLAUDE.md line damaged"

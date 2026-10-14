@@ -21,7 +21,12 @@ if ! grep -qxF "$IMPORT" "$CLAUDE_MD"; then
   echo "added $IMPORT to $CLAUDE_MD"
 fi
 
-# 2. Link every kit skill into ~/.claude/skills
+# 2. Link every kit skill into ~/.claude/skills, after removing links to kit skills that were deleted
+# shortcut: a Windows junction left by a deleted skill may not read as a link here; remove it by hand if one shows up.
+for link in "$SKILLS"/*; do
+  [ -L "$link" ] && [ ! -e "$link" ] || continue
+  case "$(readlink "$link")" in "$KIT"/skills/*) rm "$link"; echo "removed $(basename "$link"), no longer a kit skill" ;; esac
+done
 for dir in "$KIT"/skills/*/; do
   [ -d "$dir" ] || continue
   name=$(basename "$dir")

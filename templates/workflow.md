@@ -89,7 +89,7 @@ What is said in chat that changes what gets built goes into its file in the same
 
 Any text in the same message besides "continue" is background, not authorization. Mentioning a slug only tells you its state — in particular "X just started" means **leave X alone**; it belongs to another session, and you are not being asked to take it over. If you cannot tell what it wants, ask; do not pick something and start.
 
-Scan `.scratch/*/spec.md` (committed ones only) and list five groups. First look for each slug's **Claim**, the trace that a session is working on it; a Claim with no spec is a Direct change and goes under In progress too:
+Scan `.scratch/*/spec.md` (committed ones only) and list five groups, the last from GitHub. First look for each slug's **Claim**, the trace that a session is working on it; a Claim with no spec is a Direct change and goes under In progress too:
 
 - Writing the plan: `.scratch/<slug>/plan.md` exists but is not committed.
 - Executing: `git worktree list` shows `.claude/worktrees/<slug>`, or a branch named `<slug>` exists.

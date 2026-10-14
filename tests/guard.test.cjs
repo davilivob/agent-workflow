@@ -23,11 +23,12 @@ function repo(name) {
   return dir;
 }
 
-function guard(input, extraEnv = {}) {
+function hook(input, extraEnv = {}) {
   const r = spawnSync('node', [GUARD], { input: JSON.stringify(input), env: { ...env, ...extraEnv }, encoding: 'utf8' });
   assert.strictEqual(r.status, 0, `guard exited ${r.status}: ${r.stderr}`);
-  return r.stdout ? JSON.parse(r.stdout).hookSpecificOutput.permissionDecision : 'none';
+  return r.stdout ? JSON.parse(r.stdout).hookSpecificOutput : null;
 }
+const guard = (input, extraEnv) => hook(input, extraEnv)?.permissionDecision ?? 'none';
 const bash = (cwd, command) => guard({ tool_name: 'Bash', tool_input: { command }, cwd });
 const expect = (got, want, what) => assert.strictEqual(got, want, `${what}: expected ${want}, got ${got}`);
 
@@ -98,17 +99,16 @@ fs.mkdirSync(path.join(home, '.claude'), { recursive: true });
 fs.symlinkSync(kit, path.join(home, '.claude', 'kit'), 'junction'); // a junction on Windows, as setup.sh makes; the type is ignored elsewhere
 const kitWt = path.join(kit, '.claude', 'worktrees', 'x');
 fs.mkdirSync(kitWt, { recursive: true });
-const edit = (tool, cwd, file) => guard({ tool_name: tool, tool_input: tool === 'NotebookEdit' ? { notebook_path: file } : { file_path: file }, cwd }, { HOME: home, USERPROFILE: home }); // os.homedir() reads USERPROFILE on Windows
+const editInput = (tool, cwd, file) => ({ tool_name: tool, tool_input: tool === 'NotebookEdit' ? { notebook_path: file } : { file_path: file }, cwd });
+const homeEnv = { HOME: home, USERPROFILE: home }; // os.homedir() reads USERPROFILE on Windows
+const edit = (tool, cwd, file) => guard(editInput(tool, cwd, file), homeEnv);
 const viaLink = (f) => path.join(home, '.claude', 'kit', f);
 expect(edit('Edit', flow, viaLink('global.md')), 'deny', 'Edit kit via the symlink from another repo');
 expect(edit('Write', flow, path.join(kit, 'skills', 'new', 'SKILL.md')), 'deny', 'Write a new kit file by its real path');
 expect(edit('NotebookEdit', flow, viaLink('n.ipynb')), 'deny', 'NotebookEdit in the kit');
 expect(edit('Write', flow, path.join(kitWt, 'global.md')), 'deny', 'Write into a kit worktree from another repo');
 expect(edit('Write', flow, viaLink('inbox/2026-01-01-flow-x.md')), 'deny', 'Write into the retired inbox/');
-{
-  const r = spawnSync('node', [GUARD], { input: JSON.stringify({ tool_name: 'Edit', tool_input: { file_path: viaLink('global.md') }, cwd: flow }), env: { ...env, HOME: home, USERPROFILE: home }, encoding: 'utf8' });
-  assert.match(JSON.parse(r.stdout).hookSpecificOutput.permissionDecisionReason, /\/file-request/, 'the denial points to /file-request');
-}
+assert.match(hook(editInput('Edit', flow, viaLink('global.md')), homeEnv).permissionDecisionReason, /\/file-request/, 'the denial points to /file-request');
 expect(edit('Edit', kit, viaLink('global.md')), 'none', 'Edit from the kit checkout');
 expect(edit('Edit', kitWt, path.join(kitWt, 'global.md')), 'none', 'Edit from a kit worktree');
 expect(edit('Edit', flow, path.join(flow, 'a.txt')), 'none', 'Edit outside the kit');

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Guard: PreToolUse hook that backs the mechanical rules in global.md, workflow.md and the kit's project.md.
+// Guard: PreToolUse hook that backs the mechanical rules in global.md and workflow.md.
 // Prints a deny/ask decision, or nothing to leave the call to the normal permission flow.
 // Anything it cannot parse or check is let through: the written rule stays the source, this is the backstop.
 const fs = require('fs');
