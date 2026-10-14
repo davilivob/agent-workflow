@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Merge: ask
 Plan: no
 Execute: inline
@@ -97,3 +97,8 @@ Owner 部署到 EC2 的專案（目前是 firehose 和 dvtp-2026）用的是同�
 
 - `After: cross-device-sync`：部署前的提問建立在那裡放寬後的 push 規則上。
 - GitHub Free 方案的 private repo 每月有 Actions 分鐘數上限，arm64 runner 也算在內。firehose 目前在 Free 方案的 private repo 上用 `ubuntu-24.04-arm` 成功部署，所以範本照用。
+
+## Comments
+
+- `SSH_KEY` 的 `gh secret set` 改為 `< ~/.ssh/<key file>` 讀檔，其餘三個維持互動輸入：gh 的互動提示只收一行，金鑰是多行。值仍然不經過 agent。
+- 驗證證據（studio，2026-10-14）：範本填參數兩種情況通過 PyYAML 與 actionlint v1.7.7；`/sync-workflow` 三種情況（新 repo 選 EC2、已有部署 workflow、不是 EC2）手動跑過皆符合預期；push 前提問三次（不碰、碰到並同意、碰到並拒絕）皆符合預期；改名漏判已加 `--no-renames` 修正。
