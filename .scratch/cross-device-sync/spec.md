@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Merge: ask
 Plan: yes
 Execute: sdd
