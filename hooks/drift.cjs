@@ -104,9 +104,9 @@ async function template(top, kit) {
   const sha = /^Template: ([0-9a-f]{40})$/.exec(first)?.[1];
   if (!sha) return null;
   if (!(await git(kit, ['cat-file', '-e', `${sha}^{commit}`]).then(() => true, () => false)))
-    return `workflow.md: Template ${sha.slice(0, 7)} is not in the local kit, which may be behind`;
+    return { unknown: true, line: `workflow.md: Template ${sha.slice(0, 7)} is not in the local kit, which may be behind` };
   const changed = await git(kit, ['diff', '--quiet', sha, 'HEAD', '--', 'templates/workflow.md']).then(() => false, () => true);
-  return changed ? "workflow.md: older than the kit's template; suggest /sync-workflow, do not run it" : null;
+  return changed ? { unknown: false, line: "workflow.md: older than the kit's template; suggest /sync-workflow, do not run it" } : null;
 }
 
 async function session() {
@@ -120,7 +120,7 @@ async function session() {
   const [s, k, t] = await Promise.all([inspect(top), kit && inspect(kit), kit && template(top, kit)]);
   const blocks = [];
   const r = report(s);
-  if (t) r.lines.push(t);
+  if (t) r.lines.push(t.line);
   if (r.lines.length) blocks.push(block(`Drift check for ${top}`, r));
   const kr = k && report(k);
   if (kr?.lines.length) blocks.push(block(`Drift check for the kit (${kit})`, kr));
@@ -195,8 +195,9 @@ async function cli() {
   const totals = { drift: 0, unknown: unreadable.length, noRemote: 0, oldWorkflow: 0 };
   for (const s of await pool(repos, 8, async (d) => ({ ...(await inspect(d)), t: kit && (await template(d, kit)) }))) {
     const lines = [];
-    if (s.unknown) { lines.push(`Unknown: ${s.unknown}`); totals.unknown++; }
-    if (s.t) { lines.push(s.t); if (s.t.includes('not in the local kit')) totals.unknown++; else totals.oldWorkflow++; }
+    if (s.unknown) lines.push(`Unknown: ${s.unknown}`);
+    if (s.unknown || s.t?.unknown) totals.unknown++; // once per repo, as Drift is
+    if (s.t) { lines.push(s.t.line); if (!s.t.unknown) totals.oldWorkflow++; }
     if (s.noRemote) { lines.push('no remote'); totals.noRemote++; }
     const before = lines.length;
     if (!s.noRemote) for (const b of s.branches) { const d = branchDrift(b); if (d) lines.push(`branch ${b.name}: ${d}`); }

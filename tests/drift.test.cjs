@@ -241,5 +241,8 @@ assert.ok(r.out.includes(`${stale}\n  workflow.md: older than the kit's template
 assert.ok(r.out.includes(`${foreign}\n  workflow.md: Template fffffff is not in the local kit`), `unknown Template:\n${r.out}`);
 assert.ok(!r.out.includes(path.join(tr, 'current')), `current workflow.md not listed:\n${r.out}`);
 assert.ok(r.out.trimEnd().endsWith('0 with Drift, 1 Unknown, 0 no remote, 1 with an old workflow.md; 3 repos scanned'), `template totals:\n${r.out}`);
+sh(foreign, 'remote', 'set-url', 'origin', path.join(T, 'gone.git'));
+r = cli();
+assert.ok(r.out.trimEnd().endsWith('0 with Drift, 1 Unknown, 0 no remote, 1 with an old workflow.md; 3 repos scanned'), `Unknown once per repo:\n${r.out}`);
 
 console.log('PASS');
