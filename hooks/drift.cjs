@@ -2,7 +2,7 @@
 // Drift check: one check, two entry points.
 //   --session  SessionStart hook: reads hook JSON on stdin, checks the session's repo and the kit (~/.claude/kit),
 //              and whether the repo's workflow.md is older than the kit's template; prints context for the agent,
-//              always headed by this device's Device code (from ~/.claude/device) for the Session title.
+//              always headed by this device's Device code (from ~/.claude/device) and a reminder to set the Session title.
 //   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots,
 //              except Retired repos (under a `!` line there), which it only counts; also says which repos'
 //              workflow.md is older than the kit's template (not counted as Drift).
@@ -133,9 +133,13 @@ function device() {
   return code ? `Device: ${code}` : `Device: ? (no Device code in ${DEVICE})`;
 }
 
-// Written synchronously: the deadline below exits right after. The Device line is for the agent only.
+// Said here, at session start, because the rule in global.md alone gets skipped: the tool is deferred.
+const TITLE = 'Session title: set it now with set_session_title (session self): [<Device code>] <Phase> · <topic>, as global.md says. The tool is deferred; load it first with ToolSearch "select:mcp__ccd_session_mgmt__set_session_title". Without that tool, skip it.';
+
+// Written synchronously: the deadline below exits right after. The Device and Session title lines are for the agent only.
 function emit(text) {
-  const out = { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text ? `${device()}\n${text}` : device() } };
+  const head = `${device()}\n${TITLE}`;
+  const out = { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text ? `${head}\n${text}` : head } };
   if (text) out.systemMessage = text;
   fs.writeSync(1, JSON.stringify(out));
 }

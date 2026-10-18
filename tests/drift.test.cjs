@@ -39,16 +39,18 @@ function advance(dir, branch = 'main') {
 }
 
 // Returns the Drift report, or null; the Device line, always first and for the agent only, goes to lastDevice.
+// The Session title reminder, always second and for the agent only, is checked here.
 let lastDevice;
 function session(cwd) {
   const r = spawnSync('node', [DRIFT, '--session'], { input: JSON.stringify({ hook_event_name: 'SessionStart', cwd }), env, encoding: 'utf8' });
   assert.strictEqual(r.status, 0, `drift --session exited ${r.status}: ${r.stderr}`);
   const out = JSON.parse(r.stdout);
-  const [first, ...rest] = out.hookSpecificOutput.additionalContext.split('\n');
+  const [first, title, ...rest] = out.hookSpecificOutput.additionalContext.split('\n');
   assert.ok(first.startsWith('Device: '), `no Device line first:\n${out.hookSpecificOutput.additionalContext}`);
+  assert.ok(title.startsWith('Session title: ') && title.includes('set_session_title'), `no Session title reminder second:\n${out.hookSpecificOutput.additionalContext}`);
   lastDevice = first;
   const text = rest.join('\n') || null;
-  assert.strictEqual(out.systemMessage, text ?? undefined, 'owner sees the Drift report, without the Device line');
+  assert.strictEqual(out.systemMessage, text ?? undefined, 'owner sees the Drift report, without the Device and Session title lines');
   return text;
 }
 const RULES = { ask: 'ask the owner with AskUserQuestion', ff: 'without asking', push: 'offer to push' };
