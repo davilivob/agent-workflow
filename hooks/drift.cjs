@@ -82,6 +82,7 @@ function branchDrift(b) {
 }
 
 // The repo's Push policy and Pull policy, read as the Guard reads Push: anything unreadable or unknown is the default.
+// ponytail: the first line-start `Push:`/`Pull:` anywhere in the file counts, not only under `## Sync`; scope it if a repo ever trips on it.
 function policies(top) {
   let text = '';
   try { text = fs.readFileSync(path.join(top, 'docs', 'agents', 'project.md'), 'utf8'); } catch {}
@@ -94,7 +95,7 @@ function policies(top) {
 
 // One repo's Drift. Current branch: behind, ahead, no upstream; default branch: behind, ahead.
 // Unknown, a branch both behind and ahead, or behind with uncommitted changes asks the owner; behind fast-forwards;
-// ahead pushes as the Push policy says. `main` both behind and ahead, clean, under `Pull: rebase`, is rebased instead.
+// ahead pushes as the Push policy says. `main` both behind and ahead under `Pull: rebase` follows the Rebase rule instead.
 function report(s, p) {
   const lines = [];
   let behind = false, ahead = false, diverged = false, mainDiverged = false;
@@ -111,7 +112,8 @@ function report(s, p) {
   }
   if (s.dirty) lines.push('uncommitted changes');
   const push = PUSH[p.push] + (p.push === 'owner' ? '' : REJECTED[p.pull]);
-  const rules = s.unknown || diverged || ((behind || mainDiverged) && s.dirty) ? [ASK]
+  // `main` diverged and dirty still prints REBASE, which says to ask: ASK's `pull --ff-only` cannot work there.
+  const rules = s.unknown || diverged || (behind && s.dirty) ? [ASK]
     : [mainDiverged && REBASE, behind && FF, ahead && push].filter(Boolean);
   return { lines, rules };
 }

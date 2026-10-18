@@ -69,6 +69,8 @@ function pushPolicy(cwd, globals) {
 }
 
 // One push's verdict: deny, ask, or null to let it through (`Push: auto`, a plain push of `main` from `main`).
+// ponytail: under auto the remote is not checked (`git push <other remote> main` passes), nor push.default=matching,
+// which makes a bare `git push` push every same-named branch; check the remote against @{u} if that is ever seen.
 function checkPush(args, cwd, globals) {
   const shape = pushShape(args);
   if (shape.owner) return ['deny', PUSH_OWNER];

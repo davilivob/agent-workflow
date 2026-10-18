@@ -114,7 +114,7 @@ function sync(dir, text) {
 d = sync(clone('rebase-diverged'), 'Push: ask\r\nPull: rebase'); advance(d); commit(d, 'y.txt');
 expect(session(d), ['branch main: behind origin/main by 1, ahead of origin/main by 1', 'Rebase rule'], 'rebase', 'Pull: rebase, main diverged: rebases, does not ask');
 fs.writeFileSync(path.join(d, 'a.txt'), 'changed');
-expect(session(d), ['uncommitted changes'], 'ask', 'Pull: rebase, main diverged, dirty: asks');
+expect(session(d), ['uncommitted changes', 'uncommitted changes, or another local branch'], 'rebase', 'Pull: rebase, main diverged, dirty: the Rebase rule, which asks; never `pull --ff-only`');
 d = sync(clone('rebase-ahead'), 'Pull: rebase'); commit(d, 'x.txt');
 expect(session(d), ['branch main: ahead of origin/main by 1', 'A rejected push of `main`: the Rebase rule'], 'push', 'Pull: rebase, ahead: a rejected push rebases');
 d = sync(clone('rebase-dev'), 'Pull: rebase');
