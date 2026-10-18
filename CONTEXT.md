@@ -5,7 +5,7 @@ The owner's agent workflow: the rules, templates and skills every project and de
 ## Language
 
 **Owner**:
-The one person who decides designs, reviews specs, and alone runs production writes and SSH — and `git push` where a project reserves it. Elsewhere an agent may push, but every push waits for the owner's consent at the Guard's prompt.
+The one person who decides designs, reviews specs, and alone runs production writes and SSH — and `git push` where the project's Push policy is `owner`. Elsewhere an agent may push; under `ask` every push waits for the owner's consent at the Guard's prompt.
 _Avoid_: user, maintainer
 
 **Template**:
@@ -58,6 +58,14 @@ _Avoid_: platform test, Windows test
 **Drift**:
 A local repo differing from its remote: behind, ahead, uncommitted changes, or a branch with no upstream.
 _Avoid_: out of sync, unsynced
+
+**Push policy**:
+What a repo declares about agent pushes, one value for every device: `owner` (every push is the owner's), `ask` (the default: the Guard asks at every push) or `auto` (a push of `main` goes out right after its commit, without the Guard asking). Force, delete, tag, mirror and refspec pushes are the owner's under all three.
+_Avoid_: push mode, auto-push
+
+**Pull policy**:
+What a repo declares about bringing `main` up to date with its remote, one value for every device: `ff` (the default: fast-forward only) or `rebase` (`main` diverged from its remote, or its push rejected, is rebased onto it, unless that is unsafe).
+_Avoid_: sync method, pull mode
 
 **Unknown**:
 The state when something cannot be checked: Drift (the remote could not be reached), a Request's state, a Deploy check that timed out. Never the same as a pass.
