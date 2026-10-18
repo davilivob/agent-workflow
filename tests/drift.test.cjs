@@ -53,8 +53,9 @@ function session(cwd) {
   assert.strictEqual(out.systemMessage, text ?? undefined, 'owner sees the Drift report, without the Device and Session title lines');
   return text;
 }
-const RULES = { ask: 'ask the owner with AskUserQuestion', ff: 'without asking', push: 'offer to push' };
-function expect(text, has, rule, what) { // rule: 'ask', 'ff', 'push', a list of them, or false
+const RULES = { ask: 'ask the owner with AskUserQuestion', ff: 'without asking', push: 'offer to push',
+  rebase: 'git pull --rebase', auto: 'without offering', owner: 'hand the push command' };
+function expect(text, has, rule, what) { // rule: a key of RULES, a list of them, or false
   const want = [rule].flat().filter(Boolean);
   assert.ok(text, `${what}: no output`);
   for (const h of has) assert.ok(text.includes(h), `${what}: missing "${h}" in:\n${text}`);
@@ -102,6 +103,36 @@ fs.writeFileSync(path.join(d, 'new.txt'), 'x');
 expect(session(d), ['no remote', 'uncommitted changes'], false, 'no remote, uncommitted changes');
 d = clone('bad-remote'); sh(d, 'remote', 'set-url', 'origin', path.join(T, 'gone.git'));
 expect(session(d), ['Unknown: fetch failed'], 'ask', 'remote unreachable');
+
+// Push policy and Pull policy, from `## Sync` in the repo's docs/agents/project.md (committed, as in a real repo).
+function sync(dir, text) {
+  fs.mkdirSync(path.join(dir, 'docs', 'agents'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'docs', 'agents', 'project.md'), `# Project\r\n\r\n## Sync\r\n\r\n${text}\r\n`);
+  sh(dir, 'add', 'docs'); sh(dir, 'commit', '-q', '-m', 'sync'); sh(dir, 'push', '-q');
+  return dir;
+}
+d = sync(clone('rebase-diverged'), 'Push: ask\r\nPull: rebase'); advance(d); commit(d, 'y.txt');
+expect(session(d), ['branch main: behind origin/main by 1, ahead of origin/main by 1', 'Rebase rule'], 'rebase', 'Pull: rebase, main diverged: rebases, does not ask');
+fs.writeFileSync(path.join(d, 'a.txt'), 'changed');
+expect(session(d), ['uncommitted changes'], 'ask', 'Pull: rebase, main diverged, dirty: asks');
+d = sync(clone('rebase-ahead'), 'Pull: rebase'); commit(d, 'x.txt');
+expect(session(d), ['branch main: ahead of origin/main by 1', 'A rejected push of `main`: the Rebase rule'], 'push', 'Pull: rebase, ahead: a rejected push rebases');
+d = sync(clone('rebase-dev'), 'Pull: rebase');
+sh(d, 'checkout', '-q', '-b', 'dev'); sh(d, 'push', '-q', '-u', 'origin', 'dev'); advance(d, 'dev'); commit(d, 'v.txt');
+expect(session(d), ['branch dev: behind origin/dev by 1, ahead of origin/dev by 1'], 'ask', 'Pull: rebase, another branch diverged: asks');
+d = sync(clone('ff-diverged'), 'Pull: ff'); advance(d); commit(d, 'y.txt');
+expect(session(d), ['branch main: behind'], 'ask', 'Pull: ff, main diverged: asks');
+d = sync(clone('typo-diverged'), 'Pull: Rebase'); advance(d); commit(d, 'y.txt');
+expect(session(d), ['branch main: behind'], 'ask', 'unknown Pull value: ff');
+d = sync(clone('auto-ahead'), 'Push: auto'); commit(d, 'x.txt');
+expect(session(d), ['branch main: ahead of origin/main by 1', 'A rejected push: stop'], 'auto', 'Push: auto, ahead: pushes without offering');
+d = sync(clone('owner-ahead'), 'Push: owner\r\nPull: rebase'); commit(d, 'x.txt');
+const ownerText = session(d);
+expect(ownerText, ['branch main: ahead of origin/main by 1'], 'owner', 'Push: owner, ahead: hands the command over');
+assert.ok(!ownerText.includes('rejected'), `Push: owner: no rejected push to handle:\n${ownerText}`);
+d = sync(clone('auto-behind'), 'Push: auto'); advance(d);
+expect(session(d), ['branch main: behind origin/main by 1'], 'ff', 'Push: auto, behind: fast-forwards');
+
 fs.mkdirSync(path.join(T, 'plain'));
 assert.strictEqual(session(path.join(T, 'plain')), null, 'not a repo: silent');
 
@@ -140,9 +171,11 @@ const kitUrl = execFileSync('git', ['remote', 'get-url', 'origin'], { cwd: kit, 
 sh(kit, 'remote', 'set-url', 'origin', path.join(T, 'gone.git'));
 expect(session(p), ['Drift check for the kit (', 'Unknown: fetch failed'], 'ask', 'kit unreachable');
 sh(kit, 'remote', 'set-url', 'origin', kitUrl);
+sync(p, 'Push: owner'); commit(kit, 'k2.txt');
+expect(session(p), [`Drift check for the kit (${kit})`, 'branch main: ahead of origin/main by 2'], 'push', "the kit's block follows the kit's own Push policy, not the project's");
 let k = session(kit);
 assert.ok(!k.includes('Drift check for the kit'), `session in the kit: checked once:\n${k}`);
-expect(k, [`Drift check for ${kit}`, 'branch main: ahead of origin/main by 1'], 'push', 'session in the kit');
+expect(k, [`Drift check for ${kit}`, 'branch main: ahead of origin/main by 2'], 'push', 'session in the kit');
 const kitWt = path.join(kit, '.claude', 'worktrees', 'kw');
 sh(kit, 'worktree', 'add', '-q', kitWt, '-b', 'kw');
 k = session(kitWt);

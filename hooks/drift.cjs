@@ -6,6 +6,7 @@
 //   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots,
 //              except Retired repos (under a `!` line there), which it only counts; also says which repos'
 //              workflow.md is older than the kit's template (not counted as Drift).
+// The rules --session prints are copies of global.md's, picked by the repo's Push policy and Pull policy: change both together.
 // The only write it makes to a repo is `git fetch`. Whatever it cannot confirm is Unknown, never "no Drift".
 const fs = require('fs');
 const os = require('os');
@@ -18,13 +19,27 @@ const ROOTS = path.join(os.homedir(), '.claude', 'drift-roots');
 const DEVICE = path.join(os.homedir(), '.claude', 'device');
 const KIT = path.join(os.homedir(), '.claude', 'kit');
 // Copies of the Drift rules in global.md, which stays the source: change both together.
+// Which ones print follows the repo's Push policy and Pull policy (`## Sync` in its docs/agents/project.md).
 const ASK =
   'Per global.md: before changing any file, ask the owner with AskUserQuestion: `pull --ff-only`, leave it, or stop.';
 const FF =
   'Per global.md: fast-forward each behind branch with `pull --ff-only` without asking, in its own checkout if that one is clean, ' +
   'and report it in one line; a dirty checkout: ask first. If a fast-forward fails, stop and tell the owner.';
-const PUSH =
-  'Per global.md: offer to push each ahead branch global.md allows (`main`, or an OS-bound verification handover), in its own checkout; the Guard asks the owner. A rejected push: stop and tell the owner.';
+const PUSH = {
+  ask: 'Per global.md (Push: ask): offer to push each ahead branch global.md allows (`main`, or an OS-bound verification handover), in its own checkout; the Guard asks the owner.',
+  auto: 'Per global.md (Push: auto): push `main` now if it is ahead, in its own checkout, without offering; the Guard lets it through. ' +
+    'Any other ahead branch global.md allows (an OS-bound verification handover): offer it; the Guard asks the owner.',
+  owner: 'Per global.md (Push: owner): every push is the owner\'s; hand the push command for each ahead branch over, never run it.',
+};
+const REJECTED = {
+  ff: ' A rejected push: stop and tell the owner.',
+  rebase: ' A rejected push of `main`: the Rebase rule below; of any other branch: stop and tell the owner.',
+};
+const REBASE =
+  'Per global.md, the Rebase rule (Pull: rebase): when `main` is both behind and ahead, or a push of it is rejected, rebase it at once ' +
+  'with `git pull --rebase` in its own checkout, then push again right away, as the Push policy says. Instead, change nothing and use ' +
+  'AskUserQuestion when that checkout has uncommitted changes, or another local branch or worktree contains a `main` commit its upstream lacks. ' +
+  'A conflict: `git rebase --abort`, then use AskUserQuestion. A push rejected again: stop and tell the owner; never rebase twice.';
 // No password, SSH or credential-manager prompt may hang the check: a fetch that needs one fails, and so is Unknown.
 // ponytail: GIT_SSH_COMMAND wins over a core.sshCommand in git config; pass that one through if a device ever uses it.
 const ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never',
@@ -66,23 +81,38 @@ function branchDrift(b) {
     .filter(Boolean).join(', ');
 }
 
+// The repo's Push policy and Pull policy, read as the Guard reads Push: anything unreadable or unknown is the default.
+function policies(top) {
+  let text = '';
+  try { text = fs.readFileSync(path.join(top, 'docs', 'agents', 'project.md'), 'utf8'); } catch {}
+  const read = (key, allowed) => {
+    const v = new RegExp(`^${key}:[ \\t]*(\\S+)[ \\t]*\\r?$`, 'm').exec(text)?.[1];
+    return allowed.includes(v) ? v : allowed[0];
+  };
+  return { push: read('Push', ['ask', 'owner', 'auto']), pull: read('Pull', ['ff', 'rebase']) };
+}
+
 // One repo's Drift. Current branch: behind, ahead, no upstream; default branch: behind, ahead.
-// Unknown, a branch both behind and ahead, or behind with uncommitted changes asks the owner; behind fast-forwards; ahead offers a push.
-function report(s) {
+// Unknown, a branch both behind and ahead, or behind with uncommitted changes asks the owner; behind fast-forwards;
+// ahead pushes as the Push policy says. `main` both behind and ahead, clean, under `Pull: rebase`, is rebased instead.
+function report(s, p) {
   const lines = [];
-  let behind = false, ahead = false, diverged = false;
+  let behind = false, ahead = false, diverged = false, mainDiverged = false;
   if (s.unknown) lines.push(`Unknown: ${s.unknown}`);
   if (s.noRemote) lines.push('no remote');
   else for (const b of s.branches) {
     const d = b.name === s.current ? branchDrift(b) : b.name === s.defaultBranch && b.upstream ? branchDrift(b) : '';
     if (!d) continue;
     lines.push(`branch ${b.name}: ${d}`);
-    if (b.behind && b.ahead) diverged = true;
+    if (b.behind && b.ahead && b.name === 'main' && p.pull === 'rebase') mainDiverged = true;
+    else if (b.behind && b.ahead) diverged = true;
     else if (b.behind) behind = true;
     else if (b.ahead) ahead = true;
   }
   if (s.dirty) lines.push('uncommitted changes');
-  const rules = s.unknown || diverged || (behind && s.dirty) ? [ASK] : [behind && FF, ahead && PUSH].filter(Boolean);
+  const push = PUSH[p.push] + (p.push === 'owner' ? '' : REJECTED[p.pull]);
+  const rules = s.unknown || diverged || ((behind || mainDiverged) && s.dirty) ? [ASK]
+    : [mainDiverged && REBASE, behind && FF, ahead && push].filter(Boolean);
   return { lines, rules };
 }
 
@@ -119,10 +149,10 @@ async function session() {
   // In parallel: the kit's fetch shares the session repo's deadline.
   const [s, k, t] = await Promise.all([inspect(top), kit && inspect(kit), kit && template(top, kit)]);
   const blocks = [];
-  const r = report(s);
+  const r = report(s, policies(top));
   if (t) r.lines.push(t.line);
   if (r.lines.length) blocks.push(block(`Drift check for ${top}`, r));
-  const kr = k && report(k);
+  const kr = k && report(k, policies(kit)); // the kit follows its own project.md
   if (kr?.lines.length) blocks.push(block(`Drift check for the kit (${kit})`, kr));
   return blocks.length ? blocks.join('\n') : null;
 }
