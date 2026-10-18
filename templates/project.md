@@ -46,6 +46,13 @@ A push that deploys to a host also names the host and port, so projects sharing 
 
 {{REMOTE}}
 
+## Sync
+
+`Push:` is `owner`, `ask` or `auto`; `Pull:` is `ff` or `rebase`. `global.md` says what each does; every device follows the same values.
+
+Push: ask
+Pull: ff
+
 ## Rules and lessons
 
 - None yet.

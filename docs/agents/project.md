@@ -40,6 +40,11 @@ Production in this repo — these commands belong to the owner:
 
 - None.
 
+## Sync
+
+Push: ask
+Pull: ff
+
 ## Rules and lessons
 
 - None yet.
