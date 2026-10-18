@@ -73,6 +73,39 @@ expect(bash(main, "# don't forget\ngit push"), 'ask', 'apostrophe in a # comment
 expect(bash(main, 'ls # ; git push'), 'none', '; inside a # comment');
 expect(bash(main, '# note\ngit commit -m msg'), 'deny', 'commit after a # comment line');
 
+// Push policy: the `Push:` line of docs/agents/project.md, read in the repo the push runs in.
+function sync(name, text) {
+  const dir = repo(name);
+  if (text !== null) {
+    fs.mkdirSync(path.join(dir, 'docs', 'agents'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'docs', 'agents', 'project.md'), `# Project\r\n\r\n## Sync\r\n\r\n${text}\r\nPull: ff\r\n`);
+  }
+  return dir;
+}
+const auto = sync('auto', 'Push: auto');
+expect(bash(auto, 'git push'), 'none', 'auto: push from main');
+expect(bash(auto, 'git push origin main'), 'none', 'auto: push origin main');
+expect(bash(auto, 'git push -u origin main'), 'none', 'auto: push -u origin main');
+expect(bash(auto, 'git push origin feature'), 'ask', 'auto: push of another branch');
+expect(bash(auto, 'git push origin main feature'), 'ask', 'auto: main and another branch');
+expect(bash(auto, 'git push --force'), 'deny', 'auto: force push');
+expect(bash(auto, 'git push && git push origin feature'), 'ask', 'auto: the strictest push wins');
+expect(bash(main, `cd ${auto} && git push`), 'none', 'auto: cd into the auto repo from another');
+expect(bash(auto, `cd ${main} && git push`), 'ask', 'auto: cd out of the auto repo');
+expect(bash(main, `git -C ${auto} push`), 'none', 'auto: git -C the auto repo');
+const autoWt = path.join(T, 'auto-wt');
+sh(auto, 'worktree', 'add', '-q', autoWt, '-b', 'side');
+expect(bash(autoWt, 'git push'), 'ask', 'auto: push from a branch other than main');
+expect(bash(autoWt, 'git push origin main'), 'ask', 'auto: main pushed from another branch');
+const owner = sync('owner', 'Push: owner');
+expect(bash(owner, 'git push'), 'deny', 'owner: push');
+assert.match(hook({ tool_name: 'Bash', tool_input: { command: 'git push' }, cwd: owner }).permissionDecisionReason, /hand the command over/, 'owner: the denial hands the command over');
+expect(bash(auto, `git push && cd ${owner} && git push`), 'deny', 'owner: the strictest push wins');
+expect(bash(sync('ask', 'Push: ask'), 'git push'), 'ask', 'ask');
+expect(bash(sync('unset', 'Pull: ff'), 'git push'), 'ask', 'no Push: line');
+expect(bash(sync('typo', 'Push: Auto'), 'git push'), 'ask', 'unknown value');
+expect(bash(sync('none', null), 'git push'), 'ask', 'no project.md');
+
 // commit on the main checkout.
 expect(bash(main, "git commit a.txt -F - <<'EOF'\nfix: stop git commit -m x from\nEOF"), 'none', 'paths -F - heredoc');
 expect(bash(main, 'git commit -m "msg" a.txt'), 'none', '-m with a path');

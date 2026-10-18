@@ -10,7 +10,10 @@ const { execFileSync } = require('child_process');
 const BRAINSTORM =
   'Guard: this repo follows the kit workflow — grill plus /to-spec replace superpowers:brainstorming. ' +
   'Do not retry; run the grill instead.';
-const PUSH = 'Guard: every push waits for the owner here (global.md). Approve to push; deny to keep the commits on this device.';
+const PUSH = 'Guard: this push waits for the owner (Push policy, global.md). Approve to push; deny to keep the commits on this device.';
+const PUSH_REPO_OWNER =
+  "Guard: this repo's Push policy is `owner` (docs/agents/project.md): every push belongs to the owner. " +
+  'Do not retry; hand the command over.';
 const PUSH_OWNER =
   'Guard: force, delete, tag, mirror and refspec pushes belong to the owner (global.md). ' +
   'Do not retry; hand the command over.';
@@ -29,29 +32,52 @@ const PUSH_OWNER_LONG = new Set(['--force', '--force-with-lease', '--force-if-in
 // Options of `git push` that consume the next argument when not written as --opt=value; -o is its only short one.
 const PUSH_VALUE_LONG = new Set(['--push-option', '--repo', '--receive-pack', '--exec']);
 
-// True when a push is more than a plain fast-forward to its upstream: an owner-only flag, or a refspec with + or :.
+// Reads a push's arguments: owner is true when it is more than a plain fast-forward to its upstream (an owner-only
+// flag, or a refspec with + or :); refspecs are its positionals after the repository.
 // ponytail: a bare tag name as refspec (`git push origin v1`), an abbreviated option (`--forc`) or a
 // `-c remote.<r>.mirror=true` looks plain here; the ask still catches it.
-function isOwnerOnlyPush(args) {
+function pushShape(args) {
   const positionals = [];
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--') { positionals.push(...args.slice(i + 1)); break; }
     if (a.startsWith('--')) {
       const name = a.split('=')[0];
-      if (PUSH_OWNER_LONG.has(name)) return true;
+      if (PUSH_OWNER_LONG.has(name)) return { owner: true };
       if (PUSH_VALUE_LONG.has(name) && !a.includes('=')) i++;
       continue;
     }
     if (a.startsWith('-') && a.length > 1) {
       const flags = a.slice(1).split('o')[0]; // -o takes the rest, or the next argument, as its value
-      if (/[fd]/.test(flags)) return true;
+      if (/[fd]/.test(flags)) return { owner: true };
       if (flags.length === a.length - 2) i++; // a bare trailing -o
       continue;
     }
     positionals.push(a);
   }
-  return positionals.slice(1).some((r) => /^\+|:/.test(r)); // the first positional is the repository
+  const refspecs = positionals.slice(1); // the first positional is the repository
+  return { owner: refspecs.some((r) => /^\+|:/.test(r)), refspecs };
+}
+
+// The repo's Push policy: the `Push:` line of docs/agents/project.md at its toplevel. Anything unreadable or unknown is `ask`.
+function pushPolicy(cwd, globals) {
+  try {
+    const top = git(cwd, globals, ['rev-parse', '--show-toplevel'])[0];
+    const v = /^Push:[ \t]*(\S+)[ \t]*\r?$/m.exec(fs.readFileSync(path.join(top, 'docs', 'agents', 'project.md'), 'utf8'))?.[1];
+    return ['owner', 'ask', 'auto'].includes(v) ? v : 'ask';
+  } catch { return 'ask'; }
+}
+
+// One push's verdict: deny, ask, or null to let it through (`Push: auto`, a plain push of `main` from `main`).
+function checkPush(args, cwd, globals) {
+  const shape = pushShape(args);
+  if (shape.owner) return ['deny', PUSH_OWNER];
+  const policy = pushPolicy(cwd, globals);
+  if (policy === 'owner') return ['deny', PUSH_REPO_OWNER];
+  if (policy === 'auto' && shape.refspecs.every((r) => r === 'main') && shape.refspecs.length <= 1) {
+    try { if (git(cwd, globals, ['branch', '--show-current'])[0] === 'main') return null; } catch {}
+  }
+  return ['ask', PUSH];
 }
 
 // Options of `git commit` that consume the next argument when not written as --opt=value.
@@ -208,7 +234,12 @@ function checkBash(command, cwd) {
     if (seg[0] === 'cd' && seg.length === 2) { dir = path.resolve(dir, seg[1]); continue; }
     const call = gitCall(seg);
     if (!call) continue;
-    if (call.sub === 'push') { if (isOwnerOnlyPush(call.args)) return ['deny', PUSH_OWNER]; ask = true; continue; }
+    if (call.sub === 'push') { // the strictest push in the command wins
+      const v = checkPush(call.args, dir, call.globals);
+      if (v?.[0] === 'deny') return v;
+      ask ||= !!v;
+      continue;
+    }
     if (call.sub !== 'commit') continue;
     const s = commitShape(call.args);
     if ((s.paths && !s.all) || (s.amend && s.only)) continue;
