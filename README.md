@@ -16,3 +16,17 @@ git clone <kit remote url> ~/.claude/kit && sh ~/.claude/kit/setup.sh
 ```
 
 On Windows, run it in Git Bash. Re-run `setup.sh` after every `git pull`; it is safe to repeat. It prints a `TODO:` line for anything it cannot install itself.
+
+## Request watch
+
+The [Request watch](CONTEXT.md) is `/request-watch` run hourly with nobody at the machine: it triages new Requests in every repo that names this device, applies the owner's as-written ones to local `main` (never pushing), and sends one push notification about the rest.
+
+Create it once on each watching device, in the Claude desktop app → Scheduled → new task:
+
+- prompt `/request-watch`, hourly;
+- working folder `~/.claude/kit` (the Guard denies edits to the kit from any other folder);
+- permission mode **Auto**: the default mode pauses on approvals, and nobody is there to give them.
+
+Then press **Run now** once while at the machine, to approve any tools it asks for.
+
+A repo opts in with `Request watch: <Device code>` under `## Sync` in its `docs/agents/project.md` (`/sync-workflow` writes `studio`); `off`, or no line, opts it out.
