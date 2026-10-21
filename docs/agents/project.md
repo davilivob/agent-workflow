@@ -44,6 +44,7 @@ Production in this repo — these commands belong to the owner:
 
 Push: ask
 Pull: ff
+Request watch: studio
 
 ## Rules and lessons
 

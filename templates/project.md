@@ -48,10 +48,11 @@ A push that deploys to a host also names the host and port, so projects sharing 
 
 ## Sync
 
-`Push:` is `owner`, `ask` or `auto`; `Pull:` is `ff` or `rebase`. `global.md` says what each does; every device follows the same values.
+`Push:` is `owner`, `ask` or `auto`; `Pull:` is `ff` or `rebase`. `global.md` says what each does; every device follows the same values. `Request watch:` is the Device code of the one device whose Request watch applies this repo's Requests, or `off`; no line means `off`.
 
 Push: ask
 Pull: ff
+Request watch: studio
 
 ## Rules and lessons
 
