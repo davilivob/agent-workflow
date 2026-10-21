@@ -48,8 +48,12 @@ A Request to the kit, brought back from another repo where it was tried first. A
 _Avoid_: feedback, suggestion, inbox
 
 **Triage**:
-The first look at a Request the owner picks: what it says, why, what it would touch, and a recommended verdict — apply, drop, or grill. The owner decides; triage only recommends.
+The first look at a Request: what it says, why, what it would touch, and a verdict — apply, drop, or grill. For a Request the owner picks, triage only recommends and the owner decides. An unattended triage applies on its own only a Request the owner filed that leaves nothing to choose (applied as written); everything else waits for the owner.
 _Avoid_: review, screening
+
+**Request watch**:
+The scheduled, unattended check one device runs for new Requests in the repos that name it: it triages each, applies the ones the owner filed as written, and tells the owner about the rest. A repo names its watching device in `project.md`, so no Request is applied twice.
+_Avoid_: auto-apply, bot, monitor, auto-triage
 
 **OS-bound verification**:
 A verification step that runs only on one operating system. A change that needs it is verified and merged from a device on that OS, whichever device wrote it.
