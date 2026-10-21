@@ -34,7 +34,7 @@ repo 用 `project.md` `## Sync` 底下一行 `Request watch: <Device code> | off
 12. As the Owner, I want `Request watch: off` to turn the watch off for one repo, so that I can opt a repo out.
 13. As the Owner, I want one scheduled task per device that walks every repo naming that device, so that a new repo is watched by writing one line, not by installing another schedule.
 14. As the Owner, I want the watch to find repos the way the `drift` command does (the drift roots, Retired repos skipped), so that there is one list of repos per device.
-15. As the Owner, I want a run to skip a repo whose `main` has Drift or uncommitted changes, or that has any Claim, and tell me so, so that the watch never fights a session that is working there.
+15. As the Owner, I want a run to skip a repo whose `main` is behind, diverged or Unknown, or that has uncommitted changes or any Claim, and tell me so (only when the reason changed since the last run), so that the watch never fights a session that is working there.
 16. As the Owner, I want a Request whose verification fails to leave nothing behind (no commit, worktree removed) and to tell me with the output, so that `main` only ever gets verified work.
 17. As the Owner, I want a Request the watch already handled not to be handled or notified again on the next run, so that hourly runs do not spam me.
 18. As the Owner, I want a run where `gh` fails to report the repo as Unknown, never as having no Requests, so that a silent outage is visible.
@@ -48,7 +48,7 @@ repo 用 `project.md` `## Sync` 底下一行 `Request watch: <Device code> | off
 - **`project.md` 欄位**：`## Sync` 底下加 `Request watch: <Device code> | off`。沒有這一行、值認不得、讀不到：`off`。template 的預設值是 `studio`。讀法跟 Push policy、Pull policy 同一套 reader。
 - **`/sync-workflow`**：new 模式照 template 寫入 `Request watch: studio`；update 模式在 `## Sync` 沒有這一行時補上 `Request watch: studio`，不問；已有的值不讀不改。commit 訊息照現有慣例加 `, add Request watch to project.md`。
 - **候選清單是確定性的程式，不是 agent 判斷**：`drift` 命令加一個 `--watch` 入口，重用它的 repo 掃描（drift roots、Retired repos）和 `project.md` reader，對每個 `Request watch:` 等於本機 Device code 的 repo：
-  - 檢查 `main` 的 Drift、未 commit 的變更、Claim（`.claude/worktrees/` 下的 worktree、`.scratch/*/plan.md` 未 commit）；有任何一項就把這個 repo 標成 skipped 並附原因。
+  - 檢查 `main` 的 Drift、未 commit 的變更、Claim（`.claude/worktrees/` 下的 worktree、`.scratch/*/plan.md` 未 commit）；有任何一項就把這個 repo 標成 skipped 並附原因。`main` 只有 ahead（還沒 push 的 commit，包括 watch 自己 apply 的）不算：新的 worktree 從本機 `main` 開，`merge --ff-only` 照樣成功（plan 時 Owner 決定）。
   - 用 `gh issue list --state open` 取 open issues；`gh` 失敗就把這個 repo 標成 Unknown。
   - 每個 issue 標上：作者是否為 Owner 的 GitHub 帳號（`gh api user` 取得）、body 是否有 `From:` 行和 `## What`、是否已在本機 state 檔裡。
   - 輸出一份機器可讀的清單（JSON），讓 skill 照著做。
@@ -58,7 +58,7 @@ repo 用 `project.md` `## Sync` 底下一行 `Request watch: <Device code> | off
   - 判 Apply：照 `workflow.md` 的 Apply 做（worktree、verification、最後一個 commit 帶 `Fixes #<n>`、merge 到本機 `main`），不 push，不跑 Deploy check。
   - 驗證失敗：丟掉 worktree 和 branch，不 commit，通知 Owner 並附輸出。
   - 其他（Drop、Grill、作者不是 Owner、格式不符、skipped、Unknown）：只通知，不碰 issue。
-  - 通知用 push notification，一個 run 合併成一則，列出每個 repo 的結果。沒有任何新東西就不通知。
+  - 通知用 push notification，一個 run 合併成一則，列出每個 repo 的結果。沒有任何新東西就不通知。被跳過或 Unknown 的 repo，原因跟 state 檔記下的上一輪一樣就不再通知；恢復正常時清掉紀錄（plan 時 Owner 決定）。
 - **`workflow.md`**：**Requests** 一節加 Request watch 一段：誰被自動 apply、做到哪、其他的怎麼處理；原本「change nothing until the owner picks」限定在 Owner 挑的 Request。**Continue** 的 Requests 群組：本機 `main` 已有 `Fixes #<n>` commit 的 open Request 標成「applied, awaiting push」。
 - **排程任務**：每台被點名的裝置一個 Desktop scheduled task，每小時，prompt 是 `/request-watch`。由 Owner 在 app 裡建立一次；README 寫怎麼建。
 - **kit 自己**：`docs/agents/project.md` 的 `## Sync` 加 `Request watch: studio`。
