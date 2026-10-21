@@ -332,7 +332,8 @@ const missingRoot = path.join(T, 'watch-missing');
 fs.writeFileSync(path.join(WH, '.claude', 'drift-roots'), [WR, missingRoot, `!${path.join(WR, 'retired')}`].join('\n'));
 fixture({ fail: ['w-ghfail'], issues: { on: [
   ask(1, GOOD), ask(2, GOOD, 'stranger'), ask(3, '## What\n\nx\n'), ask(4, 'From: x/y @ abc1234\n\nchange it\n'),
-  ask(5, '## Whatever\n\nsee From: x mid-line\n'), ask(6, GOOD), ask(12, GOOD), ask(120, GOOD),
+  ask(5, 'From: x/y @ abc1234\n\n## Whatever\n\nx\n'), ask(7, 'see From: x mid-line\n\n## What\n\nx\n'),
+  ask(8, '`From: x` and `## What`\n'), ask(6, GOOD), ask(12, GOOD), ask(120, GOOD),
 ] } });
 
 let w = watch();
@@ -355,7 +356,9 @@ assert.deepStrictEqual(pick(1), { candidate: true, handled: null });
 assert.strictEqual(issue(2).reason, 'not filed by the owner');
 assert.strictEqual(issue(3).reason, 'no From: line');
 assert.strictEqual(issue(4).reason, 'no ## What');
-assert.ok(!issue(5).candidate, 'look-alikes are not the format');
+assert.strictEqual(issue(5).reason, 'no ## What', 'a ## Whatever heading is not ## What');
+assert.strictEqual(issue(7).reason, 'no From: line', 'From: mid-line is not a From: line');
+assert.ok(!issue(8).candidate, 'in a code span: not the format');
 assert.strictEqual(issue(6).handled, null, 'not in the state file yet');
 assert.strictEqual(issue(12).handled, 'applied', 'Fixes #12 on local main');
 assert.strictEqual(issue(120).handled, null, 'Fixes #12 does not mark #120');

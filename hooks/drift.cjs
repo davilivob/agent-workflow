@@ -306,7 +306,9 @@ async function watchRepo(dir, owner, state) {
   try { list = JSON.parse(await gh(dir, ['issue', 'list', '--state', 'open', '--limit', '200', '--json', 'number,title,url,author,body'])); }
   catch (e) { return not('unknown', `gh issue list failed: ${e.message}`); }
   // One log for every issue: the bodies of the commits on the default branch that say `Fixes #<n>`.
-  const fixes = await git(dir, ['log', s.defaultBranch, '-E', '--grep=Fixes #[0-9]', '--format=%B']).catch(() => '');
+  let fixes;
+  try { fixes = await git(dir, ['log', s.defaultBranch, '-E', '--grep=Fixes #[0-9]', '--format=%B']); }
+  catch (e) { return not('unknown', `git log failed: ${e.message}`); }
   r.issues = list.map((i) => {
     const body = i.body || '';
     const why = i.author?.login !== owner.login ? 'not filed by the owner'
