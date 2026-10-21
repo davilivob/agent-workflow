@@ -103,7 +103,7 @@ The groups:
 - **Ready**: has `plan.md` (or `Plan: no`), `Status` not yet `done`, and whatever `After:` names is already on `main`. Low or medium `Overlaps:` still count as Ready; note after them whom they overlap and at what risk.
 - **Blocked**: would be Needs a plan or Ready, but what `After:` (or `Overlaps: high`) names is not on `main` yet; say which one it waits for, whether it is a real dependency or a high conflict risk, and whether it still needs a plan. An `After:` Request whose state is Unknown goes here too, marked Unknown.
 - **Awaiting <OS> verification**: the slugs awaiting OS-bound verification on this device's OS (`macos` or `windows`), here instead of under In progress; on any other OS they stay under In progress. One line each: slug, the awaiting commands, `Merge:`.
-- **Requests**: the open Requests in this repo, from `gh issue list --state open --json number,createdAt,body`. One line each: number, date opened, its `From:` and the first sentence of its `## What`. If `gh` fails (not installed, not logged in, offline, origin not on GitHub), the group is Unknown, never empty. A Request the owner picks gets a Triage (see **Requests**).
+- **Requests**: the open Requests in this repo, from `gh issue list --state open --json number,createdAt,body`. One line each: number, date opened, its `From:` and the first sentence of its `## What`. If `gh` fails (not installed, not logged in, offline, origin not on GitHub), the group is Unknown, never empty. A Request the owner picks gets a Triage (see **Requests**). An open Request with a `Fixes #<n>` commit on local `main` (`git log main -E --grep='Fixes #<n>([^0-9]|$)'`) is listed as `applied, awaiting push` and not offered for Triage.
 
 One line each: slug, one sentence on what it is, `Merge:`. Whatever another session is already working on goes under In progress: a Claim, or the owner saying so. Start only after the owner picks.
 
@@ -116,6 +116,8 @@ A Request the owner picks (from Continue, or by its number) gets a **Triage** fi
 - **Apply**: no design decision for the owner, so it is a small change the grill rule exempts. Pick a slug as for Direct and make the change as usual, with verification and no spec. The last commit's message carries `Fixes #<n>`, so the Request closes when that commit is pushed to the default branch (see `global.md` for when to push).
 - **Drop**: `gh issue close <n> --comment "<the owner's reason>"`. The owner's pick is the consent to close it.
 - **Grill**: list the decisions the owner has to make, and stop; the owner runs `/grill-with-docs <the Request's URL>` by hand. Its spec carries `Request: #<n>`.
+
+The **Request watch**: the device `project.md` names in `Request watch:` runs `/request-watch` hourly, with nobody at the machine. It triages each new Request and applies it as Apply above, unattended, only when the owner filed it in the `/file-request` format and it is applied as written. It stops at local `main`: no push, no Deploy check. It skips a repo whose `main` is behind, diverged or Unknown, or that is dirty or Claimed. Everything else it only tells the owner about, and it never touches the issue.
 
 ## Spec and Plan
 
