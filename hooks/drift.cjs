@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// Drift check: one check, two entry points.
+// Drift check: one check, three entry points.
 //   --session  SessionStart hook: reads hook JSON on stdin, checks the session's repo and the kit (~/.claude/kit),
 //              and whether the repo's workflow.md is older than the kit's template; prints context for the agent,
 //              always headed by this device's Device code (from ~/.claude/device) and a reminder to set the Session title.
 //   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots,
 //              except Retired repos (under a `!` line there), which it only counts; also says which repos'
 //              workflow.md is older than the kit's template (not counted as Drift).
+//   --watch    the Request watch's candidate list: for every scanned repo whose project.md says `Request watch: <this Device code>`,
+//              its skip reason or its open issues (via `gh`), each marked candidate or not and handled or not, as one JSON object.
 // The rules --session prints are copies of global.md's, picked by the repo's Push policy and Pull policy: change both together.
 // The only write it makes to a repo is `git fetch`. Whatever it cannot confirm is Unknown, never "no Drift".
 const fs = require('fs');
@@ -18,6 +20,7 @@ const SESSION_DEADLINE = 25000; // under the 30 s hook timeout setup.sh register
 const ROOTS = path.join(os.homedir(), '.claude', 'drift-roots');
 const DEVICE = path.join(os.homedir(), '.claude', 'device');
 const KIT = path.join(os.homedir(), '.claude', 'kit');
+const STATE = path.join(os.homedir(), '.claude', 'request-watch.json');
 // Copies of the Drift rules in global.md, which stays the source: change both together.
 // Which ones print follows the repo's Push policy and Pull policy (`## Sync` in its docs/agents/project.md).
 const ASK =
@@ -44,6 +47,15 @@ const REBASE =
 // ponytail: GIT_SSH_COMMAND wins over a core.sshCommand in git config; pass that one through if a device ever uses it.
 const ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never',
   GIT_SSH_COMMAND: process.env.GIT_SSH_COMMAND || 'ssh -o BatchMode=yes' };
+
+function gh(cwd, args) {
+  return new Promise((resolve, reject) => execFile('gh', args,
+    { cwd, env: ENV, timeout: 20000, encoding: 'utf8', windowsHide: true, shell: process.platform === 'win32' },
+    (err, stdout, stderr) => {
+      if (!err) return resolve(stdout);
+      reject(new Error(err.killed ? 'timed out after 20s' : (stderr || err.message).trim().split('\n')[0]));
+    }));
+}
 
 function git(cwd, args, timeout = 10000) {
   return new Promise((resolve, reject) => execFile('git', args, { cwd, env: ENV, timeout, encoding: 'utf8', windowsHide: true },
@@ -91,6 +103,13 @@ function policies(top) {
     return allowed.includes(v) ? v : allowed[0];
   };
   return { push: read('Push', ['ask', 'owner', 'auto']), pull: read('Pull', ['ff', 'rebase']) };
+}
+
+// The Device code that watches this repo's Requests; no line or an unreadable file: off.
+function watchDevice(top) {
+  let text = '';
+  try { text = fs.readFileSync(path.join(top, 'docs', 'agents', 'project.md'), 'utf8'); } catch {}
+  return /^Request watch:[ \t]*(\S+)[ \t]*\r?$/m.exec(text)?.[1] ?? 'off';
 }
 
 // One repo's Drift. Current branch: behind, ahead, no upstream; default branch: behind, ahead.
@@ -194,9 +213,10 @@ async function pool(items, n, fn) {
   return out;
 }
 
-// Every local branch: behind, ahead, no upstream. Lists only repos with something to say, then the totals.
-async function cli() {
-  const usage = `Create ${ROOTS} with one directory per line, each holding your repos, e.g.\n  ${path.join(os.homedir(), 'proj')}`;
+const USAGE = `Create ${ROOTS} with one directory per line, each holding your repos, e.g.\n  ${path.join(os.homedir(), 'proj')}`;
+
+// The repos under the roots in ~/.claude/drift-roots, Retired ones left out (`found` counts them too).
+function scan() {
   const roots = [];
   const retired = [];
   // ponytail: case is folded on Windows only and symlinks are not resolved; use realpath if a ! line ever misses.
@@ -214,7 +234,7 @@ async function cli() {
     const k = key(dir);
     return retired.some((r) => k === r || k.startsWith(r.endsWith(path.sep) ? r : r + path.sep)); // a drive root ends in sep
   };
-  if (!roots.length) { console.error(`drift: no roots configured. ${usage}`); return 2; }
+  if (!roots.length) return { error: `drift: no roots configured. ${USAGE}`, repos: [], missing: [], unreadable: [], found: 0 };
   let repos = [];
   let unreadable = [];
   const missing = roots.filter((r) => !fs.statSync(r, { throwIfNoEntry: false })?.isDirectory());
@@ -222,9 +242,16 @@ async function cli() {
   const found = repos.length;
   repos = repos.filter((d) => !isRetired(d));
   unreadable = unreadable.filter((d) => !isRetired(d));
+  return { roots, repos, missing, unreadable, found };
+}
+
+// Every local branch: behind, ahead, no upstream. Lists only repos with something to say, then the totals.
+async function cli() {
+  const { error, roots, repos, missing, unreadable, found } = scan();
+  if (error) { console.error(error); return 2; }
   for (const r of missing) console.log(`missing root: ${r}`);
   for (const d of unreadable) console.log(`${d}\n  Unknown: cannot read directory`);
-  if (!found) { console.error(`drift: no git repos found under ${roots.join(', ')}. ${usage}`); return 2; }
+  if (!found) { console.error(`drift: no git repos found under ${roots.join(', ')}. ${USAGE}`); return 2; }
 
   let kit = null;
   try { kit = fs.realpathSync(KIT); } catch {} // no kit on this device: no template check
@@ -245,6 +272,77 @@ async function cli() {
   return missing.length || totals.unknown || totals.drift ? 1 : 0;
 }
 
+// What a working session leaves in a repo: a worktree under .claude/worktrees/, or a plan.md not yet committed.
+async function claims(dir) {
+  const out = [];
+  const linked = (await git(dir, ['worktree', 'list', '--porcelain'])).split(/\r?\n\r?\n/).slice(1); // the first is the main checkout
+  for (const w of linked) { const m = /^worktree .*[\\/]\.claude[\\/]worktrees[\\/](.+?)\r?$/m.exec(w); if (m) out.push(`Claim: worktree ${m[1]}`); }
+  for (const m of (await git(dir, ['--no-optional-locks', 'status', '--porcelain', '-uall', '--', '.scratch'])).matchAll(/^.. (\.scratch\/[^/]+\/plan\.md)\r?$/gm))
+    out.push(`Claim: ${m[1]} not committed`);
+  return out;
+}
+
+// A repo the watch does not look into this run; notified only when the reason differs from the last run's.
+const notOk = (r, state, status, reason) => ({ ...r, status, reason, notify: reason !== state.skips?.[r.dir], issues: [] });
+
+// One watched repo: skipped (with why), Unknown, or ok with its open issues marked.
+async function watchRepo(dir, owner, state) {
+  const r = { dir, repo: null, branch: null, status: 'ok', issues: [] };
+  const not = (status, reason) => notOk(r, state, status, reason);
+  r.repo = /([^/:]+\/[^/:]+?)(?:\.git)?$/.exec((await git(dir, ['remote', 'get-url', 'origin']).catch(() => '')).trim())?.[1] ?? null;
+  if (owner.error) return not('unknown', `gh api user failed: ${owner.error}`);
+  const s = await inspect(dir);
+  if (s.unknown || s.noRemote) return not('unknown', s.unknown || 'no remote');
+  r.branch = s.defaultBranch;
+  const reasons = [];
+  if (s.current !== s.defaultBranch) reasons.push(`main checkout is on ${s.current ?? 'a detached HEAD'}`);
+  const main = s.branches.find((b) => b.name === s.defaultBranch);
+  if (main?.behind) reasons.push(`branch ${main.name}: ${branchDrift(main)}`); // ahead alone: the watch merges onto it
+  const c = await claims(dir).catch((e) => [`cannot read Claims: ${e.message}`]);
+  reasons.push(...c);
+  if (s.dirty && !c.length) reasons.push('uncommitted changes');
+  if (reasons.length) return not('skipped', reasons.join('; '));
+  let list;
+  try { list = JSON.parse(await gh(dir, ['issue', 'list', '--state', 'open', '--limit', '200', '--json', 'number,title,url,author,body'])); }
+  catch (e) { return not('unknown', `gh issue list failed: ${e.message}`); }
+  // One log for every issue: the bodies of the commits on the default branch that say `Fixes #<n>`.
+  const fixes = await git(dir, ['log', s.defaultBranch, '-E', '--grep=Fixes #[0-9]', '--format=%B']).catch(() => '');
+  r.issues = list.map((i) => {
+    const body = i.body || '';
+    const why = i.author?.login !== owner.login ? 'not filed by the owner'
+      : !/^From: \S/m.test(body) ? 'no From: line' : !/^## What[ \t]*\r?$/m.test(body) ? 'no ## What' : null;
+    const handled = state.requests?.[`${r.repo}#${i.number}`]?.result
+      ?? (new RegExp(`Fixes #${i.number}([^0-9]|$)`, 'm').test(fixes) ? 'applied' : null);
+    return { number: i.number, title: i.title, url: i.url, author: i.author?.login ?? null, candidate: !why, ...(why && { reason: why }), handled };
+  });
+  return r;
+}
+
+// The Request watch's candidate list, as JSON on stdout. Only `gh` reads; nothing is written but `git fetch`.
+async function watch() {
+  let code = '';
+  try { code = fs.readFileSync(DEVICE, 'utf8').trim(); } catch {}
+  if (!code) { console.error(`drift --watch: no Device code in ${DEVICE}`); return 2; }
+  let state = {};
+  try {
+    state = JSON.parse(fs.readFileSync(STATE, 'utf8'));
+    if (!state || typeof state !== 'object' || Array.isArray(state)) throw new Error('not a JSON object');
+  } catch (e) { // never read as empty: that would apply a handled Request again
+    if (e.code !== 'ENOENT') { console.error(`drift --watch: cannot read ${STATE}: ${e.message}`); return 2; }
+    state = {};
+  }
+  const { error, repos, missing, unreadable } = scan();
+  if (error) { console.error(error); return 2; }
+  const dirs = repos.filter((d) => watchDevice(d) === code);
+  const owner = dirs.length ? await gh(os.homedir(), ['api', 'user', '--jq', '.login']).then((o) => (o.trim() ? { login: o.trim() } : { error: 'no login' }), (e) => ({ error: e.message }))
+    : {};
+  const lost = (dir, reason) => notOk({ dir, repo: null, branch: null }, state, 'unknown', reason);
+  const out = [...missing.map((d) => lost(d, 'missing root')), ...unreadable.map((d) => lost(d, 'cannot read directory')),
+    ...await pool(dirs, 8, (d) => watchRepo(d, owner, state))];
+  console.log(JSON.stringify({ device: code, owner: owner.login ?? null, state: STATE, repos: out }, null, 2));
+  return 0;
+}
+
 if (process.argv[2] === '--session') { // a check that broke or ran out of time is Unknown, never silence
   const deadline = setTimeout(() => {
     emit(`Drift check: Unknown, it did not finish within ${SESSION_DEADLINE / 1000}s.\n${ASK}`);
@@ -252,6 +350,8 @@ if (process.argv[2] === '--session') { // a check that broke or ran out of time 
   }, SESSION_DEADLINE);
   session().then(emit, (e) => emit(`Drift check: Unknown, the check itself failed (${e.message}).\n${ASK}`))
     .finally(() => clearTimeout(deadline));
+} else if (process.argv[2] === '--watch') {
+  watch().then((code) => { process.exitCode = code; }, (e) => { console.error(`drift --watch: Unknown, the check failed: ${e.message}`); process.exitCode = 2; });
 } else {
   cli().then((code) => { process.exitCode = code; }, (e) => { console.error(`drift: Unknown, the check failed: ${e.message}`); process.exitCode = 2; });
 }

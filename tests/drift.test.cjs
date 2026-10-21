@@ -280,4 +280,122 @@ sh(foreign, 'remote', 'set-url', 'origin', path.join(T, 'gone.git'));
 r = cli();
 assert.ok(r.out.trimEnd().endsWith('0 with Drift, 1 Unknown, 0 no remote, 1 with an old workflow.md; 3 repos scanned'), `Unknown once per repo:\n${r.out}`);
 
+// The watch entry: drift --watch. A fresh home naming this device `studio`, and a fake `gh` first on PATH reading gh.json.
+const WH = path.join(T, 'watch-home');
+fs.mkdirSync(path.join(WH, '.claude'), { recursive: true });
+fs.writeFileSync(path.join(WH, '.claude', 'device'), 'studio\n');
+const BIN = path.join(T, 'fakebin');
+fs.mkdirSync(BIN);
+fs.writeFileSync(path.join(BIN, 'gh'), `#!/usr/bin/env node
+const fs = require('fs'), path = require('path');
+const f = JSON.parse(fs.readFileSync(path.join(__dirname, 'gh.json'), 'utf8'));
+const [a, b] = process.argv.slice(2);
+if (a === 'api' && b === 'user') {
+  if (f.user == null) { console.error('gh: not logged in'); process.exit(1); }
+  console.log(f.user);
+} else if (a === 'issue' && b === 'list') {
+  const r = path.basename(process.cwd());
+  if (f.fail.includes(r)) { console.error('gh: cannot list ' + r); process.exit(1); }
+  console.log(JSON.stringify(f.issues[r] || []));
+} else { console.error('fake gh: unexpected ' + process.argv.slice(2).join(' ')); process.exit(1); }
+`, { mode: 0o755 });
+fs.writeFileSync(path.join(BIN, 'gh.cmd'), '@node "%~dp0gh" %*\r\n');
+const fixture = (f) => fs.writeFileSync(path.join(BIN, 'gh.json'), JSON.stringify({ user: 'me', fail: [], issues: {}, ...f }));
+const STATE = path.join(WH, '.claude', 'request-watch.json');
+function watch() {
+  const r = spawnSync('node', [DRIFT, '--watch'], { cwd: T, encoding: 'utf8',
+    env: { ...env, HOME: WH, USERPROFILE: WH, PATH: `${BIN}${path.delimiter}${env.PATH}` } });
+  let json = null;
+  try { json = JSON.parse(r.stdout); } catch {}
+  return { code: r.status, json, err: r.stderr };
+}
+// A repo under the watch root whose project.md has `Request watch: <value>` under ## Sync (no such line when value is null).
+const WR = path.join(T, 'watch-root');
+const watched = (name, value) => sync(clone(name, WR), value === null ? 'Push: ask' : `Push: ask\r\nRequest watch: ${value}`);
+const GOOD = 'From: x/y @ abc1234\n\n## What\n\nchange it\n';
+const ask = (number, body, login = 'me') => ({ number, title: `t${number}`, url: `https://x/${number}`, author: { login }, body });
+
+const on = watched('on', 'studio');
+const others = ['other', 'off', 'none', 'typo', 'retired'].map((n, i) => watched(n, ['mbp', 'off', null, 'Studio', 'studio'][i]));
+sh(on, 'commit', '-q', '--allow-empty', '-m', 'fix it\n\nFixes #12'); // unpushed: main only ahead
+const wBehind = watched('w-behind', 'studio'); advance(wBehind);
+const wDiverged = watched('w-diverged', 'studio'); advance(wDiverged); commit(wDiverged, 'y.txt');
+const wDirty = watched('w-dirty', 'studio'); fs.writeFileSync(path.join(wDirty, 'a.txt'), 'changed');
+const wWorktree = watched('w-worktree', 'studio');
+sh(wWorktree, 'worktree', 'add', '-q', path.join(wWorktree, '.claude', 'worktrees', 'x'), '-b', 'x');
+const wPlan = watched('w-plan', 'studio');
+fs.mkdirSync(path.join(wPlan, '.scratch', 's'), { recursive: true });
+fs.writeFileSync(path.join(wPlan, '.scratch', 's', 'plan.md'), 'plan');
+const wFeature = watched('w-feature', 'studio'); sh(wFeature, 'checkout', '-q', '-b', 'feature');
+const wGhFail = watched('w-ghfail', 'studio');
+const missingRoot = path.join(T, 'watch-missing');
+fs.writeFileSync(path.join(WH, '.claude', 'drift-roots'), [WR, missingRoot, `!${path.join(WR, 'retired')}`].join('\n'));
+fixture({ fail: ['w-ghfail'], issues: { on: [
+  ask(1, GOOD), ask(2, GOOD, 'stranger'), ask(3, '## What\n\nx\n'), ask(4, 'From: x/y @ abc1234\n\nchange it\n'),
+  ask(5, '## Whatever\n\nsee From: x mid-line\n'), ask(6, GOOD), ask(12, GOOD), ask(120, GOOD),
+] } });
+
+let w = watch();
+assert.strictEqual(w.code, 0, `watch: ${JSON.stringify(w)}`);
+const repo = (dir) => w.json.repos.find((x) => x.dir === dir) ?? assert.fail(`${dir} not in:\n${JSON.stringify(w.json, null, 1)}`);
+assert.strictEqual(w.json.device, 'studio');
+assert.strictEqual(w.json.owner, 'me');
+assert.strictEqual(w.json.state, STATE);
+const listed = w.json.repos.map((x) => x.dir).filter((dir) => [on, ...others].includes(dir)).sort();
+assert.deepStrictEqual(listed, [on].sort(), 'only repos naming this device exactly, Retired ones left out');
+assert.deepStrictEqual({ ...repo(missingRoot), dir: undefined }, { dir: undefined, repo: null, branch: null, status: 'unknown',
+  reason: 'missing root', notify: true, issues: [] }, 'a missing root is Unknown');
+assert.strictEqual(repo(on).status, 'ok', `main only ahead is not a skip: ${JSON.stringify(repo(on))}`);
+assert.strictEqual(repo(on).branch, 'main');
+assert.ok(/^[^/]+\/remote-\d+$/.test(repo(on).repo), `owner/name from the origin URL: ${repo(on).repo}`);
+const issue = (num) => repo(on).issues.find((i) => i.number === num);
+const pick = (num) => ({ candidate: issue(num).candidate, handled: issue(num).handled });
+assert.deepStrictEqual(issue(1), { number: 1, title: 't1', url: 'https://x/1', author: 'me', candidate: true, handled: null });
+assert.deepStrictEqual(pick(1), { candidate: true, handled: null });
+assert.strictEqual(issue(2).reason, 'not filed by the owner');
+assert.strictEqual(issue(3).reason, 'no From: line');
+assert.strictEqual(issue(4).reason, 'no ## What');
+assert.ok(!issue(5).candidate, 'look-alikes are not the format');
+assert.strictEqual(issue(6).handled, null, 'not in the state file yet');
+assert.strictEqual(issue(12).handled, 'applied', 'Fixes #12 on local main');
+assert.strictEqual(issue(120).handled, null, 'Fixes #12 does not mark #120');
+const skips = [[wBehind, 'behind'], [wDiverged, 'behind'], [wDiverged, 'ahead'], [wDirty, 'uncommitted changes'],
+  [wWorktree, 'Claim'], [wPlan, 'Claim'], [wFeature, 'feature']];
+for (const [dir, word] of skips) {
+  assert.strictEqual(repo(dir).status, 'skipped', `${dir}: ${JSON.stringify(repo(dir))}`);
+  assert.ok(repo(dir).reason.includes(word), `${dir}: "${word}" not in ${repo(dir).reason}`);
+  assert.deepStrictEqual(repo(dir).issues, []);
+  assert.strictEqual(repo(dir).notify, true, 'a reason not in the state file is notified');
+}
+assert.ok(!repo(wWorktree).reason.includes('uncommitted') && !repo(wPlan).reason.includes('uncommitted'), 'a Claim explains the untracked files');
+assert.strictEqual(repo(wWorktree).reason, 'Claim: worktree x');
+assert.strictEqual(repo(wPlan).reason, 'Claim: .scratch/s/plan.md not committed');
+assert.strictEqual(repo(wGhFail).status, 'unknown');
+assert.ok(repo(wGhFail).reason.startsWith('gh issue list failed: gh: cannot list w-ghfail'), repo(wGhFail).reason);
+assert.ok(!('reason' in repo(on)) && !('notify' in repo(on)), 'an ok repo has no reason and no notify');
+
+// The state file: handled Requests, and the skip reasons notified last run.
+const key = `${repo(on).repo}#6`;
+fs.writeFileSync(STATE, JSON.stringify({ requests: { [key]: { result: 'notified', at: '2026-01-01T00:00:00Z' } },
+  skips: { [wBehind]: repo(wBehind).reason, [wDirty]: 'something else' } }));
+w = watch();
+assert.strictEqual(issue(6).handled, 'notified', 'in the state file');
+assert.strictEqual(repo(wBehind).notify, false, 'the same reason as last run: not notified again');
+assert.strictEqual(repo(wDirty).notify, true, 'a changed reason is notified');
+
+fixture({ user: null });
+w = watch();
+assert.strictEqual(w.code, 0);
+assert.strictEqual(w.json.owner, null);
+for (const x of w.json.repos) assert.strictEqual(x.status, 'unknown', `gh api user failed: ${JSON.stringify(x)}`);
+assert.ok(repo(on).reason.startsWith('gh api user failed: gh: not logged in'), repo(on).reason);
+
+fs.writeFileSync(STATE, 'not json{');
+w = watch();
+assert.ok(w.code === 2 && w.err.includes('request-watch.json') && !w.json, `corrupt state: ${JSON.stringify(w)}`);
+fs.rmSync(STATE);
+fs.rmSync(path.join(WH, '.claude', 'device'));
+w = watch();
+assert.ok(w.code === 2 && w.err.includes('device') && !w.json, `no device: ${JSON.stringify(w)}`);
+
 console.log('PASS');
