@@ -40,7 +40,7 @@ function advance(dir, branch = 'main') {
 
 // Returns the Drift report, or null; the Device line, always first and for the agent only, goes to lastDevice.
 // The Session title reminder, always second and for the agent only, is checked here.
-let lastDevice;
+let lastDevice, lastOwner;
 function session(cwd) {
   const r = spawnSync('node', [DRIFT, '--session'], { input: JSON.stringify({ hook_event_name: 'SessionStart', cwd }), env, encoding: 'utf8' });
   assert.strictEqual(r.status, 0, `drift --session exited ${r.status}: ${r.stderr}`);
@@ -50,7 +50,9 @@ function session(cwd) {
   assert.ok(title.startsWith('Session title: ') && title.includes('set_session_title'), `no Session title reminder second:\n${out.hookSpecificOutput.additionalContext}`);
   lastDevice = first;
   const text = rest.join('\n') || null;
-  assert.strictEqual(out.systemMessage, text ?? undefined, 'owner sees the Drift report, without the Device and Session title lines');
+  assert.strictEqual(!!out.systemMessage, !!text, 'owner sees a report exactly when the agent does');
+  if (text) assert.ok(!/Per global\.md|Device: |Session title: /.test(out.systemMessage), `owner sees the facts only:\n${out.systemMessage}`);
+  lastOwner = out.systemMessage;
   return text;
 }
 const RULES = { ask: 'ask the owner with AskUserQuestion', ff: 'without asking', push: 'offer to push',
@@ -70,6 +72,7 @@ assert.strictEqual(session(T), null, 'not a repo: silent');
 assert.strictEqual(lastDevice, 'Device: mbp', 'device file read and trimmed');
 let d = clone('behind'); advance(d);
 expect(session(d), ['branch main: behind origin/main by 1'], 'ff', 'behind, clean');
+assert.ok(lastOwner.endsWith('\n- 分支 main：落後 origin/main 1 個 commit'), `owner's copy in Chinese:\n${lastOwner}`);
 fs.writeFileSync(path.join(d, 'a.txt'), 'changed');
 expect(session(d), ['branch main: behind origin/main by 1', 'uncommitted changes'], 'ask', 'behind, dirty');
 d = clone('ahead'); commit(d, 'x.txt');

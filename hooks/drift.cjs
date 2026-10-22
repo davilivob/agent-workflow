@@ -187,11 +187,32 @@ function device() {
 // Said here, at session start, because the rule in global.md alone gets skipped: the tool is deferred.
 const TITLE = 'Session title: set it now with set_session_title (session self): [<Device code>] <Phase> · <topic>, as global.md says. The tool is deferred; load it first with ToolSearch "select:mcp__ccd_session_mgmt__set_session_title". Without that tool, skip it.';
 
+// The owner's copy of the report, in Traditional Chinese: the facts only, since the `Per global.md` rules are the agent's.
+// A line no pattern matches (a git error message) stays as it is.
+const ZH = [
+  [/^Drift check for the kit \((.*)\):$/, 'Drift 檢查：kit（$1）'],
+  [/^Drift check for (.*):$/, 'Drift 檢查：$1'],
+  [/^Drift check: Unknown, it did not finish within (\d+)s\.$/, 'Drift 檢查：無法確認，$1 秒內沒跑完。'],
+  [/^Drift check: Unknown, the check itself failed \((.*)\)\.$/, 'Drift 檢查：無法確認，檢查本身失敗（$1）。'],
+  [/^- Unknown: /, '- 無法確認：'],
+  [/^- no remote$/, '- 沒有 remote'],
+  [/^- uncommitted changes$/, '- 有未 commit 的變更'],
+  [/^- workflow\.md: older than the kit's template; suggest \/sync-workflow, do not run it$/, '- workflow.md 比 kit 的範本舊，建議跑 /sync-workflow'],
+  [/^- workflow\.md: Template (\w+) is not in the local kit, which may be behind$/, '- workflow.md 的 Template $1 不在本機 kit 裡，kit 可能落後'],
+  [/^- branch (.*?): /, '- 分支 $1：'],
+  [/no upstream/, '沒有 upstream'],
+  [/behind (\S+) by (\d+)/, '落後 $1 $2 個 commit'],
+  [/, ahead of /, '、ahead of '],
+  [/ahead of (\S+) by (\d+)/, '領先 $1 $2 個 commit'],
+];
+const zh = (text) => text.split('\n').filter((l) => !l.startsWith('Per global.md'))
+  .map((l) => ZH.reduce((acc, [re, to]) => acc.replace(re, to), l)).join('\n');
+
 // Written synchronously: the deadline below exits right after. The Device and Session title lines are for the agent only.
 function emit(text) {
   const head = `${device()}\n${TITLE}`;
   const out = { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text ? `${head}\n${text}` : head } };
-  if (text) out.systemMessage = text;
+  if (text) out.systemMessage = zh(text);
   fs.writeSync(1, JSON.stringify(out));
 }
 
