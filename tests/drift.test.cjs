@@ -42,7 +42,6 @@ function advance(dir, branch = 'main') {
 // The Session title reminder, always second and for the agent only, is checked here.
 let lastDevice, lastOwner;
 let lastTitle;
-let lastSet;
 function session(cwd, source) {
   const r = spawnSync('node', [DRIFT, '--session'], { input: JSON.stringify({ hook_event_name: 'SessionStart', cwd, source }), env, encoding: 'utf8' });
   assert.strictEqual(r.status, 0, `drift --session exited ${r.status}: ${r.stderr}`);
@@ -52,7 +51,6 @@ function session(cwd, source) {
   assert.ok(title.startsWith('Session title: ') && title.includes('set_session_title'), `no Session title reminder second:\n${out.hookSpecificOutput.additionalContext}`);
   lastDevice = first;
   lastTitle = title;
-  lastSet = out.hookSpecificOutput.sessionTitle;
   const text = rest.join('\n') || null;
   assert.strictEqual(!!out.systemMessage, !!text, 'owner sees a report exactly when the agent does');
   if (text) assert.ok(!/Per global\.md|Device: |Session title: /.test(out.systemMessage), `owner sees the facts only:\n${out.systemMessage}`);
@@ -74,10 +72,8 @@ assert.ok(lastDevice.startsWith('Device: ? '), `no device file: ${lastDevice}`);
 fs.writeFileSync(path.join(HOME, '.claude', 'device'), 'mbp\r\n');
 assert.strictEqual(session(T), null, 'not a repo: silent');
 assert.ok(!lastTitle.includes('Cleared'), 'startup: no Cleared title');
-assert.strictEqual(lastSet, undefined, 'startup: the hook leaves the title alone');
 session(T, 'clear');
 assert.ok(lastTitle.includes('[<Device code>] Cleared'), `clear: the title is Cleared until the work is known:\n${lastTitle}`);
-assert.strictEqual(lastSet, '[mbp] Cleared', 'clear: the hook sets the title itself');
 {
   const r = spawnSync('node', [DRIFT, '--prompt'], { input: '{}', env, encoding: 'utf8' });
   assert.strictEqual(r.status, 0, `drift --prompt exited ${r.status}: ${r.stderr}`);

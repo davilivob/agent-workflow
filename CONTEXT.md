@@ -92,7 +92,7 @@ A decision that changes no existing behaviour. The agent makes it and writes a o
 _Avoid_: implementation detail, minor decision
 
 **Session title**:
-The name a session shows in the app's sidebar and in Remote Control: `[<Device code>] <Phase> · <topic>`, the topic being the slug once there is one. The agent sets it once the session's work is known, and again when its Phase or topic changes; right after `/clear` the Drift check sets it to `[<Device code>] Cleared` until then.
+The name a session shows in the app's sidebar and in Remote Control: `[<Device code>] <Phase> · <topic>`, the topic being the slug once there is one. The agent sets it once the session's work is known, and again when its Phase or topic changes; right after `/clear`, until then, it is `[<Device code>] Cleared`.
 _Avoid_: session name, label
 
 **Device code**:
