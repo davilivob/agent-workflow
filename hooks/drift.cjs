@@ -161,7 +161,6 @@ async function template(top, kit) {
 }
 
 async function session() {
-  let input = {};
   try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch {}
   const cwd = input.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd(); // cwd first, as in the Guard: it names the worktree
   let top;
@@ -185,7 +184,11 @@ function device() {
 }
 
 // Said here, at session start, because the rule in global.md alone gets skipped: the tool is deferred.
-const TITLE = 'Session title: set it now with set_session_title (session self): [<Device code>] <Phase> · <topic>, as global.md says. The tool is deferred; load it first with ToolSearch "select:mcp__ccd_session_mgmt__set_session_title". Without that tool, skip it.';
+const LOAD = 'The tool is deferred; load it first with ToolSearch "select:mcp__ccd_session_mgmt__set_session_title". Without that tool, skip it.';
+const TITLE = `Session title: set it now with set_session_title (session self): [<Device code>] <Phase> · <topic>, as global.md says. ${LOAD}`;
+// After /clear the work is not known yet, so the title says so until it is.
+const CLEARED = `Session title: the session was just cleared; set it now with set_session_title (session self) to [<Device code>] Cleared, then to [<Device code>] <Phase> · <topic> once the work is known, as global.md says. ${LOAD}`;
+let input = {}; // the hook JSON, read by session()
 
 // The owner's copy of the report, in Traditional Chinese: the facts only, since the `Per global.md` rules are the agent's.
 // A line no pattern matches (a git error message) stays as it is.
@@ -210,7 +213,7 @@ const zh = (text) => text.split('\n').filter((l) => !l.startsWith('Per global.md
 
 // Written synchronously: the deadline below exits right after. The Device and Session title lines are for the agent only.
 function emit(text) {
-  const head = `${device()}\n${TITLE}`;
+  const head = `${device()}\n${input.source === 'clear' ? CLEARED : TITLE}`;
   const out = { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text ? `${head}\n${text}` : head } };
   if (text) out.systemMessage = zh(text);
   fs.writeSync(1, JSON.stringify(out));

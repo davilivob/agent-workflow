@@ -41,14 +41,16 @@ function advance(dir, branch = 'main') {
 // Returns the Drift report, or null; the Device line, always first and for the agent only, goes to lastDevice.
 // The Session title reminder, always second and for the agent only, is checked here.
 let lastDevice, lastOwner;
-function session(cwd) {
-  const r = spawnSync('node', [DRIFT, '--session'], { input: JSON.stringify({ hook_event_name: 'SessionStart', cwd }), env, encoding: 'utf8' });
+let lastTitle;
+function session(cwd, source) {
+  const r = spawnSync('node', [DRIFT, '--session'], { input: JSON.stringify({ hook_event_name: 'SessionStart', cwd, source }), env, encoding: 'utf8' });
   assert.strictEqual(r.status, 0, `drift --session exited ${r.status}: ${r.stderr}`);
   const out = JSON.parse(r.stdout);
   const [first, title, ...rest] = out.hookSpecificOutput.additionalContext.split('\n');
   assert.ok(first.startsWith('Device: '), `no Device line first:\n${out.hookSpecificOutput.additionalContext}`);
   assert.ok(title.startsWith('Session title: ') && title.includes('set_session_title'), `no Session title reminder second:\n${out.hookSpecificOutput.additionalContext}`);
   lastDevice = first;
+  lastTitle = title;
   const text = rest.join('\n') || null;
   assert.strictEqual(!!out.systemMessage, !!text, 'owner sees a report exactly when the agent does');
   if (text) assert.ok(!/Per global\.md|Device: |Session title: /.test(out.systemMessage), `owner sees the facts only:\n${out.systemMessage}`);
@@ -69,6 +71,9 @@ assert.strictEqual(session(clone('synced')), null, 'in sync: silent');
 assert.ok(lastDevice.startsWith('Device: ? '), `no device file: ${lastDevice}`);
 fs.writeFileSync(path.join(HOME, '.claude', 'device'), 'mbp\r\n');
 assert.strictEqual(session(T), null, 'not a repo: silent');
+assert.ok(!lastTitle.includes('Cleared'), 'startup: no Cleared title');
+session(T, 'clear');
+assert.ok(lastTitle.includes('[<Device code>] Cleared'), `clear: the title is Cleared until the work is known:\n${lastTitle}`);
 assert.strictEqual(lastDevice, 'Device: mbp', 'device file read and trimmed');
 let d = clone('behind'); advance(d);
 expect(session(d), ['branch main: behind origin/main by 1'], 'ff', 'behind, clean');
