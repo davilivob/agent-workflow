@@ -94,10 +94,11 @@ fi
 SETTINGS="$HOME/.claude/settings.json"
 GUARD_CMD='node "$HOME/.claude/kit/hooks/guard.cjs"'
 DRIFT_CMD='node "$HOME/.claude/kit/hooks/drift.cjs" --session'
+PROMPT_CMD='node "$HOME/.claude/kit/hooks/drift.cjs" --prompt'
 if command -v node >/dev/null 2>&1; then
   node -e '
 const fs = require("fs");
-const [file, command, driftCmd, check] = process.argv.slice(1);
+const [file, command, driftCmd, promptCmd, check] = process.argv.slice(1);
 let s = {};
 if (fs.existsSync(file)) {
   try { s = JSON.parse(fs.readFileSync(file, "utf8")); }
@@ -113,24 +114,24 @@ const needPrompt = !prompt.some((e) => JSON.stringify(e).includes("kit/hooks/dri
 const needLang = !("language" in s);  // a language the owner set stays
 if (!missing.length && !needDrift && !needPrompt && !needLang) process.exit(0);
 if (check) {
-  const lacks = [missing.length && `the Guard hook for ${missing.join(", ")}`, needDrift && "the Drift check hook", needPrompt && "the Session title hook", needLang && "language"].filter(Boolean);
+  const lacks = [missing.length && `the Guard hook for ${missing.join(", ")}`, needDrift && "the Drift check hook", needPrompt && "the Session title reminder hook", needLang && "language"].filter(Boolean);
   console.log(`TODO: run sh ~/.claude/kit/setup.sh; ${file} lacks ${lacks.join("; ")}`);
   process.exit(1);
 }
 for (const matcher of missing) pre.push({ matcher, hooks: [{ type: "command", command }] });
 // no compact: the session already had its report when it started
 if (needDrift) start.push({ matcher: "startup|resume|clear", hooks: [{ type: "command", command: driftCmd, timeout: 30 }] });
-if (needPrompt) prompt.push({ hooks: [{ type: "command", command: driftCmd.replace(/--session$/, "--prompt") }] });
+if (needPrompt) prompt.push({ hooks: [{ type: "command", command: promptCmd }] });
 // A copy of the first rule in global.md, which stays the source: change both together.
 if (needLang) s.language = "Traditional Chinese (繁體中文, never Simplified); code, commit messages and glossary terms stay in their original language";
 fs.writeFileSync(file, JSON.stringify(s, null, 2) + "\n");
 if (missing.length) console.log(`installed the Guard hook for ${missing.join(", ")} in ${file}`);
 if (needDrift) console.log(`installed the Drift check hook in ${file}`);
-if (needPrompt) console.log(`installed the Session title hook in ${file}`);
+if (needPrompt) console.log(`installed the Session title reminder hook in ${file}`);
 if (needLang) console.log(`set language in ${file}`);
-' "$SETTINGS" "$GUARD_CMD" "$DRIFT_CMD" "$CHECK" || if [ -n "$CHECK" ]; then BAD=1; else exit 1; fi
+' "$SETTINGS" "$GUARD_CMD" "$DRIFT_CMD" "$PROMPT_CMD" "$CHECK" || if [ -n "$CHECK" ]; then BAD=1; else exit 1; fi
 else
-  todo "install Node.js, then re-run setup.sh: without it the Guard and Drift check hooks are not installed and language is not set"
+  todo "install Node.js, then re-run setup.sh: without it the Guard, Drift check and Session title reminder hooks are not installed and language is not set"
 fi
 
 # 5. The drift command. Its roots and PATH differ per device, so setup.sh only says what is missing.

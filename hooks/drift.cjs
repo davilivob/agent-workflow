@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Drift check: one check, three entry points.
+// Drift check: one check, four entry points.
 //   --session  SessionStart hook: reads hook JSON on stdin, checks the session's repo and the kit (~/.claude/kit),
 //              and whether the repo's workflow.md is older than the kit's template; prints context for the agent,
 //              always headed by this device's Device code (from ~/.claude/device) and a reminder to set the Session title;
@@ -194,7 +194,7 @@ const TITLE = `Session title: set it now with set_session_title (session self): 
 // After /clear the work is not known yet, so emit() sets the title to Cleared itself: the agent only acts once a prompt arrives.
 const CLEARED = `Session title: the session was just cleared and this hook set it to [<Device code>] Cleared; once the work is known, set it with set_session_title (session self) to [<Device code>] <Phase> · <topic>, as global.md says. ${LOAD}`;
 // Said at every prompt, because nothing else fires when the topic changes mid-session.
-const PROMPT = 'Session title: if this message changes the Phase or topic, first update it with set_session_title (session self), as global.md says; the tool is deferred: ToolSearch "select:mcp__ccd_session_mgmt__set_session_title".';
+const PROMPT = `Session title: if this message changes the Phase or topic, first update it with set_session_title (session self), as global.md says. ${LOAD}`;
 let input = {}; // the hook JSON, read by session()
 
 // The owner's copy of the report, in Traditional Chinese: the facts only, since the `Per global.md` rules are the agent's.

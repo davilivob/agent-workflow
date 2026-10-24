@@ -54,7 +54,7 @@ grep -q '"Edit|Write|NotebookEdit"' "$T/.claude/settings.json" || fail "Guard la
 grep -q '"keep-me"' "$T/.claude/settings.json" || fail "existing settings key lost"
 grep -q 'echo mine' "$T/.claude/settings.json" || fail "existing hook lost"
 [ "$(grep -c 'kit/hooks/drift.cjs.* --session"' "$T/.claude/settings.json")" = 1 ] || fail "Drift check hook not registered exactly once"
-[ "$(grep -c 'kit/hooks/drift.cjs.* --prompt"' "$T/.claude/settings.json")" = 1 ] || fail "Session title hook not registered exactly once"
+[ "$(grep -c 'kit/hooks/drift.cjs.* --prompt"' "$T/.claude/settings.json")" = 1 ] || fail "Session title reminder hook not registered exactly once"
 grep -q '"startup|resume|clear"' "$T/.claude/settings.json" || fail "Drift check hook lacks its matcher"
 grep -q 'echo my-start' "$T/.claude/settings.json" || fail "existing SessionStart hook lost"
 grep -q '"language": "Traditional Chinese (繁體中文, never Simplified); code' "$T/.claude/settings.json" || fail "language not set intact"
@@ -75,16 +75,16 @@ out=$(HOME="$T" sh "$KIT/setup.sh")
 echo "$out" | grep -q 'Drift check hook' || fail "missing Drift check not reported"
 echo "$out" | grep -q 'Guard hook' && fail "Drift check upgrade reinstalled the Guard"
 [ "$(grep -c 'kit/hooks/drift.cjs.* --session"' "$T/.claude/settings.json")" = 1 ] || fail "Drift check not re-added exactly once"
-echo "$out" | grep -q 'Session title hook' && fail "Drift check upgrade reinstalled the Session title hook"
+echo "$out" | grep -q 'Session title reminder hook' && fail "Drift check upgrade reinstalled the Session title reminder hook"
 
-# A device without the Session title hook gains just that.
+# A device without the Session title reminder hook gains just that.
 "$NODE" -e '
 const fs = require("fs"); const f = process.argv[1]; const s = JSON.parse(fs.readFileSync(f, "utf8"));
 delete s.hooks.UserPromptSubmit; fs.writeFileSync(f, JSON.stringify(s));' "$T/.claude/settings.json"
 out=$(HOME="$T" sh "$KIT/setup.sh")
-echo "$out" | grep -q 'installed the Session title hook' || fail "missing Session title hook not reported"
+echo "$out" | grep -q 'installed the Session title reminder hook' || fail "missing Session title reminder hook not reported"
 echo "$out" | grep -q 'Drift check hook' && fail "Session title upgrade reinstalled the Drift check"
-[ "$(grep -c 'kit/hooks/drift.cjs.* --prompt"' "$T/.claude/settings.json")" = 1 ] || fail "Session title hook not re-added exactly once"
+[ "$(grep -c 'kit/hooks/drift.cjs.* --prompt"' "$T/.claude/settings.json")" = 1 ] || fail "Session title reminder hook not re-added exactly once"
 
 # A language the owner set is kept.
 "$NODE" -e '
@@ -150,11 +150,11 @@ echo win > "$T/.claude/device"
 # Section 4 under --check: a TODO naming what settings.json lacks, --check fails, nothing written.
 cp "$T/.claude/settings.json" "$T/full-settings"
 node -e 'const fs = require("fs"); const f = process.argv[1]; const s = JSON.parse(fs.readFileSync(f, "utf8"));
-delete s.language; s.hooks.SessionStart = []; s.hooks.PreToolUse = s.hooks.PreToolUse.filter((e) => e.matcher !== "Bash"); fs.writeFileSync(f, JSON.stringify(s));' "$T/.claude/settings.json"
+delete s.language; s.hooks.SessionStart = []; s.hooks.UserPromptSubmit = []; s.hooks.PreToolUse = s.hooks.PreToolUse.filter((e) => e.matcher !== "Bash"); fs.writeFileSync(f, JSON.stringify(s));' "$T/.claude/settings.json"
 cp "$T/.claude/settings.json" "$T/before-settings"
 rc=0; out=$(HOME="$T" sh "$KIT/setup.sh" --check) || rc=$?
 [ "$rc" = 1 ] || fail "--check exit $rc without a Guard matcher, the Drift check hook and language, want 1"
-echo "$out" | grep -q 'TODO: run sh ~/.claude/kit/setup.sh; .* lacks the Guard hook for Bash; the Drift check hook; language$' || fail "no TODO naming the missing Guard matcher, Drift check hook and language"
+echo "$out" | grep -q 'TODO: run sh ~/.claude/kit/setup.sh; .* lacks the Guard hook for Bash; the Drift check hook; the Session title reminder hook; language$' || fail "no TODO naming the missing Guard matcher, Drift check hook, Session title reminder hook and language"
 cmp -s "$T/.claude/settings.json" "$T/before-settings" || fail "--check changed settings.json"
 cp "$T/full-settings" "$T/.claude/settings.json"
 rm "$T/bin/node"
