@@ -2,7 +2,9 @@
 // Drift check: one check, three entry points.
 //   --session  SessionStart hook: reads hook JSON on stdin, checks the session's repo and the kit (~/.claude/kit),
 //              and whether the repo's workflow.md is older than the kit's template; prints context for the agent,
-//              always headed by this device's Device code (from ~/.claude/device) and a reminder to set the Session title.
+//              always headed by this device's Device code (from ~/.claude/device) and a reminder to set the Session title;
+//              after /clear it also sets the Session title to `[<Device code>] Cleared` itself.
+//   --prompt   UserPromptSubmit hook: a one-line reminder to update the Session title when the Phase or topic changes.
 //   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots,
 //              except Retired repos (under a `!` line there), which it only counts; also says which repos'
 //              workflow.md is older than the kit's template (not counted as Drift).
@@ -177,17 +179,22 @@ async function session() {
   return blocks.length ? blocks.join('\n') : null;
 }
 
+function deviceCode() {
+  try { return fs.readFileSync(DEVICE, 'utf8').trim(); } catch { return ''; }
+}
+
 function device() {
-  let code = '';
-  try { code = fs.readFileSync(DEVICE, 'utf8').trim(); } catch {}
+  const code = deviceCode();
   return code ? `Device: ${code}` : `Device: ? (no Device code in ${DEVICE})`;
 }
 
 // Said here, at session start, because the rule in global.md alone gets skipped: the tool is deferred.
 const LOAD = 'The tool is deferred; load it first with ToolSearch "select:mcp__ccd_session_mgmt__set_session_title". Without that tool, skip it.';
 const TITLE = `Session title: set it now with set_session_title (session self): [<Device code>] <Phase> · <topic>, as global.md says. ${LOAD}`;
-// After /clear the work is not known yet, so the title says so until it is.
-const CLEARED = `Session title: the session was just cleared; set it now with set_session_title (session self) to [<Device code>] Cleared, then to [<Device code>] <Phase> · <topic> once the work is known, as global.md says. ${LOAD}`;
+// After /clear the work is not known yet, so emit() sets the title to Cleared itself: the agent only acts once a prompt arrives.
+const CLEARED = `Session title: the session was just cleared and this hook set it to [<Device code>] Cleared; once the work is known, set it with set_session_title (session self) to [<Device code>] <Phase> · <topic>, as global.md says. ${LOAD}`;
+// Said at every prompt, because nothing else fires when the topic changes mid-session.
+const PROMPT = 'Session title: if this message changes the Phase or topic, first update it with set_session_title (session self), as global.md says; the tool is deferred: ToolSearch "select:mcp__ccd_session_mgmt__set_session_title".';
 let input = {}; // the hook JSON, read by session()
 
 // The owner's copy of the report, in Traditional Chinese: the facts only, since the `Per global.md` rules are the agent's.
@@ -213,8 +220,10 @@ const zh = (text) => text.split('\n').filter((l) => !l.startsWith('Per global.md
 
 // Written synchronously: the deadline below exits right after. The Device and Session title lines are for the agent only.
 function emit(text) {
-  const head = `${device()}\n${input.source === 'clear' ? CLEARED : TITLE}`;
+  const clear = input.source === 'clear';
+  const head = `${device()}\n${clear ? CLEARED : TITLE}`;
   const out = { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text ? `${head}\n${text}` : head } };
+  if (clear) out.hookSpecificOutput.sessionTitle = `[${deviceCode() || '?'}] Cleared`;
   if (text) out.systemMessage = zh(text);
   fs.writeSync(1, JSON.stringify(out));
 }
@@ -376,6 +385,8 @@ if (process.argv[2] === '--session') { // a check that broke or ran out of time 
   }, SESSION_DEADLINE);
   session().then(emit, (e) => emit(`Drift check: Unknown, the check itself failed (${e.message}).\n${ASK}`))
     .finally(() => clearTimeout(deadline));
+} else if (process.argv[2] === '--prompt') {
+  console.log(PROMPT);
 } else if (process.argv[2] === '--watch') {
   watch().then((code) => { process.exitCode = code; }, (e) => { console.error(`drift --watch: Unknown, the check failed: ${e.message}`); process.exitCode = 2; });
 } else {
