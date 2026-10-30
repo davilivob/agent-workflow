@@ -83,6 +83,14 @@ _Avoid_: archived, ignored, old repo
 A toolchain or environment failure that reports nothing, or reports something other than its cause, and cost more than half an hour. Recorded per repo so nobody follows the wrong lead twice; unlike a lesson, it says how a tool misleads, not how the agent should work.
 _Avoid_: gotcha, landmine, known issue
 
+**Knowledge base**:
+The one repo where the owner gathers knowledge that is no repo's own, named per device in `~/.claude/knowledge_base.conf`; the kit never names it. A session elsewhere reads it when a problem is no repo's own, and writes into it only Notes, into its inbox; the Knowledge base's own sessions sort what arrives.
+_Avoid_: notebook, my-friend; a repo's own docs are `CONTEXT.md` or `project.md`, not its knowledge base
+
+**Note**:
+One piece of knowledge that is useful outside the repo where it was learned, written into the Knowledge base's inbox and committed there. What is the repo's own stays in the repo: a lesson in `project.md`, a Silent failure in `docs/silent-failures.md`, a workflow lesson as a Proposal. A Silent failure that is also useful outside its repo is the one thing written in both places, since each has its own reader.
+_Avoid_: lesson (that is a repo's own), memo, inbox entry
+
 **Design decision**:
 A decision only the owner makes: a choice between alternatives that changes existing behaviour (in a repo of rules or docs, the text itself is the behaviour), or one `project.md` lists as always a design decision. A change the owner already gave in full (copy, a single value, a Proposal applied as written) leaves no decision. A grill asks it as a question.
 _Avoid_: product decision, big decision
