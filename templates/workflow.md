@@ -109,7 +109,7 @@ One line each: slug, one sentence on what it is, `Merge:`. Whatever another sess
 
 ## Requests
 
-A **Request** is a GitHub issue one repo files in another, asking it to change something; a **Proposal** is a Request to the kit. It lives in the repo it asks to change, so filing one commits nothing anywhere. File one with `/file-request`: the owner sees its title and full body, and agrees, before it is sent.
+A **Request** is a GitHub issue one repo files in another, asking it to change something; a **Proposal** is a Request to the kit. It lives in the repo it asks to change, so filing one commits nothing anywhere. File one with `/send-request`: the owner sees its title and full body, and agrees, before it is sent.
 
 A Request the owner picks (from Continue, or by its number) gets a **Triage** first, not a grill. In plain words, one short block each: what it says; why (what the source repo ran into); what in this repo it would touch; and a recommended verdict with a one-line reason — any conflict with a rule here or another Request goes in that reason. Ask for the verdict with `AskUserQuestion`, and change nothing until the owner picks:
 
@@ -117,7 +117,7 @@ A Request the owner picks (from Continue, or by its number) gets a **Triage** fi
 - **Drop**: `gh issue close <n> --comment "<the owner's reason>"`. The owner's pick is the consent to close it.
 - **Grill**: list the decisions the owner has to make, and stop; the owner runs `/grill-with-docs <the Request's URL>` by hand. Its spec carries `Request: #<n>`.
 
-The **Request watch**: the device `project.md` names in `Request watch:` runs `/request-watch` hourly, with nobody at the machine. It triages each new Request and applies it as Apply above, unattended, only when the owner filed it in the `/file-request` format and it is applied as written. It stops at local `main`: no push, no Deploy check. It skips a repo whose `main` is behind, diverged or Unknown, or that is dirty or Claimed. Everything else it only tells the owner about, and it never touches the issue.
+The **Request watch**: the device `project.md` names in `Request watch:` runs `/request-watch` hourly, with nobody at the machine. It triages each new Request and applies it as Apply above, unattended, only when the owner filed it in the `/send-request` format and it is applied as written. It stops at local `main`: no push, no Deploy check. It skips a repo whose `main` is behind, diverged or Unknown, or that is dirty or Claimed. Everything else it only tells the owner about, and it never touches the issue.
 
 ## Spec and Plan
 
@@ -162,6 +162,6 @@ Handing over an owner command: when the work is done, read the Terminal panel wi
 
 A lesson learned about this project goes into `docs/agents/` (usually `project.md`), not into memory, and onto `main` at once (see **Commits**). Memory holds only what is specific to one device, such as a local path, because memory does not travel to the owner's other machines.
 
-A lesson about the workflow itself (this file, a kit skill, the Guard) belongs to the kit, `~/.claude/kit`, which a session outside it never edits. When one surfaces, say so in one line and suggest `/file-request` to the kit, a Proposal; the owner decides whether to run it.
+A lesson about the workflow itself (this file, a kit skill, the Guard) belongs to the kit, `~/.claude/kit`, which a session outside it never edits. When one surfaces, say so in one line and suggest `/send-request` to the kit, a Proposal; the owner decides whether to run it.
 
 A **silent failure** — a toolchain or environment failure that cost more than half an hour and whose message pointed at the wrong cause, or said nothing — goes into `docs/silent-failures.md`, not into `project.md`: a lesson says how to work, this says how a tool misleads. One entry each: the toolchain and its version, what you see, what it actually was, how to tell, what to do; a symptom index at the top, updated with each entry. A wrong lead is recorded as one, so nobody follows it twice. The project's own code does not go here. A resolved entry stays, marked with the version or change that resolved it. Not a diary, not a changelog. Write an entry without asking and put it on `main` at once (see **Commits**); create the file with its first entry.

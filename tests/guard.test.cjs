@@ -141,7 +141,7 @@ expect(edit('Write', flow, path.join(kit, 'skills', 'new', 'SKILL.md')), 'deny',
 expect(edit('NotebookEdit', flow, viaLink('n.ipynb')), 'deny', 'NotebookEdit in the kit');
 expect(edit('Write', flow, path.join(kitWt, 'global.md')), 'deny', 'Write into a kit worktree from another repo');
 expect(edit('Write', flow, viaLink('inbox/2026-01-01-flow-x.md')), 'deny', 'Write into the retired inbox/');
-assert.match(hook(editInput('Edit', flow, viaLink('global.md')), homeEnv).permissionDecisionReason, /\/file-request/, 'the denial points to /file-request');
+assert.match(hook(editInput('Edit', flow, viaLink('global.md')), homeEnv).permissionDecisionReason, /\/send-request/, 'the denial points to /send-request');
 expect(edit('Edit', kit, viaLink('global.md')), 'none', 'Edit from the kit checkout');
 expect(edit('Edit', kitWt, path.join(kitWt, 'global.md')), 'none', 'Edit from a kit worktree');
 expect(edit('Edit', flow, path.join(flow, 'a.txt')), 'none', 'Edit outside the kit');

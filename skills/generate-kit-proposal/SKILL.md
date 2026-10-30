@@ -1,10 +1,10 @@
 ---
 name: generate-kit-proposal
-description: Find what this repo's workflow does better than the kit and would hold in every project; draft Proposals, then hand them to file-request.
+description: Find what this repo's workflow does better than the kit and would hold in every project; draft Proposals, then hand them to send-request.
 disable-model-invocation: true
 ---
 
-The diff half of carrying an experiment back to the kit (`~/.claude/kit`): this skill reads and drafts. It writes nothing in the source repo, and nothing in the kit beyond bringing it up to date. `file-request` is the apply half: the owner reviews there, and only it files the Proposals, as Requests to the kit.
+The diff half of carrying an experiment back to the kit (`~/.claude/kit`): this skill reads and drafts. It writes nothing in the source repo, and nothing in the kit beyond bringing it up to date. `send-request` is the apply half: the owner reviews there, and only it files the Proposals, as Requests to the kit.
 
 **Source**: `git rev-parse --show-toplevel` of the current directory. Not a git repo, or the source is the kit itself (`pwd -P` of both match) → stop and say so: in the kit, grill the idea directly.
 
@@ -27,14 +27,14 @@ Done when: every item of the three sources is a candidate, a value, or identical
 Judge each candidate against all three:
 
 - **Portable**: it depends on none of this repo's stack, paths or tools; it would hold in a Unity repo and a web repo alike.
-- **New**: nothing in the kit's `templates/`, `skills/` or `global.md` already says it. One that an open Proposal already says (`gh issue list -R <the kit's owner/repo> --state open`, as `file-request` reads it) passes as `duplicate of #<n>`, so this repo's Why still reaches it. One that contradicts a kit rule passes as `replaces <that rule>`; one that sharpens a kit rule passes as `merges <that rule>`.
+- **New**: nothing in the kit's `templates/`, `skills/` or `global.md` already says it. One that an open Proposal already says (`gh issue list -R <the kit's owner/repo> --state open`, as `send-request` reads it) passes as `duplicate of #<n>`, so this repo's Why still reaches it. One that contradicts a kit rule passes as `replaces <that rule>`; one that sharpens a kit rule passes as `merges <that rule>`.
 - **A rule, not a value**: one that is really this repo's value for something every repo decides passes as "the `project.md` template gains a field for this" (`Touches: templates/project.md`).
 
 Done when: every candidate passes, with its `Kind:`, or fails with a one-line reason.
 
 ## 3. Draft
 
-Draft each passing candidate as a Proposal in the format under "2. Draft" of `~/.claude/kit/skills/file-request/SKILL.md`, `Tried` and `TODO(owner)` rule included, one file per candidate in `W`, named `<slug>.md` with `<slug>` a few kebab-case words. Its `Kind:` goes as the first line of `## What` (`adds`, `replaces <the kit rule>` or `merges <the kit rule>`), and why it passes each test above as the last paragraph of `## Why`.
+Draft each passing candidate as a Proposal in the format under "2. Draft" of `~/.claude/kit/skills/send-request/SKILL.md`, `Tried` and `TODO(owner)` rule included, one file per candidate in `W`, named `<slug>.md` with `<slug>` a few kebab-case words. Its `Kind:` goes as the first line of `## What` (`adds`, `replaces <the kit rule>` or `merges <the kit rule>`), and why it passes each test above as the last paragraph of `## Why`.
 
 Report to the owner: one line per passing candidate (its file and a sentence), then one line per failing candidate with its reason.
 
@@ -42,4 +42,4 @@ Done when: every passing candidate has a draft file.
 
 ## 4. Hand over
 
-No passing candidate: stop after the report. Otherwise read `~/.claude/kit/skills/file-request/SKILL.md` and follow it with the kit as the target and the draft files as its input.
+No passing candidate: stop after the report. Otherwise read `~/.claude/kit/skills/send-request/SKILL.md` and follow it with the kit as the target and the draft files as its input.

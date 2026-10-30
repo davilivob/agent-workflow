@@ -24,7 +24,7 @@ const COMMIT =
 
 const KIT_EDIT =
   'Guard: a session outside the kit does not edit the kit (workflow.md, Project lessons). ' +
-  'Do not retry; file a Proposal with /file-request to the kit instead.';
+  'Do not retry; file a Proposal with /send-request to the kit instead.';
 
 // Push options that do more than fast-forward the current branch: rewrite, delete, or push tags or other branches.
 const PUSH_OWNER_LONG = new Set(['--force', '--force-with-lease', '--force-if-includes', '--delete', '--tags',

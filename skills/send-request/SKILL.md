@@ -1,5 +1,5 @@
 ---
-name: file-request
+name: send-request
 description: File a Request — a GitHub issue in another repo asking it to change something, or a Proposal to the kit — after the owner reviews each one.
 disable-model-invocation: true
 ---

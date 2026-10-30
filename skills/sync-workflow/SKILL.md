@@ -20,7 +20,7 @@ In a repo on the **template**, `docs/agents/workflow.md` is `~/.claude/kit/templ
    - ahead and behind, or behind with a non-empty status → one `AskUserQuestion`: deal with it first (stop here) / stop;
    - otherwise go on. Write nothing to any file before this step passes.
 7. `KIT_SHA=$(git -C ~/.claude/kit log -1 --format=%H -- templates/workflow.md)`: the last kit commit that changed the template, the same on every device whose kit holds it, and unchanged by any other kit commit.
-8. `ORIGIN=$(git remote get-url origin 2>/dev/null)`; empty means no origin. If set, `REMOTE` is its `owner/repo`: `sed -E 's#\.git$##; s#.*[:/]([^/:]+/[^/:]+)$#\1#'` of it (the same as `/file-request`); and if it does not contain `github.com`, keep a note for the report: origin is not on GitHub, so the Claude desktop app, seen from another device, will not give this repo its own group in the sidebar.
+8. `ORIGIN=$(git remote get-url origin 2>/dev/null)`; empty means no origin. If set, `REMOTE` is its `owner/repo`: `sed -E 's#\.git$##; s#.*[:/]([^/:]+/[^/:]+)$#\1#'` of it (the same as `/send-request`); and if it does not contain `github.com`, keep a note for the report: origin is not on GitHub, so the Claude desktop app, seen from another device, will not give this repo its own group in the sidebar.
 9. Pick the **mode**:
    - `docs/agents/workflow.md` exists → **update**: sections 5, 7, 4, 8, 6.
    - None of `CLAUDE.md`, `docs/`, `.scratch/`, `CONTEXT.md` exists → **new**: sections 2, 7, 3, 4, 8, 6.
