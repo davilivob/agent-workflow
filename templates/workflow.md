@@ -12,7 +12,7 @@ Anything with a design decision the owner has to make starts with a grill, then 
 
 Do these without a grill (unlike Direct, which is grilled first):
 
-- Bugs: use `diagnosing-bugs`; read `docs/silent-failures.md` first, if it exists, and when the problem may be no repo's own (a device, network, account or OS), search the Knowledge base too (`global.md`).
+- Bugs: use `diagnosing-bugs`; read `docs/silent-failures.md` first, if it exists, and when the problem may be no repo's own, search the Knowledge base too (`global.md`).
 - Small changes with no design decision (copy, a single value).
   - **Ask first, even during a grill.** When the answer to a grill question settles a change too small to need a spec, first use `AskUserQuestion` to ask "do it now / put it in the spec", and act only once answered; do not announce it and then change and commit. This exemption only decides whether a spec is needed; it does not mean you may skip asking.
 - Pure content writes, as `project.md` defines them.

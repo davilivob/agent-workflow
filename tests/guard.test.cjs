@@ -164,6 +164,8 @@ expect(edit('Write', kb, path.join(kb, 'notes', 'n.md')), 'none', 'Write from th
 expect(edit('Write', kbWt, path.join(kb, 'notes', 'n.md')), 'none', 'Write from a Knowledge base worktree');
 fs.mkdirSync(`${kb}-other`);
 expect(edit('Edit', flow, path.join(`${kb}-other`, 'a.txt')), 'none', 'a path that only shares the prefix');
+fs.writeFileSync(conf, `repo=${path.join(kb, 'a.txt')}\ninbox=inbox\n`);
+expect(edit('Write', flow, path.join(kb, 'notes', 'n.md')), 'none', 'conf whose repo= is no directory');
 fs.writeFileSync(conf, `repo=${kb}\n`);
 expect(edit('Write', flow, path.join(kb, 'notes', 'n.md')), 'none', 'conf without inbox=');
 fs.rmSync(conf);
