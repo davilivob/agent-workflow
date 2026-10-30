@@ -148,6 +148,27 @@ expect(edit('Edit', flow, path.join(flow, 'a.txt')), 'none', 'Edit outside the k
 expect(edit('Edit', flow, '../kit/global.md'), 'deny', 'relative path into the kit');
 if (fs.existsSync(kit.toUpperCase())) expect(edit('Edit', flow, path.join(kit.toUpperCase(), 'global.md')), 'deny', 'other letter case, case-insensitive disk');
 
+// Edits to the Knowledge base (~/.claude/knowledge_base.conf): from elsewhere only into its inbox.
+const kb = repo('kb');
+fs.mkdirSync(path.join(kb, 'inbox'));
+const kbWt = path.join(kb, '.claude', 'worktrees', 'y');
+fs.mkdirSync(kbWt, { recursive: true });
+const conf = path.join(home, '.claude', 'knowledge_base.conf');
+fs.writeFileSync(conf, `drive=elsewhere\nrepo=${kb}\ninbox=inbox\n`);
+for (const tool of ['Edit', 'Write', 'NotebookEdit']) {
+  expect(edit(tool, flow, path.join(kb, 'inbox', 'n.md')), 'none', `${tool} into the inbox from another repo`);
+}
+expect(edit('Write', flow, path.join(kb, 'notes', 'n.md')), 'deny', 'Write outside the inbox from another repo');
+assert.match(hook(editInput('Write', flow, path.join(kb, 'a.txt')), homeEnv).permissionDecisionReason, /inbox/, 'the denial points to the inbox');
+expect(edit('Write', kb, path.join(kb, 'notes', 'n.md')), 'none', 'Write from the Knowledge base checkout');
+expect(edit('Write', kbWt, path.join(kb, 'notes', 'n.md')), 'none', 'Write from a Knowledge base worktree');
+fs.mkdirSync(`${kb}-other`);
+expect(edit('Edit', flow, path.join(`${kb}-other`, 'a.txt')), 'none', 'a path that only shares the prefix');
+fs.writeFileSync(conf, `repo=${kb}\n`);
+expect(edit('Write', flow, path.join(kb, 'notes', 'n.md')), 'none', 'conf without inbox=');
+fs.rmSync(conf);
+expect(edit('Write', flow, path.join(kb, 'notes', 'n.md')), 'none', 'no conf');
+
 // Everything else, and whatever the Guard cannot read, passes.
 expect(bash(main, 'ls -la'), 'none', 'ls');
 expect(bash(main, 'git status'), 'none', 'git status');

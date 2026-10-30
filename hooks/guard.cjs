@@ -25,6 +25,9 @@ const COMMIT =
 const KIT_EDIT =
   'Guard: a session outside the kit does not edit the kit (workflow.md, Project lessons). ' +
   'Do not retry; file a Proposal with /send-request to the kit instead.';
+const KB_EDIT =
+  'Guard: a session outside the Knowledge base writes into it only Notes, into its inbox (global.md). ' +
+  'Do not retry elsewhere in it; write the Note into the inbox, or leave the change to a session in the Knowledge base.';
 
 // Push options that do more than fast-forward the current branch: rewrite, delete, or push tags or other branches.
 const PUSH_OWNER_LONG = new Set(['--force', '--force-with-lease', '--force-if-includes', '--delete', '--tags',
@@ -278,8 +281,27 @@ function checkEdit(file, cwd) {
   if (!file) return null;
   const kit = real(path.join(os.homedir(), '.claude', 'kit'));
   const target = real(path.resolve(cwd, file));
-  if (!inside(target, kit) || inside(real(cwd), kit)) return null;
-  return ['deny', KIT_EDIT];
+  if (inside(target, kit) && !inside(real(cwd), kit)) return ['deny', KIT_EDIT];
+  return checkKnowledgeBase(target, cwd);
+}
+
+// The Knowledge base named in ~/.claude/knowledge_base.conf: its repo= and inbox=, or null when either is missing or repo= is no directory.
+function knowledgeBase() {
+  try {
+    const conf = Object.fromEntries(fs.readFileSync(path.join(os.homedir(), '.claude', 'knowledge_base.conf'), 'utf8')
+      .split(/\r?\n/).map((l) => /^([^=]+)=(.*)$/.exec(l)).filter(Boolean).map((m) => [m[1].trim(), m[2].trim()]));
+    if (!conf.repo || !conf.inbox || !fs.statSync(conf.repo).isDirectory()) return null;
+    const repo = real(conf.repo);
+    return { repo, inbox: real(path.resolve(repo, conf.inbox)) };
+  } catch { return null; }
+}
+
+// Denies an edit to the Knowledge base outside its inbox from a session whose cwd is not in it (its checkout or worktrees).
+// ponytail: same ceiling as the kit check: a Bash write passes.
+function checkKnowledgeBase(target, cwd) {
+  const kb = knowledgeBase();
+  if (!kb || !inside(target, kb.repo) || inside(target, kb.inbox) || inside(real(cwd), kb.repo)) return null;
+  return ['deny', KB_EDIT];
 }
 
 try {
