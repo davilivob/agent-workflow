@@ -3,7 +3,7 @@
 //   --session  SessionStart hook: reads hook JSON on stdin, checks the session's repo and the kit (~/.claude/kit),
 //              and whether the repo's workflow.md is older than the kit's template; prints context for the agent,
 //              always headed by this device's Device code (from ~/.claude/device) and a reminder to set the Session title.
-//   --prompt   UserPromptSubmit hook: a one-line reminder to update the Session title when the Phase or topic changes.
+//   --prompt   UserPromptSubmit hook: a reminder to update the Session title when the Phase or topic changes, and of the reply language.
 //   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots,
 //              except Retired repos (under a `!` line there), which it only counts; also says which repos'
 //              workflow.md is older than the kit's template (not counted as Drift).
@@ -191,7 +191,9 @@ const TITLE = `Session title: set it now with set_session_title (session self): 
 // Not set by this hook through hookSpecificOutput.sessionTitle: the desktop app ignored it (tested 2026-10-24).
 const CLEARED = `Session title: the session was just cleared; set it now with set_session_title (session self) to [<Device code>] Cleared, then to [<Device code>] <Phase> · <topic> once the work is known, as global.md says. ${LOAD}`;
 // Said at every prompt, because nothing else fires when the topic changes mid-session.
-const PROMPT = `Session title: if this message changes the Phase or topic, first update it with set_session_title (session self), as global.md says. ${LOAD}`;
+// The language line too: said only at session start, it slipped after long English tool output (#6).
+const PROMPT = `Session title: if this message changes the Phase or topic, first update it with set_session_title (session self), as global.md says. ${LOAD}
+Language: reply in Traditional Chinese (繁體中文), as global.md says, even right after long English tool output; check your reply's first sentence before sending.`;
 let input = {}; // the hook JSON, read by session()
 
 // The owner's copy of the report, in Traditional Chinese: the facts only, since the `Per global.md` rules are the agent's.

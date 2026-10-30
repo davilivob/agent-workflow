@@ -78,6 +78,7 @@ assert.ok(lastTitle.includes('[<Device code>] Cleared'), `clear: the title is Cl
   const r = spawnSync('node', [DRIFT, '--prompt'], { input: '{}', env, encoding: 'utf8' });
   assert.strictEqual(r.status, 0, `drift --prompt exited ${r.status}: ${r.stderr}`);
   assert.ok(r.stdout.startsWith('Session title: ') && r.stdout.includes('Phase or topic') && r.stdout.includes('set_session_title'), `--prompt: no Session title reminder:\n${r.stdout}`);
+  assert.ok(r.stdout.includes('Traditional Chinese'), `--prompt: no reply-language reminder:\n${r.stdout}`);
 }
 assert.strictEqual(lastDevice, 'Device: mbp', 'device file read and trimmed');
 let d = clone('behind'); advance(d);
