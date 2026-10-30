@@ -144,4 +144,7 @@ fi
 # 6. The Device code differs per device too: the Drift check hook hands it to the agent for the Session title.
 [ -s "$HOME/.claude/device" ] || todo "create ~/.claude/device holding this device's Device code on one line (studio, mbp or win), for the Session title"
 
+# 7. The Knowledge base's checkout differs per device: global.md and the Guard find it through this file.
+[ -f "$HOME/.claude/knowledge_base.conf" ] || todo "create ~/.claude/knowledge_base.conf with repo=<absolute path of your Knowledge base checkout> and inbox=<its inbox folder, relative to repo>, for Notes"
+
 [ -z "$CHECK" ] || [ -z "$BAD" ] || exit 1

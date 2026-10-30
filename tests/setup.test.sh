@@ -18,6 +18,7 @@ cp "$T/bin/graphify" "$T/bin/drift"  # the drift command "on PATH"
 chmod +x "$T/bin/npx" "$T/bin/graphify" "$T/bin/drift"
 touch "$T/.claude/drift-roots"
 echo win > "$T/.claude/device"
+touch "$T/.claude/knowledge_base.conf"
 NODE=$(command -v node)  # captured once: the shell caches lookups, so a later `command -v` can find the fake
 ln -s "$NODE" "$T/bin/node"  # the real node: the Guard section needs it
 echo '{"plugins":{"superpowers@x":[]}}' > "$T/.claude/plugins/installed_plugins.json"
@@ -146,6 +147,13 @@ rc=0; out=$(HOME="$T" sh "$KIT/setup.sh" --check) || rc=$?
 [ "$rc" = 1 ] || fail "--check exit $rc with an empty device file, want 1"
 echo "$out" | grep -q 'TODO: create ~/.claude/device' || fail "no TODO for an empty device file"
 echo win > "$T/.claude/device"
+
+# The Knowledge base conf: a TODO when missing, and --check fails.
+rm "$T/.claude/knowledge_base.conf"
+rc=0; out=$(HOME="$T" sh "$KIT/setup.sh" --check) || rc=$?
+[ "$rc" = 1 ] || fail "--check exit $rc without knowledge_base.conf, want 1"
+echo "$out" | grep -q 'TODO: create ~/.claude/knowledge_base.conf' || fail "no TODO for a missing knowledge_base.conf"
+touch "$T/.claude/knowledge_base.conf"
 
 # Section 4 under --check: a TODO naming what settings.json lacks, --check fails, nothing written.
 cp "$T/.claude/settings.json" "$T/full-settings"
