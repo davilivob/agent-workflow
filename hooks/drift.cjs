@@ -195,10 +195,10 @@ const CLEARED = `Session title: the session was just cleared; set it now with se
 // The language line too: said only at session start, it slipped after long English tool output (#6).
 const PROMPT = `Session title: if this message changes the Phase or topic, first update it with set_session_title (session self), as global.md says. ${LOAD}
 Language: reply in Traditional Chinese (繁體中文), as global.md says, even right after long English tool output; check your reply's first sentence before sending.`;
-let input = {}; // the hook JSON, read by session()
+let input = {}; // the hook JSON, read by session() and by --prompt
 
 // Context size: the tokens the session's last model call was sent, read from its transcript.
-// One step per device-wide threshold crossed; the agent is told once per step, so the step is kept per session.
+// Past the threshold, one step per COMPACT_STEP tokens; the agent is told once per step, so the step told is kept per session.
 const COMPACT_AT = 150000;
 const COMPACT_STEP = 50000;
 const COMPACT_STATE = path.join(os.homedir(), '.claude', 'compact-state.json');
@@ -214,7 +214,8 @@ function contextSize(transcript) {
   }
   return null;
 }
-// The line for the agent when the Context size enters a step not told yet; '' otherwise, or when anything cannot be read.
+// The line for the agent when the Context size enters a step not told yet; '' otherwise.
+// Silent, not Unknown, when anything cannot be read: a reminder, not a check, and it would repeat at every prompt.
 function compactNote(hook) {
   if (!hook.session_id || !hook.transcript_path) return '';
   let size;
@@ -224,8 +225,9 @@ function compactNote(hook) {
   let state = {};
   try { state = JSON.parse(fs.readFileSync(COMPACT_STATE, 'utf8')); } catch {}
   const told = state[hook.session_id] || 0;
-  delete state[hook.session_id];
+  delete state[hook.session_id]; // re-added last, so slice(-200) drops the sessions idle longest (session ids are never integer-like)
   state[hook.session_id] = step; // a smaller step, after a compact, lets the next crossing be told again
+  // shortcut: two sessions writing at once can drop one's entry, which is then told its step again; lock the file if that ever annoys.
   try { fs.writeFileSync(COMPACT_STATE, JSON.stringify(Object.fromEntries(Object.entries(state).slice(-200)))); } catch {}
   if (step <= told) return '';
   return `\nContext size: ${Math.round(size / 1000)}k tokens, past ${(COMPACT_AT + (step - 1) * COMPACT_STEP) / 1000}k. ` +
@@ -419,9 +421,8 @@ if (process.argv[2] === '--session') { // a check that broke or ran out of time 
   session().then(emit, (e) => emit(`Drift check: Unknown, the check itself failed (${e.message}).\n${ASK}`))
     .finally(() => clearTimeout(deadline));
 } else if (process.argv[2] === '--prompt') {
-  let hook = {};
-  try { hook = JSON.parse(fs.readFileSync(0, 'utf8')); } catch {}
-  console.log(PROMPT + compactNote(hook));
+  try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch {}
+  console.log(PROMPT + compactNote(input));
 } else if (process.argv[2] === '--watch') {
   watch().then((code) => { process.exitCode = code; }, (e) => { console.error(`drift --watch: Unknown, the check failed: ${e.message}`); process.exitCode = 2; });
 } else {
