@@ -80,6 +80,29 @@ assert.ok(lastTitle.includes('[<Device code>] Cleared'), `clear: the title is Cl
   assert.ok(r.stdout.startsWith('Session title: ') && r.stdout.includes('Phase or topic') && r.stdout.includes('set_session_title'), `--prompt: no Session title reminder:\n${r.stdout}`);
   assert.ok(r.stdout.includes('Traditional Chinese'), `--prompt: no reply-language reminder:\n${r.stdout}`);
 }
+{ // Compact proposal: told once per step the Context size crosses, per session.
+  const transcript = path.join(T, 'transcript.jsonl');
+  const at = (tokens, extra = {}) => JSON.stringify({ type: 'assistant', ...extra,
+    message: { usage: { input_tokens: 2, cache_read_input_tokens: tokens - 1002, cache_creation_input_tokens: 1000 } } });
+  const prompt = (lines, session_id = 's1', transcript_path = transcript) => {
+    if (lines) fs.writeFileSync(transcript, lines.join('\n') + '\n');
+    const r = spawnSync('node', [DRIFT, '--prompt'], { input: JSON.stringify({ session_id, transcript_path }), env, encoding: 'utf8' });
+    assert.strictEqual(r.status, 0, `drift --prompt exited ${r.status}: ${r.stderr}`);
+    return r.stdout.includes('Context size: ') ? r.stdout.split('\n').find((l) => l.startsWith('Context size: ')) : null;
+  };
+  assert.strictEqual(prompt([at(149999)]), null, 'under the threshold: silent');
+  assert.ok(prompt([at(149999), at(160000)])?.startsWith('Context size: 160k tokens, past 150k.'), 'first crossing: told');
+  assert.strictEqual(prompt([at(190000)]), null, 'same step: told once');
+  assert.ok(prompt([at(210000)])?.includes('past 200k'), 'next step: told again');
+  assert.ok(prompt(null, 's2')?.includes('past 200k'), 'another session keeps its own step');
+  assert.strictEqual(prompt([at(210000), at(500000, { isSidechain: true }), '{"type":"user"}']), null, 'sidechain usage and later non-usage lines are skipped');
+  assert.strictEqual(prompt([at(60000)]), null, 'after a compact: silent');
+  assert.ok(prompt([at(155000)])?.includes('past 150k'), 'after a compact, crossing again: told again');
+  assert.strictEqual(prompt([at(300000)], 's3', path.join(T, 'missing.jsonl')), null, 'no transcript: silent');
+  assert.strictEqual(prompt(['not json', '{"usage": broken'], 's4'), null, 'unreadable transcript: silent');
+  fs.writeFileSync(path.join(HOME, '.claude', 'compact-state.json'), 'garbage');
+  assert.ok(prompt([at(160000)], 's5')?.includes('past 150k'), 'corrupt state file: starts over');
+}
 assert.strictEqual(lastDevice, 'Device: mbp', 'device file read and trimmed');
 let d = clone('behind'); advance(d);
 expect(session(d), ['branch main: behind origin/main by 1'], 'ff', 'behind, clean');

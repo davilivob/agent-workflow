@@ -3,7 +3,8 @@
 //   --session  SessionStart hook: reads hook JSON on stdin, checks the session's repo and the kit (~/.claude/kit),
 //              and whether the repo's workflow.md is older than the kit's template; prints context for the agent,
 //              always headed by this device's Device code (from ~/.claude/device) and a reminder to set the Session title.
-//   --prompt   UserPromptSubmit hook: a reminder to update the Session title when the Phase or topic changes, and of the reply language.
+//   --prompt   UserPromptSubmit hook: a reminder to update the Session title when the Phase or topic changes, and of the reply language;
+//              and, once per step the Context size crosses (~/.claude/compact-state.json), a reminder to make a Compact proposal.
 //   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots,
 //              except Retired repos (under a `!` line there), which it only counts; also says which repos'
 //              workflow.md is older than the kit's template (not counted as Drift).
@@ -196,6 +197,41 @@ const PROMPT = `Session title: if this message changes the Phase or topic, first
 Language: reply in Traditional Chinese (繁體中文), as global.md says, even right after long English tool output; check your reply's first sentence before sending.`;
 let input = {}; // the hook JSON, read by session()
 
+// Context size: the tokens the session's last model call was sent, read from its transcript.
+// One step per device-wide threshold crossed; the agent is told once per step, so the step is kept per session.
+const COMPACT_AT = 150000;
+const COMPACT_STEP = 50000;
+const COMPACT_STATE = path.join(os.homedir(), '.claude', 'compact-state.json');
+function contextSize(transcript) {
+  // shortcut: reads the whole transcript at every prompt; read only its tail if a long session makes prompts slow.
+  const lines = fs.readFileSync(transcript, 'utf8').split('\n');
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (!lines[i].includes('"usage"')) continue;
+    let e;
+    try { e = JSON.parse(lines[i]); } catch { continue; }
+    const u = e.type === 'assistant' && !e.isSidechain && e.message?.usage;
+    if (u) return (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
+  }
+  return null;
+}
+// The line for the agent when the Context size enters a step not told yet; '' otherwise, or when anything cannot be read.
+function compactNote(hook) {
+  if (!hook.session_id || !hook.transcript_path) return '';
+  let size;
+  try { size = contextSize(hook.transcript_path); } catch { return ''; }
+  if (size === null) return '';
+  const step = size < COMPACT_AT ? 0 : Math.floor((size - COMPACT_AT) / COMPACT_STEP) + 1;
+  let state = {};
+  try { state = JSON.parse(fs.readFileSync(COMPACT_STATE, 'utf8')); } catch {}
+  const told = state[hook.session_id] || 0;
+  delete state[hook.session_id];
+  state[hook.session_id] = step; // a smaller step, after a compact, lets the next crossing be told again
+  try { fs.writeFileSync(COMPACT_STATE, JSON.stringify(Object.fromEntries(Object.entries(state).slice(-200)))); } catch {}
+  if (step <= told) return '';
+  return `\nContext size: ${Math.round(size / 1000)}k tokens, past ${(COMPACT_AT + (step - 1) * COMPACT_STEP) / 1000}k. ` +
+    'Per global.md, make a Compact proposal at the end of your reply once the work reaches a natural break, never mid-task.';
+}
+
 // The owner's copy of the report, in Traditional Chinese: the facts only, since the `Per global.md` rules are the agent's.
 // A line no pattern matches (a git error message) stays as it is.
 const ZH = [
@@ -383,7 +419,9 @@ if (process.argv[2] === '--session') { // a check that broke or ran out of time 
   session().then(emit, (e) => emit(`Drift check: Unknown, the check itself failed (${e.message}).\n${ASK}`))
     .finally(() => clearTimeout(deadline));
 } else if (process.argv[2] === '--prompt') {
-  console.log(PROMPT);
+  let hook = {};
+  try { hook = JSON.parse(fs.readFileSync(0, 'utf8')); } catch {}
+  console.log(PROMPT + compactNote(hook));
 } else if (process.argv[2] === '--watch') {
   watch().then((code) => { process.exitCode = code; }, (e) => { console.error(`drift --watch: Unknown, the check failed: ${e.message}`); process.exitCode = 2; });
 } else {
