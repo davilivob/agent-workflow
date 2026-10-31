@@ -103,6 +103,14 @@ _Avoid_: implementation detail, minor decision
 The name a session shows in the app's sidebar and in Remote Control: `[<Device code>] <Phase> · <topic>`, the topic being the slug once there is one. The agent sets it once the session's work is known, and again when its Phase or topic changes; right after `/clear`, until then, it is `[<Device code>] Cleared`.
 _Avoid_: session name, label
 
+**Context size**:
+How many tokens a session's last model call was sent, measured from its transcript. Counted in absolute tokens, not as a share of the context window, which a hook cannot see.
+_Avoid_: context usage, context percentage
+
+**Compact proposal**:
+The agent offering the owner, at a natural break, either a ready-to-run `/compact` with written instructions, or `/clear` when everything the work needs is already in files. Prompted when the Context size first crosses its threshold, and again at each further step; only the owner runs either command.
+_Avoid_: auto-compact (that is Claude Code's own, near the window's limit), compact reminder
+
 **Device code**:
 The short name of the machine a session runs on (`studio`, `mbp`, `win`) — not the device it is watched from. Set once per device; a device without one shows `?`.
 _Avoid_: hostname, device name
