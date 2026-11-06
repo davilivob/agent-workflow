@@ -39,6 +39,10 @@ _Avoid_: lock, reservation
 The path a grilled change takes to `main`: **Direct** (no spec; the grill session implements it), **Inline** (a spec; a new session implements it itself), or **SDD** (a spec, with or without a plan; subagents implement it).
 _Avoid_: path, track, mode
 
+**Batch run**:
+One session working through every spec a repo has ready, one after another, once the owner has confirmed the list. It asks nothing more until the end: a spec it cannot finish stays on its branch while the rest go on. Started with `/drain`.
+_Avoid_: drain (that is the command), sweep, queue, autopilot
+
 **Request**:
 A GitHub issue one repo files in another, asking it to change something. It waits there until the owner, after a Triage, applies, drops or grills it. A spec that needs it done first names it in `After:`.
 _Avoid_: issue (that is a local ticket under a spec), ticket, dispatch
@@ -56,7 +60,7 @@ The scheduled, unattended check one device runs for new Requests in the repos th
 _Avoid_: auto-apply, bot, monitor, auto-triage
 
 **OS-bound verification**:
-A verification step that runs only on one operating system. A change that needs it is verified and merged from a device on that OS, whichever device wrote it.
+A verification step that runs only on one operating system. A change that needs it merges once everything else has passed; the step stays open on its spec until a device on that OS runs it, whichever device wrote the change.
 _Avoid_: platform test, Windows test
 
 **Drift**:
@@ -116,5 +120,5 @@ The short name of the machine a session runs on (`studio`, `mbp`, `win`) — not
 _Avoid_: hostname, device name
 
 **Phase**:
-What a session is doing now, as its Session title shows it: grill, spec, plan, sdd, inline, debug, triage, review, next or chat. Each pipeline step has its Phase, but a Phase also covers work outside the pipeline.
+What a session is doing now, as its Session title shows it: grill, spec, plan, sdd, inline, batch, debug, triage, review, next or chat. Each pipeline step has its Phase, but a Phase also covers work outside the pipeline.
 _Avoid_: step, stage
