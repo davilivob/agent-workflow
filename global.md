@@ -9,7 +9,7 @@ True in every project on every device.
 - Production writes and SSH belong to the owner. Hand the command over; never run it.
 - Pushes follow the repo's **Push policy**, the `Push:` line under `## Sync` in its `docs/agents/project.md` (missing, unreadable or any other value: `ask`):
   - `ask`: push on your own initiative; the Guard asks the owner at every push, and that prompt is their consent. Offer a push when you report work as done and `main` has commits its upstream lacks, and when the session opens with a Drift report of a branch ahead.
-  - `auto`: push `main` right after each commit on it, without offering and without waiting to report; the Guard lets a push of `main` from `main` through. Any other push is as under `ask`.
+  - `auto`: push `main` right after each commit on it, without offering and without waiting to report (a Batch run instead pushes once, at its end, as `/drain` says); the Guard lets a push of `main` from `main` through. Any other push is as under `ask`.
   - `owner`: every push is the owner's, and the Guard denies it: hand the command over.
 
   Under every policy: push only a fast-forward of the current branch to its upstream, and only `main`: never another branch. Force, delete, tag, mirror and refspec (`+` or `:`) pushes stay the owner's: hand them over. A push that touches Deploy paths is asked about first, as `workflow.md` says. A rejected push: stop and tell the owner; never pull, merge or rebase to get it through — except a rejected push of `main` under the Rebase rule.
