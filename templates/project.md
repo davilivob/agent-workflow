@@ -8,7 +8,7 @@ Verification command:
 
 {{VERIFY}}
 
-A command that runs on one operating system only ends in `(windows)` or `(macos)`: an OS-bound verification, handed over as `workflow.md` step 4 says.
+A command that runs on one operating system only ends in `(windows)` or `(macos)`: an OS-bound verification, left open on the spec as `workflow.md` step 4 says.
 
 ## Worktree
 

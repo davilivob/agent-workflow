@@ -31,9 +31,8 @@ const FF =
   'Per global.md: fast-forward each behind branch with `pull --ff-only` without asking, in its own checkout if that one is clean, ' +
   'and report it in one line; a dirty checkout: ask first. If a fast-forward fails, stop and tell the owner.';
 const PUSH = {
-  ask: 'Per global.md (Push: ask): offer to push each ahead branch global.md allows (`main`, or an OS-bound verification handover), in its own checkout; the Guard asks the owner.',
-  auto: 'Per global.md (Push: auto): push `main` now if it is ahead, in its own checkout, without offering; the Guard lets it through. ' +
-    'Any other ahead branch global.md allows (an OS-bound verification handover): offer it; the Guard asks the owner.',
+  ask: 'Per global.md (Push: ask): offer to push `main` if it is ahead, in its own checkout; the Guard asks the owner.',
+  auto: 'Per global.md (Push: auto): push `main` now if it is ahead, in its own checkout, without offering; the Guard lets it through.',
   owner: 'Per global.md (Push: owner): every push is the owner\'s; hand the push command for each ahead branch over, never run it.',
 };
 const REJECTED = {
