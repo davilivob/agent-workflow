@@ -339,13 +339,14 @@ async function cli() {
   return missing.length || totals.unknown || totals.drift ? 1 : 0;
 }
 
-// What a working session leaves in a repo: a worktree under .claude/worktrees/, or a plan.md not yet committed.
+// What a working session leaves in a repo: a worktree under .claude/worktrees/, or a plan.md or a Batch run's order not yet committed.
 async function claims(dir) {
   const out = [];
   const linked = (await git(dir, ['worktree', 'list', '--porcelain'])).split(/\r?\n\r?\n/).slice(1); // the first is the main checkout
   for (const w of linked) { const m = /^worktree .*[\\/]\.claude[\\/]worktrees[\\/](.+?)\r?$/m.exec(w); if (m) out.push(`Claim: worktree ${m[1]}`); }
-  for (const m of (await git(dir, ['--no-optional-locks', 'status', '--porcelain', '-uall', '--', '.scratch'])).matchAll(/^.. (\.scratch\/[^/]+\/plan\.md)\r?$/gm))
-    out.push(`Claim: ${m[1]} not committed`);
+  const status = await git(dir, ['--no-optional-locks', 'status', '--porcelain', '-uall', '--', '.scratch']);
+  for (const m of status.matchAll(/^.. (\.scratch\/[^/]+\/plan\.md)\r?$/gm)) out.push(`Claim: ${m[1]} not committed`);
+  if (/^.. \.scratch\/batch-run\r?$/m.test(status)) out.push('Claim: Batch run'); // /drain writes it on start, deletes it at the end
   return out;
 }
 

@@ -363,6 +363,9 @@ sh(wWorktree, 'worktree', 'add', '-q', path.join(wWorktree, '.claude', 'worktree
 const wPlan = watched('w-plan', 'studio');
 fs.mkdirSync(path.join(wPlan, '.scratch', 's'), { recursive: true });
 fs.writeFileSync(path.join(wPlan, '.scratch', 's', 'plan.md'), 'plan');
+const wBatch = watched('w-batch', 'studio');
+fs.mkdirSync(path.join(wBatch, '.scratch'), { recursive: true });
+fs.writeFileSync(path.join(wBatch, '.scratch', 'batch-run'), 's\n');
 const wFeature = watched('w-feature', 'studio'); sh(wFeature, 'checkout', '-q', '-b', 'feature');
 const wGhFail = watched('w-ghfail', 'studio');
 const missingRoot = path.join(T, 'watch-missing');
@@ -400,7 +403,7 @@ assert.strictEqual(issue(6).handled, null, 'not in the state file yet');
 assert.strictEqual(issue(12).handled, 'applied', 'Fixes #12 on local main');
 assert.strictEqual(issue(120).handled, null, 'Fixes #12 does not mark #120');
 const skips = [[wBehind, 'behind'], [wDiverged, 'behind'], [wDiverged, 'ahead'], [wDirty, 'uncommitted changes'],
-  [wWorktree, 'Claim'], [wPlan, 'Claim'], [wFeature, 'feature']];
+  [wWorktree, 'Claim'], [wPlan, 'Claim'], [wBatch, 'Claim'], [wFeature, 'feature']];
 for (const [dir, word] of skips) {
   assert.strictEqual(repo(dir).status, 'skipped', `${dir}: ${JSON.stringify(repo(dir))}`);
   assert.ok(repo(dir).reason.includes(word), `${dir}: "${word}" not in ${repo(dir).reason}`);
@@ -410,6 +413,7 @@ for (const [dir, word] of skips) {
 assert.ok(!repo(wWorktree).reason.includes('uncommitted') && !repo(wPlan).reason.includes('uncommitted'), 'a Claim explains the untracked files');
 assert.strictEqual(repo(wWorktree).reason, 'Claim: worktree x');
 assert.strictEqual(repo(wPlan).reason, 'Claim: .scratch/s/plan.md not committed');
+assert.strictEqual(repo(wBatch).reason, 'Claim: Batch run');
 assert.strictEqual(repo(wGhFail).status, 'unknown');
 assert.ok(repo(wGhFail).reason.startsWith('gh issue list failed: gh: cannot list w-ghfail'), repo(wGhFail).reason);
 assert.ok(!('reason' in repo(on)) && !('notify' in repo(on)), 'an ok repo has no reason and no notify');
