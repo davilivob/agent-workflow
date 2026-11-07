@@ -14,6 +14,7 @@ Do the lookups of `workflow.md` **Continue** for this repo: Claims, then the gro
 - Left out, each with its reason: In progress, specs not committed, every other Blocked spec, Awaiting OS-bound verification, Requests.
 - What `After:` or `Overlaps: high` names is on `main` only if its spec there is `done` or awaiting OS-bound verification: `git log --grep=<slug>` alone also finds its `[<slug>] spec:` commit, and nobody is watching to catch that here.
 - Order: what `After:` and `Overlaps: high` require first, the rest by slug.
+- `.scratch/batch-run` already in `main`'s checkout: another Batch run's Claim, live or crashed. Its slugs are In progress. Report the file's modification time; never judge it stale yourself.
 
 Done when: every spec under `.scratch/` that is not `done` is either in the order or left out with a reason.
 
@@ -22,6 +23,7 @@ Done when: every spec under `.scratch/` that is not `done` is either in the orde
 Write the list first: the order; one sentence per spec; how each `Merge:` will be handled (`auto` and `ask` merge, `manual` stays on its branch with its evidence, and whatever depends on it is skipped); what is left out and why; the In progress slugs. Then one `AskUserQuestion`:
 
 - Start or stop. This is the only moment the owner can name an In progress slug to take over: it joins the order, continuing on its existing branch.
+- With a `.scratch/batch-run` already there, start means taking over that run as well; say so in the option. Without that, never overwrite the file.
 - Push at the end, by the repo's Push policy and Deploy paths:
   - Deploy paths named: don't push; push only if no Deploy path is touched (the default); push even if one is touched. Under `Push: auto`, that last option says it deploys to production with nobody confirming.
   - No Deploy paths: push or don't.
@@ -29,13 +31,15 @@ Write the list first: the order; one sentence per spec; how each `Merge:` will b
 
 The owner's answer is the sentence `workflow.md` **Say where the authorization came from** quotes. If the owner picks stop, change nothing.
 
+On start, write the order to `.scratch/batch-run` in `main`'s checkout, one slug per line. Never commit it. It is the run's Claim: another session's `/next` lists those slugs as In progress instead of offering them. Rewrite it whenever the order changes in section 3.
+
 From here on, no `AskUserQuestion` and no waiting on the owner: whatever would need the owner goes into the final message. `Push: auto`'s push after each commit does not apply either; section 4 pushes once.
 
-Done when: the owner answered, and the authorization line is written.
+Done when: the owner answered, the authorization line is written, and, on start, `.scratch/batch-run` lists the order.
 
 ## 3. Run
 
-One spec at a time, in order. After each merge, redo the lookups of section 1 and add what the merge unblocked; never an In progress slug. A spec that depends on a failed, skipped or `manual` one is skipped, with that reason. Rely on git, not on memory: there is no state file, and a re-run or a compaction reads the same branches and specs.
+One spec at a time, in order. After each merge, redo the lookups of section 1 and add what the merge unblocked; never an In progress slug. This run's own `.scratch/batch-run` lines are not In progress to it. A spec that depends on a failed, skipped or `manual` one is skipped, with that reason. Rely on git, not on memory: `.scratch/batch-run` is a Claim, not a state file, and a re-run or a compaction reads the same branches and specs.
 
 1. **Plan**, for Needs a plan: a subagent does `workflow.md` step 3, its Claim and commit rules included.
 2. **Execute**: a subagent does `workflow.md` step 4 up to, and not including, the merge, on `<slug>`'s worktree or branch: `Execute: sdd` with `superpowers:subagent-driven-development`, `Execute: inline` by implementing and then running `code-review`. It writes any Awaiting OS-bound verification line. Tell it: never ask, never merge, never push; commit its progress on the branch; a fact the spec gets wrong is corrected on the branch and is no failure; if the spec's decisions must change, or it cannot start the subagents `sdd` needs (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`), stop there; and return only the result, the commands awaiting and any failure reason.
@@ -48,6 +52,8 @@ One spec at a time, in order. After each merge, redo the lookups of section 1 an
 Done when: every spec in the order is merged, waiting as `manual`, failed or skipped, or `main` broke.
 
 ## 4. Finish
+
+Delete `.scratch/batch-run` first: the run takes no more specs, and a failed spec's branch is its own Claim. Every way out of section 3 comes through here, `main` broken included.
 
 Load `PushNotification` (`ToolSearch` with `select:PushNotification`). Right before the push, or at the end when nothing will be pushed, send one line: how many merged, how many failed, whether it pushes. Send another only if the push or a Deploy check fails. If it cannot be loaded or sent, say so in the final message.
 

@@ -94,10 +94,11 @@ Scan `.scratch/*/spec.md` (committed ones only) and list six groups, the last fr
 
 - Writing the plan: `.scratch/<slug>/plan.md` exists but is not committed.
 - Executing: `git worktree list` shows `.claude/worktrees/<slug>`, or a branch named `<slug>` exists.
+- Queued in a Batch run: `<slug>` is a line of `.scratch/batch-run` in the main checkout, and that file is not committed. `/drain` writes it on start and deletes it at the end.
 
 The groups:
 
-- **In progress**: slugs with a Claim, and only here, in none of the other groups. Say which kind (writing the plan, or executing) and how long since it last moved: the stub's modification time, or the branch's last commit. Never judge a Claim stale yourself; report the time and let the owner decide whether to take it over.
+- **In progress**: slugs with a Claim, and only here, in none of the other groups. Say which kind (writing the plan, executing, or queued in a Batch run) and how long since it last moved: the stub's or `.scratch/batch-run`'s modification time, or the branch's last commit. A slug with its own branch as well is executing. Never judge a Claim stale yourself; report the time and let the owner decide whether to take it over.
 - **Needs a plan**: specs with `Plan: yes` (or none written), no `plan.md` in the directory, and whatever `After:` (or `Overlaps: high`) names is already on `main`.
 - **Ready**: has `plan.md` (or `Plan: no`), `Status` not yet `done`, no `Awaiting OS-bound verification` line, and whatever `After:` names is already on `main`. Low or medium `Overlaps:` still count as Ready; note after them whom they overlap and at what risk.
 - **Blocked**: would be Needs a plan or Ready, but what `After:` (or `Overlaps: high`) names is not on `main` yet; say which one it waits for, whether it is a real dependency or a high conflict risk, and whether it still needs a plan. An `After:` Request whose state is Unknown goes here too, marked Unknown.
