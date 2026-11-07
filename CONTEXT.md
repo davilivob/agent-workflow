@@ -32,7 +32,7 @@ Looking at the Production URL after a Deploy check succeeds, as a visitor would 
 _Avoid_: smoke test, post-deploy check
 
 **Claim**:
-The visible trace that a session is working on a slug: an uncommitted `plan.md` while a plan is being written, a worktree or branch named after the slug while it is executed.
+The visible trace that a session is working on a slug: an uncommitted `plan.md` while a plan is being written, a worktree or branch named after the slug while it is executed, a line of the uncommitted `.scratch/batch-run` while a Batch run has it queued.
 _Avoid_: lock, reservation
 
 **Route**:
