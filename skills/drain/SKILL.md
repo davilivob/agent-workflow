@@ -49,13 +49,15 @@ One spec at a time, in order. After each merge, redo the lookups of section 1 an
 
 **Failed** means a subagent could not finish its step, a verification did not pass, a merge could not be done, or the spec's decisions must change. The spec stops alone: commit any progress on its branch, add one line to its `## Comments` there, `- Batch run failed: <reason>`, set `Status` back if it says `done`, and commit. With `Worktree: no`, `git switch main`. No merge. The branch left behind is a Claim, so the next `/drain` lists it as In progress. With no branch yet, the reason goes in the final message only.
 
-Done when: every spec in the order is merged, waiting as `manual`, failed or skipped, or `main` broke.
+**Context limit**: before taking the next spec from the order, and before redoing the lookups, look for a `Context size:` line in this conversation saying past 200k or more (the Drift hook injects one after a Bash call; a 150k line changes nothing here). If there is one, take no more specs: every spec not started is **Left for the next run**, which is not failed, skips nothing and leaves no line anywhere, and the run goes to section 4. The spec in hand always finishes first; never cut one short for this. `main` broken still wins.
+
+Done when: every spec in the order is merged, waiting as `manual`, failed, skipped or Left for the next run, or `main` broke.
 
 ## 4. Finish
 
 Delete `.scratch/batch-run` first: the run takes no more specs, and a failed spec's branch is its own Claim. Every way out of section 3 comes through here, `main` broken included.
 
-Load `PushNotification` (`ToolSearch` with `select:PushNotification`). Right before the push, or at the end when nothing will be pushed, send one line: how many merged, how many failed, whether it pushes. Send another only if the push or a Deploy check fails. If it cannot be loaded or sent, say so in the final message.
+Load `PushNotification` (`ToolSearch` with `select:PushNotification`). Right before the push, or at the end when nothing will be pushed, send one line: how many merged, how many failed, whether it pushes, and, after the Context limit, how many are left and that it needs a `/clear` or `/compact`. Send another only if the push or a Deploy check fails. If it cannot be loaded or sent, say so in the final message.
 
 **Push** as chosen in section 2, once, in `main`'s checkout, under the Push policy, the Rebase rule and the Guard:
 
@@ -64,6 +66,6 @@ Load `PushNotification` (`ToolSearch` with `select:PushNotification`). Right bef
 - Where the Rebase rule would ask: do not push, and say why.
 - After a push: the Deploy check and Production check, as `workflow.md` says.
 
-**The final message**, last: each spec's result (merged; `manual` with its evidence; failed or skipped with the reason); the Awaiting OS-bound verification list, and whether what was pushed includes a change still awaiting one; the push result; the commit list and push line of `global.md`. A Compact proposal, if one is due, goes here and nowhere earlier in the run.
+**The final message**, last: each spec's result (merged; `manual` with its evidence; failed or skipped with the reason; Left for the next run); the Awaiting OS-bound verification list, and whether what was pushed includes a change still awaiting one; the push result; the commit list and push line of `global.md`. A Compact proposal, if one is due, goes here and nowhere earlier in the run. After the Context limit one is always due and ends the message, as `global.md` says, naming `/drain` as what to run after it for the specs left.
 
 Done when: the push, if any, has concluded with its checks, and the final message covers every spec from section 1.
