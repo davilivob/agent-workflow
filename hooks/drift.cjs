@@ -5,6 +5,7 @@
 //              always headed by this device's Device code (from ~/.claude/device) and a reminder to set the Session title.
 //   --prompt   UserPromptSubmit hook: a reminder to update the Session title when the Phase or topic changes, and of the reply language;
 //              and, once per step the Context size crosses (~/.claude/compact-state.json), a reminder to make a Compact proposal.
+//   --tool     PostToolUse hook on Bash: that same Context size reminder alone, for a turn with no prompt to carry it, such as a Batch run.
 //   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots,
 //              except Retired repos (under a `!` line there), which it only counts; also says which repos'
 //              workflow.md is older than the kit's template (not counted as Drift).
@@ -200,10 +201,18 @@ let input = {}; // the hook JSON, read by session() and by --prompt
 // Past the threshold, one step per COMPACT_STEP tokens; the agent is told once per step, so the step told is kept per session.
 const COMPACT_AT = 150000;
 const COMPACT_STEP = 50000;
+const TRANSCRIPT_TAIL = 1 << 20;
 const COMPACT_STATE = path.join(os.homedir(), '.claude', 'compact-state.json');
 function contextSize(transcript) {
-  // shortcut: reads the whole transcript at every prompt; read only its tail if a long session makes prompts slow.
-  const lines = fs.readFileSync(transcript, 'utf8').split('\n');
+  // shortcut: only the last TRANSCRIPT_TAIL bytes, so a usage line further back reads as none (silent until the next one); widen it if that shows.
+  const fd = fs.openSync(transcript, 'r');
+  let lines;
+  try {
+    const { size } = fs.fstatSync(fd);
+    const tail = Buffer.alloc(Math.min(size, TRANSCRIPT_TAIL));
+    fs.readSync(fd, tail, 0, tail.length, size - tail.length);
+    lines = tail.toString('utf8').split('\n'); // the first line may be cut: it fails JSON.parse and is skipped
+  } finally { fs.closeSync(fd); }
   for (let i = lines.length - 1; i >= 0; i--) {
     if (!lines[i].includes('"usage"')) continue;
     let e;
@@ -216,7 +225,8 @@ function contextSize(transcript) {
 // The line for the agent when the Context size enters a step not told yet; '' otherwise.
 // Silent, not Unknown, when anything cannot be read: a reminder, not a check, and it would repeat at every prompt.
 function compactNote(hook) {
-  if (!hook.session_id || !hook.transcript_path) return '';
+  // A subagent's tool call has the session's id and an agent_id: its context would get the reminder and use up the step.
+  if (!hook.session_id || !hook.transcript_path || hook.agent_id) return '';
   let size;
   try { size = contextSize(hook.transcript_path); } catch { return ''; }
   if (size === null) return '';
@@ -423,6 +433,10 @@ if (process.argv[2] === '--session') { // a check that broke or ran out of time 
 } else if (process.argv[2] === '--prompt') {
   try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch {}
   console.log(PROMPT + compactNote(input));
+} else if (process.argv[2] === '--tool') {
+  try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch {}
+  const note = compactNote(input).trim();
+  if (note) console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: note } }));
 } else if (process.argv[2] === '--watch') {
   watch().then((code) => { process.exitCode = code; }, (e) => { console.error(`drift --watch: Unknown, the check failed: ${e.message}`); process.exitCode = 2; });
 } else {

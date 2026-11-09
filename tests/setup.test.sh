@@ -56,6 +56,7 @@ grep -q '"keep-me"' "$T/.claude/settings.json" || fail "existing settings key lo
 grep -q 'echo mine' "$T/.claude/settings.json" || fail "existing hook lost"
 [ "$(grep -c 'kit/hooks/drift.cjs.* --session"' "$T/.claude/settings.json")" = 1 ] || fail "Drift check hook not registered exactly once"
 [ "$(grep -c 'kit/hooks/drift.cjs.* --prompt"' "$T/.claude/settings.json")" = 1 ] || fail "Session title reminder hook not registered exactly once"
+[ "$(grep -c 'kit/hooks/drift.cjs.* --tool"' "$T/.claude/settings.json")" = 1 ] || fail "Context size hook not registered exactly once"
 grep -q '"startup|resume|clear"' "$T/.claude/settings.json" || fail "Drift check hook lacks its matcher"
 grep -q 'echo my-start' "$T/.claude/settings.json" || fail "existing SessionStart hook lost"
 grep -q '"language": "Traditional Chinese (繁體中文, never Simplified); code' "$T/.claude/settings.json" || fail "language not set intact"
@@ -86,6 +87,15 @@ out=$(HOME="$T" sh "$KIT/setup.sh")
 echo "$out" | grep -q 'installed the Session title reminder hook' || fail "missing Session title reminder hook not reported"
 echo "$out" | grep -q 'Drift check hook' && fail "Session title upgrade reinstalled the Drift check"
 [ "$(grep -c 'kit/hooks/drift.cjs.* --prompt"' "$T/.claude/settings.json")" = 1 ] || fail "Session title reminder hook not re-added exactly once"
+
+# A device without the Context size hook gains just that.
+"$NODE" -e '
+const fs = require("fs"); const f = process.argv[1]; const s = JSON.parse(fs.readFileSync(f, "utf8"));
+delete s.hooks.PostToolUse; fs.writeFileSync(f, JSON.stringify(s));' "$T/.claude/settings.json"
+out=$(HOME="$T" sh "$KIT/setup.sh")
+echo "$out" | grep -q 'installed the Context size hook' || fail "missing Context size hook not reported"
+echo "$out" | grep -q 'Session title reminder hook' && fail "Context size upgrade reinstalled the Session title reminder hook"
+[ "$(grep -c 'kit/hooks/drift.cjs.* --tool"' "$T/.claude/settings.json")" = 1 ] || fail "Context size hook not re-added exactly once"
 
 # A language the owner set is kept.
 "$NODE" -e '

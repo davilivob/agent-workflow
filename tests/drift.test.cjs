@@ -102,6 +102,22 @@ assert.ok(lastTitle.includes('[<Device code>] Cleared'), `clear: the title is Cl
   assert.strictEqual(prompt(['not json', '{"usage": broken'], 's4'), null, 'unreadable transcript: silent');
   fs.writeFileSync(path.join(HOME, '.claude', 'compact-state.json'), 'garbage');
   assert.ok(prompt([at(160000)], 's5')?.includes('past 150k'), 'corrupt state file: starts over');
+  // --tool: the same reminder after a tool call, for a turn with no prompt; a subagent's call neither gets it nor uses it up.
+  const tool = (extra = {}) => {
+    const r = spawnSync('node', [DRIFT, '--tool'], { input: JSON.stringify({ session_id: 's6', transcript_path: transcript, ...extra }), env, encoding: 'utf8' });
+    assert.strictEqual(r.status, 0, `drift --tool exited ${r.status}: ${r.stderr}`);
+    return r.stdout;
+  };
+  fs.writeFileSync(transcript, at(100000) + '\n');
+  assert.strictEqual(tool(), '', '--tool under the threshold: no output');
+  fs.writeFileSync(transcript, at(260000) + '\n');
+  assert.strictEqual(tool({ agent_id: 'a1' }), '', "--tool in a subagent: silent");
+  const out = JSON.parse(tool()).hookSpecificOutput;
+  assert.strictEqual(out.hookEventName, 'PostToolUse');
+  assert.ok(out.additionalContext.startsWith('Context size: 260k tokens, past 250k.'), `--tool: ${out.additionalContext}`);
+  assert.strictEqual(tool(), '', '--tool, same step: told once');
+  fs.writeFileSync(transcript, at(160000) + '\n' + 'x'.repeat(2 << 20) + '\n' + at(310000) + '\n');
+  assert.ok(JSON.parse(tool()).hookSpecificOutput.additionalContext.includes('past 300k'), 'a transcript longer than the tail: its last usage line is read');
 }
 assert.strictEqual(lastDevice, 'Device: mbp', 'device file read and trimmed');
 let d = clone('behind'); advance(d);
