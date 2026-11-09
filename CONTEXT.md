@@ -40,7 +40,7 @@ The path a grilled change takes to `main`: **Direct** (no spec; the grill sessio
 _Avoid_: path, track, mode
 
 **Batch run**:
-One session working through every spec a repo has ready, one after another, once the owner has confirmed the list. It asks nothing more until the end: a spec it cannot finish stays on its branch while the rest go on. Started with `/drain`.
+One session working through every spec a repo has ready, one after another, once the owner has confirmed the list. It asks nothing more until the end: a spec it cannot finish stays on its branch while the rest go on. Once the conducting session's Context size passes 250k it takes no new spec and finishes the run as usual, leaving the rest for the next `/drain`. Started with `/drain`.
 _Avoid_: drain (that is the command), sweep, queue, autopilot
 
 **Request**:
