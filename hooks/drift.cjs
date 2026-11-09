@@ -195,12 +195,12 @@ const CLEARED = `Session title: the session was just cleared; set it now with se
 // The language line too: said only at session start, it slipped after long English tool output (#6).
 const PROMPT = `Session title: if this message changes the Phase or topic, first update it with set_session_title (session self), as global.md says. ${LOAD}
 Language: reply in Traditional Chinese (繁體中文), as global.md says, even right after long English tool output; check your reply's first sentence before sending.`;
-let input = {}; // the hook JSON, read by session() and by --prompt
+let input = {}; // the hook JSON, read by session(), --prompt and --tool
 
 // Context size: the tokens the session's last model call was sent, read from its transcript.
 // Past the threshold, one step per COMPACT_STEP tokens; the agent is told once per step, so the step told is kept per session.
 const COMPACT_AT = 150000;
-const COMPACT_STEP = 50000;
+const COMPACT_STEP = 50000; // /drain's Context limit (200k) must stay one of these steps: the line names only the step, so change both together
 const TRANSCRIPT_TAIL = 1 << 20;
 const COMPACT_STATE = path.join(os.homedir(), '.claude', 'compact-state.json');
 function contextSize(transcript) {
@@ -223,7 +223,7 @@ function contextSize(transcript) {
   return null;
 }
 // The line for the agent when the Context size enters a step not told yet; '' otherwise.
-// Silent, not Unknown, when anything cannot be read: a reminder, not a check, and it would repeat at every prompt.
+// Silent, not Unknown, when anything cannot be read: a reminder, not a check, and it would repeat at every prompt and Bash call.
 function compactNote(hook) {
   // A subagent's tool call has the session's id and an agent_id: its context would get the reminder and use up the step.
   if (!hook.session_id || !hook.transcript_path || hook.agent_id) return '';

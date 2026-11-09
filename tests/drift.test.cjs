@@ -111,7 +111,7 @@ assert.ok(lastTitle.includes('[<Device code>] Cleared'), `clear: the title is Cl
   fs.writeFileSync(transcript, at(100000) + '\n');
   assert.strictEqual(tool(), '', '--tool under the threshold: no output');
   fs.writeFileSync(transcript, at(260000) + '\n');
-  assert.strictEqual(tool({ agent_id: 'a1' }), '', "--tool in a subagent: silent");
+  assert.strictEqual(tool({ agent_id: 'a1' }), '', '--tool in a subagent: silent');
   const out = JSON.parse(tool()).hookSpecificOutput;
   assert.strictEqual(out.hookEventName, 'PostToolUse');
   assert.ok(out.additionalContext.startsWith('Context size: 260k tokens, past 250k.'), `--tool: ${out.additionalContext}`);

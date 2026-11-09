@@ -20,7 +20,7 @@ Done when: every spec under `.scratch/` that is not `done` is either in the orde
 
 ## 2. Confirm
 
-Write the list first: the order; one sentence per spec; how each `Merge:` will be handled (`auto` and `ask` merge, `manual` stays on its branch with its evidence, and whatever depends on it is skipped); what is left out and why; the In progress slugs. Then one `AskUserQuestion`:
+Write the list first: the order; one sentence per spec; how each `Merge:` will be handled (`auto` and `ask` merge, `manual` stays on its branch with its evidence, and whatever depends on it is skipped); what is left out and why; the In progress slugs. A `Context size:` line past 200k already in this conversation: say the run would end before its first spec (section 3's Context limit) and that a `/clear` or `/compact` first avoids it. Then one `AskUserQuestion`:
 
 - Start or stop. This is the only moment the owner can name an In progress slug to take over: it joins the order, continuing on its existing branch.
 - With a `.scratch/batch-run` already there, start means taking over that run as well; say so in the option. Without that, never overwrite the file.
@@ -49,7 +49,7 @@ One spec at a time, in order. After each merge, redo the lookups of section 1 an
 
 **Failed** means a subagent could not finish its step, a verification did not pass, a merge could not be done, or the spec's decisions must change. The spec stops alone: commit any progress on its branch, add one line to its `## Comments` there, `- Batch run failed: <reason>`, set `Status` back if it says `done`, and commit. With `Worktree: no`, `git switch main`. No merge. The branch left behind is a Claim, so the next `/drain` lists it as In progress. With no branch yet, the reason goes in the final message only.
 
-**Context limit**: before taking the next spec from the order, and before redoing the lookups, look for a `Context size:` line in this conversation saying past 200k or more (the Drift hook injects one after a Bash call; a 150k line changes nothing here). If there is one, take no more specs: every spec not started is **Left for the next run**, which is not failed, skips nothing and leaves no line anywhere, and the run goes to section 4. The spec in hand always finishes first; never cut one short for this. `main` broken still wins.
+**Context limit**: after the lookups and before taking the next spec from the order, look for a `Context size:` line in this conversation saying past 200k or more (the Context size hook injects one after a Bash call; a 150k line changes nothing here). If there is one, take no more specs: every spec not started is **Left for the next run**, which is not failed, skips nothing and leaves no line anywhere, and the run goes to section 4. The spec in hand always finishes first; never cut one short for this. `main` broken still wins.
 
 Done when: every spec in the order is merged, waiting as `manual`, failed, skipped or Left for the next run, or `main` broke.
 
