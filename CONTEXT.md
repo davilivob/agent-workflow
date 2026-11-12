@@ -47,6 +47,10 @@ _Avoid_: drain (that is the command), sweep, queue, autopilot
 What an unattended probe of a running project leaves behind — `/soak-tune` tuning its parameters under long or heavy load, `/ux-probe` working through its interface as a user would: observations with their evidence, and ranked recommendations. Never a decision: whatever the owner wants to adopt from it goes through a grill like any other change.
 _Avoid_: audit, findings, spec
 
+**Rule audit**:
+A pass over a repo's own rule layer — never the files the kit carries in — for content in the wrong file, duplicates that disagree or will silently go stale, rules handing the owner work they never asked for, and rules a tool or hook already enforces. It ends in a table the owner marks keep, trim, delete or ask item by item; the session applies the marks, and only an ask goes on to a grill. Started with `/rule-audit`; the session-open report reminds the owner when one is due.
+_Avoid_: probe, review, cleanup
+
 **Request**:
 A GitHub issue one repo files in another, asking it to change something. It waits there until the owner, after a Triage, applies, drops or grills it. A spec that needs it done first names it in `After:`.
 _Avoid_: issue (that is a local ticket under a spec), ticket, dispatch
