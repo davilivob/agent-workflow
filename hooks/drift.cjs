@@ -176,15 +176,17 @@ function blobs(cwd, specs) {
         }
         resolve(texts);
       });
+    c.stdin.on('error', () => {}); // git exiting early: its error reaches the callback
     c.stdin.end(specs.map((s) => `${s}\n`).join(''));
   });
 }
 // A Rule audit is due: 30 days since the last `[rule-audit]` commit, 25% growth since it, or never and over 8k characters.
 async function auditNote(top, kit, self) {
   // The `## ` sections /sync-workflow writes into the root CLAUDE.md from the kit's claude-section.md are not this repo's rules.
+  // shortcut: matched by heading, so a repo's own `## Workflow` drops out too; mark the synced block if that ever hides a due audit.
   let synced = [];
   try {
-    synced = fs.readFileSync(path.join(self ? top : kit, 'templates', 'claude-section.md'), 'utf8')
+    if (!self) synced = fs.readFileSync(path.join(kit, 'templates', 'claude-section.md'), 'utf8')
       .split(/\r?\n/).filter((l) => l.startsWith('## ')).map((l) => l.trim());
   } catch {}
   const own = (p, text) => {
@@ -194,6 +196,7 @@ async function auditNote(top, kit, self) {
   };
   const sum = (paths, texts) => paths.reduce((n, p, i) => n + own(p, texts[i]).length, 0);
   const list = (o) => o.split('\0').filter((p) => p && inRuleLayer(p, self));
+  // shortcut: untracked rule files count now but not in the last audit's commit; drop --others if drafts trip the 25%.
   const now = list(await git(top, ['ls-files', '-z', '--cached', '--others', '--exclude-standard']));
   const size = sum(now, now.map((p) => { try { return fs.readFileSync(path.join(top, p), 'utf8'); } catch { return ''; } }));
   const last = (await git(top, ['log', '-1', '-F', '--grep=[rule-audit]', '--format=%H %ct'])).trim();
@@ -496,7 +499,7 @@ if (process.argv[2] === '--session') { // a check that broke or ran out of time 
     process.exit(0);
   }, SESSION_DEADLINE);
   session().then(emit, (e) => emit(`Drift check: Unknown, the check itself failed (${e.message}).\n${ASK}`))
-    .finally(() => clearTimeout(deadline));
+    .finally(() => process.exit(0)); // emit wrote synchronously; a timed-out Rule audit's git calls must not outlive it
 } else if (process.argv[2] === '--prompt') {
   try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch {}
   console.log(PROMPT + compactNote(input));

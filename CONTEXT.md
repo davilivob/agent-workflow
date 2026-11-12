@@ -128,5 +128,5 @@ The short name of the machine a session runs on (`studio`, `mbp`, `win`) — not
 _Avoid_: hostname, device name
 
 **Phase**:
-What a session is doing now, as its Session title shows it: grill, spec, plan, sdd, inline, batch, probe, debug, triage, review, next or chat. Each pipeline step has its Phase, but a Phase also covers work outside the pipeline.
+What a session is doing now, as its Session title shows it: grill, spec, plan, sdd, inline, batch, probe, debug, triage, review, audit, next or chat. Each pipeline step has its Phase, but a Phase also covers work outside the pipeline.
 _Avoid_: step, stage
