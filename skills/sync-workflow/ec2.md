@@ -1,8 +1,8 @@
 # EC2 deploy
 
-`/sync-workflow`'s extra steps when the owner answers yes to "Does it deploy to EC2?". Each section here belongs to the same-numbered section of `SKILL.md`.
+`/sync-workflow`'s extra steps when the owner answers yes to "Does it deploy to EC2?". Each section here adds to the `SKILL.md` section of the same name.
 
-## 2. Project values
+## Project values
 
 `DEPLOY_WF` is `.github/workflows/deploy.yml` if it exists, else the first workflow that builds an image or runs compose (`grep -lE 'docker/build-push-action|docker compose|docker-compose' .github/workflows/* 2>/dev/null | head -n 1`); empty means none.
 
@@ -11,7 +11,7 @@
 
 The template carries no `Template:` line, and no later run of this skill compares or rewrites the written workflow: it is the repo's from then on.
 
-## 5. Write
+## Write
 
 One more file:
 
@@ -19,7 +19,7 @@ One more file:
 | --- | --- |
 | `.github/workflows/deploy.yml` | EC2 with `DEPLOY_WF` empty only: `templates/deploy-ec2.yml` with `{{DEPLOY_PATHS}}` → one `      - <path>` line per Deploy path, quoted when it starts with `!` or `*`; `{{VERIFY_STEPS}}` → steps indented like the others that set up the stack's toolchain on the runner, install, and run the verification command (e.g. `oven-sh/setup-bun@v2`, `bun install --frozen-lockfile`, the command), each with `working-directory:` when the project sits in a subdirectory, or, when there is none or it cannot run on a Linux runner (Unity, an OS-bound command), these placeholder lines and the comment above them removed; the `Build and push {{IMAGE}}` step (not the comment above it) repeated once per image, `{{IMAGE}}` → its name, `{{CONTEXT}}` → its context; `{{PORT}}` → the liveness port. No `{{UPPERCASE}}` placeholder may remain (`grep -E '\{\{[A-Z_]+\}\}'` prints nothing; `${{ ... }}` is GitHub's own) |
 
-## 8. Commit and report
+## Commit and report
 
 - EC2 with the workflow written: hand over the four repo secrets, each command in its own `bash` block, with `<repo>` the `Remote:` value. The owner runs them and types each value; a secret's value never passes through you. `SSH_KEY` is multi-line, so it reads the key file the owner names:
   - `gh secret set SSH_KEY -R <repo> < ~/.ssh/<key file>`

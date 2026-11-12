@@ -17,7 +17,7 @@ Classify — the first matching row wins:
 
 | Case | Result | Items |
 | --- | --- | --- |
-| `repo.md` = `tmpl.md` | **in sync** | none. A missing `Template:` line is set to the kit sha (the caller commits it); any other `Template:` line stays as it is, old format included — rewriting it would be a commit with no content, which two devices make differently |
+| `repo.md` = `tmpl.md` | **in sync** | none. A missing `Template:` line is the caller's to set; any other `Template:` line stays as it is, old format included — rewriting it would be a commit with no content, which two devices make differently |
 | no base | **unknown** | each hunk of `diff -u tmpl.md repo.md` is a **conflict** |
 | `repo.md` = `base.md` | **behind** | each hunk of `diff -u base.md tmpl.md` |
 | `tmpl.md` = `base.md` | **ahead** | each hunk of `diff -u base.md repo.md` |

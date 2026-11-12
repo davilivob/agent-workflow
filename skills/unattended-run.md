@@ -10,9 +10,9 @@ Once the owner has agreed, no `AskUserQuestion` and no waiting on the owner: wha
 
 ## End
 
-- **Deploy paths**: before any push, compare the files with the Deploy paths as `workflow.md` says, but do not ask: the agreement answered it. Where the agreement does not cover a push touching one (a probe always; `/drain` with "only if no Deploy path is touched"), do not push or offer to, and list in the final message the matching files and the Deploy paths they match.
+- **Deploy paths**: before any push, compare the files with the Deploy paths as `workflow.md` says, but do not ask: the agreement answered it. Where the agreement does not cover a push touching one (a probe always; `/drain` with "only if no Deploy path is touched"), do not push (a probe does not offer to either), and list in the final message the matching files and the Deploy paths they match.
 - **Push**: `Push: owner`: hand the command over. Otherwise as the skill says.
-- **Notification**: load `PushNotification` (`ToolSearch` with `select:PushNotification`) and send one line, right before the push or at the end when nothing will be pushed; the skill says what the line holds. If it cannot be loaded or sent, say so in the final message.
+- **Notification**: load `PushNotification` (`ToolSearch` with `select:PushNotification`) and send one line; the skill says when and what it holds. If it cannot be loaded or sent, say so in the final message.
 - **The final message** opens with the commit list and push line `global.md` asks for.
 
 ## Probe
@@ -43,6 +43,6 @@ A run that could not start keeps the four sections: the failure and its output u
 
 Commit the report and what the skill adds beside it as `workflow.md` **Commits** says (with `Worktree: yes`, through a worktree of its own, as that rule says), message `[<slug>] report: ...`.
 
-**Wrap-up**: End (above), with the push by the Push policy: `ask`, offer it in the final message; `auto`, push `main` now. The notification: the run ended, and the report's path. The final message, after the commit list and push line: the report's path and its top recommendations.
+**Wrap-up**: End (above), with the push by the Push policy: `ask`, offer it in the final message; `auto`, push `main` now. The notification, after any push: the run ended, and the report's path. The final message, after the commit list and push line: the report's path and its top recommendations.
 
 Done when: the report and what the skill adds are committed, the worktree is gone, nothing the run started is still running, and the notification is sent or its failure reported.

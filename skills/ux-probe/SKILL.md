@@ -41,7 +41,7 @@ The worktree (nothing changed in it), keep-awake, start and stop of **Probe**, a
   4. **Free exploration**: a few minutes off the scripted path, around what the task touched.
 - **A friction point**: write down where (the screen, or the component, and the code behind it where it is obvious), what you expected, what happened, and a screenshot; then mark it **UX** (it works but is hard) or **bug** (it does not do what it says).
 - **Screenshots**: save each one a finding cites in the session's scratchpad directory, never in the repo. A tool screenshot whose result names the file it was saved to: copy that file. Otherwise iOS with `xcrun simctl io booted screenshot <path>`, and web by rendering the same URL, width and color scheme to a file with a headless browser on the machine (Chrome's `--headless --screenshot`, or Playwright if the project has it), only when that URL alone shows the same screen. A screen only a click sequence reaches, or no way to save one: describe the screen in the finding and say so under 沒驗證到的地方.
-- **Context limit**: checked before each new task.
+- **Stop** also when every task is done. **Context limit**: checked before each new task.
 
 Done when: the budget is spent, every task and lens is done, or the Context limit was reached, and every friction point has its record.
 
@@ -53,4 +53,4 @@ As **Probe** says, with:
 - **設定與範圍** adds the interface, the agreed tasks and lenses. **觀察**: each friction point with its mark (UX or bug), where, what was expected, what happened, and its screenshot (`screenshots/<name>`) or the description that stands in for one; bugs first, so they can go to debugging instead of a redesign. **沒驗證到的地方** adds tasks, passes or lenses not reached and screenshots that could not be saved.
 - The screenshots the report cites copied into `.scratch/<slug>/screenshots/` (the rest stay in the scratchpad directory) and committed with it, with any seed or example-config file that got generated test accounts.
 
-Done when: **Probe**'s report is done, its screenshots included.
+Done when: **Probe**'s Done when holds, its screenshots committed with the report.

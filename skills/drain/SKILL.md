@@ -70,11 +70,10 @@ Done when: every spec in the order is merged, waiting as `manual`, failed, skipp
 
 Delete `.scratch/batch-run` first: the run takes no more specs, and a failed spec's branch is its own Claim. Every way out of section 3 comes through here, `main` broken included.
 
-The notification, as **End** says: how many merged, how many failed, whether it pushes, and, after the Context limit, how many are left and that it needs a `/clear` or `/compact`. Send another only if the push or a Deploy check fails.
+The notification, as **End** says, right before the push or at the end when nothing will be pushed: how many merged, how many failed, whether it pushes, and, after the Context limit, how many are left and that it needs a `/clear` or `/compact`. Send another only if the push or a Deploy check fails.
 
-**Push** as chosen in section 2, once, in `main`'s checkout, under the Push policy, the Rebase rule and the Guard:
+**Push** as chosen in section 2, once, in `main`'s checkout, under the Push policy, the Rebase rule, the Guard and **End** (Deploy paths, `Push: owner`):
 
-- Deploy paths and `Push: owner`: as **End** says.
 - Where the Rebase rule would ask: do not push, and say why.
 - After a push: the Deploy check and Production check, as `workflow.md` says.
 

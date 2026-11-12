@@ -50,4 +50,4 @@ As **Probe** says, with:
 - **設定與範圍** adds the load, the agreed parameters, ranges and metrics. **觀察**: the evidence is the rounds of `runs.csv` each rests on, and output excerpts. **沒驗證到的地方** adds ranges not reached and metrics not measured.
 - `runs.csv` beside the report, committed with it.
 
-Done when: **Probe**'s report is done, `runs.csv` included.
+Done when: **Probe**'s Done when holds, `runs.csv` committed with the report.

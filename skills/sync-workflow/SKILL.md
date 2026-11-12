@@ -52,7 +52,7 @@ Ask all four in one `AskUserQuestion`, the detected or suggested answer first an
 3. Worktree — the stack's default vs. the other value.
 4. What counts as production (commands only the owner runs: deploys, production writes, SSH) — "None yet" vs. "Other". If a push to `main` deploys automatically, ask for its Deploy paths (the paths whose change triggers it) in a follow-up `AskUserQuestion`, together with "Does it deploy to EC2?" (yes / no) and its Production URL: "Other" lists one or more URLs (the public addresses it serves, comma-separated), or "None".
 
-**EC2**, on yes: read [`ec2.md`](ec2.md) beside this file and do its section 2 here; it also adds a row to section 5 and a step to section 8.
+**EC2**, on yes: read [`ec2.md`](ec2.md) beside this file and do its **Project values** here; its **Write** and **Commit and report** add to those sections.
 
 Done when: you have a stack, a verification command or "none yet", `yes|no` for Worktree, and a production list (with the Deploy paths and Production URLs or "None", if a push deploys, and for EC2 the host, port and either the template's parameters or `DEPLOY_WF`) or "none yet".
 
@@ -121,7 +121,7 @@ Build each file's intended content:
 | Repo file | Content |
 | --- | --- |
 | `docs/agents/workflow.md` | `Template: $KIT_SHA` line, then `templates/workflow.md` |
-| `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command (a push that deploys reads "`git push` of `main` touching <Deploy paths> — deploys to production"; for EC2 the ending is instead "— deploys to EC2, host <host>, port <port>"; either ending then takes ", Production URL <url>, <url>" or, for "None", ", no Production URL"; and, when section 5 writes the workflow, a bullet follows: "Repo secrets `SSH_KEY`, `VPS_HOST`, `VPS_USER`, `DEPLOY_PATH` — their values are set by the owner (`gh secret set`)"), or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 4. Every other line, including the `- None yet.` sections and `## Sync` with its defaults `Push: ask`, `Pull: ff` and `Request watch: studio` (ask nothing about them), stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
+| `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command (a push that deploys reads "`git push` of `main` touching <Deploy paths> — deploys to production"; for EC2 the ending is instead "— deploys to EC2, host <host>, port <port>"; either ending then takes ", Production URL <url>, <url>" or, for "None", ", no Production URL"; and, when `ec2.md` writes the workflow, a bullet follows: "Repo secrets `SSH_KEY`, `VPS_HOST`, `VPS_USER`, `DEPLOY_PATH` — their values are set by the owner (`gh secret set`)"), or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 4. Every other line, including the `- None yet.` sections and `## Sync` with its defaults `Push: ask`, `Pull: ff` and `Request watch: studio` (ask nothing about them), stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
 | `docs/agents/issue-tracker.md`, `domain.md` | the same-named template, verbatim |
 | `CLAUDE.md` | each `## ` section of `templates/claude-section.md`: replaces the repo's section with the same heading, else is appended; every other line of the repo's `CLAUDE.md` stays |
 
@@ -210,13 +210,13 @@ printf '%s\n' "$RENORM" | while IFS= read -r f; do rm -f "$f"; git checkout -- "
 The three commands are chained with `&&`: if the strip or the commit fails, stop and show the owner the output; never re-check the files out then. The last line re-checks them out, so `*.bat`, `*.cmd` and `*.ps1` get CRLF back in the working tree. Report this commit with section 8's.
 
 Done when: `.gitattributes` holds the four lines, and either `RENORM` was empty, a RENORM file had uncommitted changes (and the owner was told), the owner declined, or `git ls-files --eol` shows no `i/crlf` or `i/mixed` left.
+
 ## 8. Commit and report
 
 - Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update; `, add Remote: to project.md` appended when section 4 wrote it, `, add Production URL to project.md` when section 3 did, `, add Sync to project.md` when section 3 added `## Sync`, `, add Request watch to project.md` when section 3 added only that line).
 - Nothing written (in sync, `.gitattributes` complete, no `Remote:`, `## Sync`, `Request watch:` or Production URL added): no commit, and say so.
 - After the commit (and section 7's, if any), offer to push the target per `global.md`: the sooner it is on the remote, the shorter the time another device can sync on top of a stale base.
-- EC2: section 8 of `ec2.md`.
+- EC2: the **Commit and report** of `ec2.md`.
 - List the pipeline's missing dependencies: relay verbatim the `TODO:` lines `setup.sh --check` printed in the preflight, and section 4's `gh` one; each carries its own fix. The owner runs them, not you.
 
 Report: the mode, every file written, every commit (hash and message, up front), missing dependencies, and the remote: the `Remote:` value, any warning, mismatch or non-GitHub note, and the `gh repo create` command if one is handed over.
-
