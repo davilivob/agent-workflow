@@ -217,7 +217,7 @@ Done when: `.gitattributes` holds the four lines, and either `RENORM` was empty,
 
 - Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update; `, add Remote: to project.md` appended when section 4 wrote it, `, add Production URL to project.md` when section 3 did, `, add Sync to project.md` when section 3 added `## Sync`, `, add Request watch to project.md` when section 3 added only that line).
 - Nothing written (in sync, `.gitattributes` complete, no `Remote:`, `## Sync`, `Request watch:` or Production URL added): no commit, and say so.
-- After the commit (and section 7's, if any), offer to push the target per `global.md`: the sooner it is on the remote, the shorter the time another device can sync on top of a stale base.
+- After the commit (and section 7's, if any), push the target as `global.md`'s Push policy says: the sooner it is on the remote, the shorter the time another device can sync on top of a stale base.
 - EC2: the **Commit and report** of `ec2.md`.
 - List the pipeline's missing dependencies: relay verbatim the `TODO:` lines `setup.sh --check` printed in the preflight, and section 4's `gh` one; each carries its own fix. The owner runs them, not you.
 
