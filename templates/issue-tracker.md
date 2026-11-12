@@ -8,7 +8,7 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
 - The spec is `.scratch/<feature-slug>/spec.md`, headed by `Status:`, `Merge:`, `Plan:` and `Execute:` lines (see `workflow.md` for their values). `Status:` goes from `ready-for-agent` to `done`; nothing in between
 - The implementation plan is `.scratch/<feature-slug>/plan.md`
 - New features are not split into tickets (see `workflow.md`). Where tickets exist, they are one file per ticket at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01`, never a single combined tickets file
-- `to-spec`'s `ready-for-agent` triage label is the spec's `Status: ready-for-agent` line
+- The `ready-for-agent` label `to-spec` applies is the spec's `Status: ready-for-agent` line
 - Comments and conversation history append to the bottom of the file under a `## Comments` heading
 
 ## When a skill says "publish to the issue tracker"

@@ -184,7 +184,7 @@ function blobs(cwd, specs) {
 async function auditNote(top, kit, self) {
   // The `## ` sections /sync-workflow writes into the root CLAUDE.md from the kit's claude-section.md, and appends to project.md
   // from its dev-server.md, are not this repo's rules.
-  // shortcut: matched by heading, so a repo's own `## Workflow` drops out too; mark the synced block if that ever hides a due audit.
+  // shortcut: matched by heading, so a repo's own `## Workflow` (or `## Dev server` in project.md) drops out too; mark the synced block if that ever hides a due audit.
   const heads = (f) => { try { return fs.readFileSync(path.join(kit, 'templates', f), 'utf8').split(/\r?\n/).filter((l) => l.startsWith('## ')).map((l) => l.trim()); } catch { return []; } };
   const synced = self ? {} : { 'CLAUDE.md': heads('claude-section.md'), 'docs/agents/project.md': heads('dev-server.md') };
   const own = (p, text) => {
