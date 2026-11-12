@@ -35,7 +35,7 @@ Done when: the plan is agreed and the authorization line is written.
 
 ## 3. Run
 
-- **Keep awake**: load `request_keep_awake` (`ToolSearch`) and ask for the run's duration. If it cannot be loaded, say so in the report's 沒驗證到的地方.
+- **Keep awake**: load `request_keep_awake` (`ToolSearch`) and call it with `until: "session_idle"`. If it cannot be loaded, say so in the report's 沒驗證到的地方.
 - **Start**: as section 1 found; web with `preview_start`, iOS by building and then `launch`. The app cannot be started (no way found, or it fails before the first task): stop, skip to section 4 and write a report with the failure and its output only.
 - **Each task**, in this order:
   1. **Newcomer**: from a clean state (a fresh tab with the site's storage and cookies cleared, or the app deleted from the Simulator and reinstalled), knowing only what the screen says.
@@ -43,7 +43,7 @@ Done when: the plan is agreed and the authorization line is written.
   3. **The agreed lenses**: phone width with `resize_window` preset `mobile`, dark mode with `colorScheme: dark` (web) or `set_appearance` (iOS); reset the window with preset `desktop` after.
   4. **Free exploration**: a few minutes off the scripted path, around what the task touched.
 - **A friction point**: write down where (the screen, or the component, and the code behind it where it is obvious), what you expected, what happened, and a screenshot; then mark it **UX** (it works but is hard) or **bug** (it does not do what it says).
-- **Screenshots**: the tool screenshots come into the conversation, not to a file. Save each one a finding cites in the session's scratchpad directory, never in the repo: iOS with `xcrun simctl io booted screenshot <path>`; web by rendering the same URL, width and color scheme to a file with a headless browser on the machine (Chrome's `--headless --screenshot`, or Playwright if the project has it). A state that only a click sequence reaches, or no way to save a file: describe the screen in the finding and say so under 沒驗證到的地方.
+- **Screenshots**: save each one a finding cites in the session's scratchpad directory, never in the repo. A tool screenshot whose result names the file it was saved to: copy that file. Otherwise iOS with `xcrun simctl io booted screenshot <path>`, and web by rendering the same URL, width and color scheme to a file with a headless browser on the machine (Chrome's `--headless --screenshot`, or Playwright if the project has it). No way to save one: describe the screen in the finding and say so under 沒驗證到的地方.
 - **Stop** when the agreed budget is spent, every task is done, or the Context limit is reached: before each new task, look for a `Context size:` line in this conversation saying past 200k or more; if there is one, start no more tasks.
 - Change no code, config or data of the project, the seed or example config for generated test accounts aside.
 
@@ -56,7 +56,7 @@ First stop every server, Simulator app and background process the run started, s
 Write `.scratch/<slug>/report.md`, its body in Traditional Chinese, with these sections in this order:
 
 - **設定與範圍**: the project and commit, the interface and where it ran, how it started, the agreed tasks, lenses and budget, the duration actually used, and the authorization line.
-- **觀察**: each friction point with its mark (UX or bug), where, what was expected, what happened, and its screenshot (`screenshots/<name>.png`) or the description that stands in for one. Bugs first, so they can go to debugging instead of a redesign.
+- **觀察**: each friction point with its mark (UX or bug), where, what was expected, what happened, and its screenshot (`screenshots/<name>`) or the description that stands in for one. Bugs first, so they can go to debugging instead of a redesign.
 - **建議**: ranked, each with the change, its expected effect and how confident you are (high, medium, low) and why. Recommendations only: never apply one.
 - **沒驗證到的地方**: tasks, passes or lenses not reached, screenshots that could not be saved, doubts that would have been questions, anything that could not be done.
 
