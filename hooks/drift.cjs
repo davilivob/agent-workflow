@@ -2,7 +2,8 @@
 // Drift check: one check, four entry points.
 //   --session  SessionStart hook: reads hook JSON on stdin, checks the session's repo and the kit (~/.claude/kit),
 //              and whether the repo's workflow.md is older than the kit's template; prints context for the agent,
-//              always headed by this device's Device code (from ~/.claude/device) and a reminder to set the Session title.
+//              always headed by this device's Device code (from ~/.claude/device) and a reminder to set the Session title;
+//              and, when one is due, a reminder to run a Rule audit (not Drift: never Unknown, silent when it cannot tell).
 //   --prompt   UserPromptSubmit hook: a reminder to update the Session title when the Phase or topic changes, and of the reply language;
 //              and, once per step the Context size crosses (~/.claude/compact-state.json), a reminder to make a Compact proposal.
 //   --tool     PostToolUse hook on Bash: that same Context size reminder alone, for a turn with no prompt to carry it, such as a Batch run.
@@ -141,13 +142,72 @@ function report(s, p) {
 
 const block = (title, r) => [`${title}:`, ...r.lines.map((l) => `- ${l}`), ...r.rules].join('\n');
 
-// The kit's real path, or null when there is none (only in tests: this hook runs from it) or the session's repo is the kit.
+// The kit's real path, or null when there is none (only in tests: this hook runs from it); self: the session's repo is the kit.
 async function kitDir(top) {
   let kit;
-  try { kit = fs.realpathSync(KIT); } catch { return null; }
+  try { kit = fs.realpathSync(KIT); } catch { return { kit: null, self: false }; }
   const common = async (d) => fs.realpathSync(path.resolve(d, (await git(d, ['rev-parse', '--git-common-dir'])).trim()));
-  const same = await Promise.all([common(kit), common(top)]).then(([a, b]) => a === b, () => false);
-  return same ? null : kit;
+  const self = await Promise.all([common(kit), common(top)]).then(([a, b]) => a === b, () => false);
+  return { kit, self };
+}
+
+// The rule layer, as skills/rule-audit/SKILL.md defines it: change both together. Paths are git's, with `/`.
+const KIT_CARRIED = ['workflow.md', 'issue-tracker.md', 'domain.md', 'dev-server.md'].map((f) => `docs/agents/${f}`);
+function inRuleLayer(p, self) {
+  if (/(^|\/)(node_modules|\.git)\//.test(p) || /(^|\/)\.claude\/worktrees\//.test(p)) return false;
+  if (/(^|\/)(CLAUDE|AGENTS|CONTEXT)\.md$/.test(p)) return true;
+  if (p.startsWith('docs/agents/')) return !KIT_CARRIED.includes(p);
+  if (p === 'docs/silent-failures.md' || p.startsWith('docs/adr/') || /^\.claude\/skills\/[^/]+\/SKILL\.md$/.test(p)) return true;
+  return self && (p === 'global.md' || p.startsWith('templates/') || p.startsWith('skills/'));
+}
+// Each `<rev>:<path>`'s text, from one `git cat-file --batch`.
+function blobs(cwd, specs) {
+  return new Promise((resolve, reject) => {
+    const c = execFile('git', ['cat-file', '--batch'], { cwd, env: ENV, timeout: 10000, encoding: 'buffer', maxBuffer: 1 << 26, windowsHide: true },
+      (err, out) => {
+        if (err) return reject(err);
+        const texts = [];
+        for (let i = 0; i < out.length;) {
+          const nl = out.indexOf(10, i);
+          const size = Number(/ blob (\d+)$/.exec(out.toString('utf8', i, nl))?.[1] ?? -1);
+          if (size < 0) { texts.push(''); i = nl + 1; continue; } // missing
+          texts.push(out.toString('utf8', nl + 1, nl + 1 + size));
+          i = nl + 2 + size;
+        }
+        resolve(texts);
+      });
+    c.stdin.end(specs.map((s) => `${s}\n`).join(''));
+  });
+}
+// A Rule audit is due: 30 days since the last `[rule-audit]` commit, 25% growth since it, or never and over 8k characters.
+async function auditNote(top, kit, self) {
+  // The `## ` sections /sync-workflow writes into the root CLAUDE.md from the kit's claude-section.md are not this repo's rules.
+  let synced = [];
+  try {
+    synced = fs.readFileSync(path.join(self ? top : kit, 'templates', 'claude-section.md'), 'utf8')
+      .split(/\r?\n/).filter((l) => l.startsWith('## ')).map((l) => l.trim());
+  } catch {}
+  const own = (p, text) => {
+    if (p !== 'CLAUDE.md') return text;
+    let skip = false;
+    return text.split(/\r?\n/).filter((l) => { if (/^##? /.test(l)) skip = synced.includes(l.trim()); return !skip; }).join('\n');
+  };
+  const sum = (paths, texts) => paths.reduce((n, p, i) => n + own(p, texts[i]).length, 0);
+  const list = (o) => o.split('\0').filter((p) => p && inRuleLayer(p, self));
+  const now = list(await git(top, ['ls-files', '-z', '--cached', '--others', '--exclude-standard']));
+  const size = sum(now, now.map((p) => { try { return fs.readFileSync(path.join(top, p), 'utf8'); } catch { return ''; } }));
+  const last = (await git(top, ['log', '-1', '-F', '--grep=[rule-audit]', '--format=%H %ct'])).trim();
+  const why = [];
+  if (!last) { if (size > 8000) why.push(`never run, rule layer ${size} characters`); }
+  else {
+    const [sha, at] = last.split(' ');
+    const days = Math.floor((Date.now() / 1000 - Number(at)) / 86400);
+    const then = list(await git(top, ['ls-tree', '-r', '-z', '--name-only', sha]));
+    const before = sum(then, await blobs(top, then.map((p) => `${sha}:${p}`)));
+    if (days > 30) why.push(`last one ${days} days ago`);
+    if (before && size > before * 1.25) why.push(`rule layer grew ${Math.round((size / before - 1) * 100)}% since the last one`);
+  }
+  return why.length ? `rule audit: due (${why.join(', ')}); suggest /rule-audit, do not run it` : null;
 }
 
 // The repo's workflow.md against the local kit, by content: an old-format sha (the kit's HEAD then) with today's template passes.
@@ -167,12 +227,15 @@ async function session() {
   const cwd = input.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd(); // cwd first, as in the Guard: it names the worktree
   let top;
   try { top = (await git(cwd, ['rev-parse', '--show-toplevel'])).trim(); } catch { return null; } // not a repo: nothing to say
-  const kit = await kitDir(top);
-  // In parallel: the kit's fetch shares the session repo's deadline.
-  const [s, k, t] = await Promise.all([inspect(top), kit && inspect(kit), kit && template(top, kit)]);
+  const { kit: real, self } = await kitDir(top);
+  const kit = self ? null : real;
+  // In parallel: the kit's fetch shares the session repo's deadline. The Rule audit gets 10 s of it, then says nothing.
+  const audit = Promise.race([auditNote(top, real, self).catch(() => null), new Promise((r) => setTimeout(r, 10000, null).unref())]);
+  const [s, k, t, a] = await Promise.all([inspect(top), kit && inspect(kit), kit && template(top, kit), audit]);
   const blocks = [];
   const r = report(s, policies(top));
   if (t) r.lines.push(t.line);
+  if (a) r.lines.push(a);
   if (r.lines.length) blocks.push(block(`Drift check for ${top}`, r));
   const kr = k && report(k, policies(kit)); // the kit follows its own project.md
   if (kr?.lines.length) blocks.push(block(`Drift check for the kit (${kit})`, kr));
@@ -255,6 +318,10 @@ const ZH = [
   [/^- uncommitted changes$/, '- 有未 commit 的變更'],
   [/^- workflow\.md: older than the kit's template; suggest \/sync-workflow, do not run it$/, '- workflow.md 比 kit 的範本舊，建議跑 /sync-workflow'],
   [/^- workflow\.md: Template (\w+) is not in the local kit, which may be behind$/, '- workflow.md 的 Template $1 不在本機 kit 裡，kit 可能落後'],
+  [/^- rule audit: due \((.*)\); suggest \/rule-audit, do not run it$/, '- 該做 Rule audit 了（$1），建議跑 /rule-audit'],
+  [/never run, rule layer (\d+) characters/, '從沒跑過，規則層 $1 字元'],
+  [/last one (\d+) days ago/, '距上次 $1 天'],
+  [/rule layer grew (\d+)% since the last one/, '規則層比上次多了 $1%'],
   [/^- branch (.*?): /, '- 分支 $1：'],
   [/no upstream/, '沒有 upstream'],
   [/behind (\S+) by (\d+)/, '落後 $1 $2 個 commit'],

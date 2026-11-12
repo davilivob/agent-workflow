@@ -245,6 +245,40 @@ expect(session(p), ['workflow.md: older than the kit\'s template'], false, 'new-
 const stranger = project('stranger', 'f'.repeat(40));
 expect(session(stranger), ['workflow.md: Template fffffff is not in the local kit'], false, 'sha unknown to this kit');
 
+// The Rule audit reminder: files written, committed as `msg` dated `daysAgo` back, and pushed, so the repo has no Drift.
+function rules(dir, files, msg = 'rules', daysAgo = 0) {
+  for (const [f, text] of Object.entries(files)) {
+    fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
+    fs.writeFileSync(path.join(dir, f), text);
+  }
+  const date = new Date(Date.now() - daysAgo * 86400000).toISOString();
+  sh(dir, 'add', '-A');
+  execFileSync('git', ['commit', '-q', '--allow-empty', '-m', msg], { cwd: dir, env: { ...env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date }, stdio: 'ignore' });
+  sh(dir, 'push', '-q');
+}
+const never = clone('audit-never');
+rules(never, { 'CLAUDE.md': 'x'.repeat(7000) });
+assert.strictEqual(session(never), null, 'never audited, rule layer under 8k: silent');
+rules(never, { 'sub/CLAUDE.md': 'x'.repeat(2000) });
+expect(session(never), [`Drift check for ${never}`, 'rule audit: due (never run, rule layer 9000 characters); suggest /rule-audit, do not run it'], false, 'never audited, over 8k with a nested CLAUDE.md');
+assert.ok(lastOwner.includes('該做 Rule audit 了（從沒跑過，規則層 9000 字元）'), lastOwner);
+const carried = clone('audit-carried');
+rules(carried, { 'CLAUDE.md': 'x'.repeat(100), 'docs/agents/workflow.md': 'x'.repeat(20000), 'docs/agents/project.md': 'x'.repeat(100) });
+assert.strictEqual(session(carried), null, "the kit's workflow.md is not in the rule layer");
+const recent = clone('audit-recent');
+rules(recent, { 'CLAUDE.md': 'x'.repeat(9000) }, 'rules', 50);
+rules(recent, {}, '[rule-audit] keep: everything', 5);
+assert.strictEqual(session(recent), null, 'audited 5 days ago, no growth: silent');
+const late = clone('audit-stale');
+rules(late, { 'CLAUDE.md': 'x'.repeat(100) }, '[rule-audit] trim: x', 40);
+expect(session(late), ['rule audit: due (last one 40 days ago)'], false, 'audited 40 days ago');
+assert.ok(lastOwner.includes('距上次 40 天'), lastOwner);
+const grown = clone('audit-grown');
+rules(grown, { 'CLAUDE.md': 'x'.repeat(4000) }, '[rule-audit] trim: x', 1);
+rules(grown, { 'CONTEXT.md': 'x'.repeat(2000) });
+expect(session(grown), ['rule audit: due (rule layer grew 50% since the last one)'], false, 'grown 50% since the audit');
+assert.ok(lastOwner.includes('規則層比上次多了 50%'), lastOwner);
+
 // The drift command.
 const home = path.join(T, 'home');
 fs.mkdirSync(path.join(home, '.claude'), { recursive: true });
