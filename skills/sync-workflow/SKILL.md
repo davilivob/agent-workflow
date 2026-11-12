@@ -58,7 +58,7 @@ Done when: you have a stack, a verification command or "none yet", `yes|no` for 
 
 ## 3. Update mode
 
-Classify as [`classify.md`](classify.md) says, with `W=$(mktemp -d)`; `$KIT_SHA` is the sha its in-sync row sets, and section 8 commits it.
+Classify as [`classify.md`](classify.md) says, with `W=$(mktemp -d)`. In sync with no `Template:` line: set it to `Template: $KIT_SHA`; section 8 commits it.
 
 Tell the owner which case it is, then decide every item:
 
@@ -124,6 +124,8 @@ Build each file's intended content:
 | `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command (a push that deploys reads "`git push` of `main` touching <Deploy paths> — deploys to production"; for EC2 the ending is instead "— deploys to EC2, host <host>, port <port>"; either ending then takes ", Production URL <url>, <url>" or, for "None", ", no Production URL"; and, when `ec2.md` writes the workflow, a bullet follows: "Repo secrets `SSH_KEY`, `VPS_HOST`, `VPS_USER`, `DEPLOY_PATH` — their values are set by the owner (`gh secret set`)"), or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 4. Every other line, including the `- None yet.` sections and `## Sync` with its defaults `Push: ask`, `Pull: ff` and `Request watch: studio` (ask nothing about them), stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
 | `docs/agents/issue-tracker.md`, `domain.md` | the same-named template, verbatim |
 | `CLAUDE.md` | each `## ` section of `templates/claude-section.md`: replaces the repo's section with the same heading, else is appended; every other line of the repo's `CLAUDE.md` stays |
+
+EC2 with `DEPLOY_WF` empty: one more file, as `ec2.md`'s **Write** says.
 
 Copy `workflow.md` with the shell so it stays byte-exact:
 
