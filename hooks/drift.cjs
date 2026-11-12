@@ -152,7 +152,7 @@ async function kitDir(top) {
 }
 
 // The rule layer, as skills/rule-audit/SKILL.md defines it: change both together. Paths are git's, with `/`.
-const KIT_CARRIED = ['workflow.md', 'issue-tracker.md', 'domain.md', 'dev-server.md'].map((f) => `docs/agents/${f}`);
+const KIT_CARRIED = ['workflow.md', 'issue-tracker.md', 'domain.md'].map((f) => `docs/agents/${f}`);
 function inRuleLayer(p, self) {
   if (/(^|\/)(node_modules|\.git)\//.test(p) || /(^|\/)\.claude\/worktrees\//.test(p)) return false;
   if (/(^|\/)(CLAUDE|AGENTS|CONTEXT)\.md$/.test(p)) return true;
@@ -182,17 +182,16 @@ function blobs(cwd, specs) {
 }
 // A Rule audit is due: 30 days since the last `[rule-audit]` commit, 25% growth since it, or never and over 8k characters.
 async function auditNote(top, kit, self) {
-  // The `## ` sections /sync-workflow writes into the root CLAUDE.md from the kit's claude-section.md are not this repo's rules.
+  // The `## ` sections /sync-workflow writes into the root CLAUDE.md from the kit's claude-section.md, and appends to project.md
+  // from its dev-server.md, are not this repo's rules.
   // shortcut: matched by heading, so a repo's own `## Workflow` drops out too; mark the synced block if that ever hides a due audit.
-  let synced = [];
-  try {
-    if (!self) synced = fs.readFileSync(path.join(kit, 'templates', 'claude-section.md'), 'utf8')
-      .split(/\r?\n/).filter((l) => l.startsWith('## ')).map((l) => l.trim());
-  } catch {}
+  const heads = (f) => { try { return fs.readFileSync(path.join(kit, 'templates', f), 'utf8').split(/\r?\n/).filter((l) => l.startsWith('## ')).map((l) => l.trim()); } catch { return []; } };
+  const synced = self ? {} : { 'CLAUDE.md': heads('claude-section.md'), 'docs/agents/project.md': heads('dev-server.md') };
   const own = (p, text) => {
-    if (p !== 'CLAUDE.md') return text;
+    const drop = synced[p];
+    if (!drop) return text;
     let skip = false;
-    return text.split(/\r?\n/).filter((l) => { if (/^##? /.test(l)) skip = synced.includes(l.trim()); return !skip; }).join('\n');
+    return text.split(/\r?\n/).filter((l) => { if (/^##? /.test(l)) skip = drop.includes(l.trim()); return !skip; }).join('\n');
   };
   const sum = (paths, texts) => paths.reduce((n, p, i) => n + own(p, texts[i]).length, 0);
   const list = (o) => o.split('\0').filter((p) => p && inRuleLayer(p, self));

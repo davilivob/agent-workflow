@@ -265,6 +265,11 @@ assert.ok(lastOwner.includes('該做 Rule audit 了（從沒跑過，規則層 9
 const carried = clone('audit-carried');
 rules(carried, { 'CLAUDE.md': 'x'.repeat(100), 'docs/agents/workflow.md': 'x'.repeat(20000), 'docs/agents/project.md': 'x'.repeat(100) });
 assert.strictEqual(session(carried), null, "the kit's workflow.md is not in the rule layer");
+fs.writeFileSync(path.join(kit, 'templates', 'dev-server.md'), '\n## Dev server\n\n- x\n');
+sh(kit, 'add', 'templates'); sh(kit, 'commit', '-q', '-m', 'dev-server'); sh(kit, 'push', '-q');
+const devServer = clone('audit-dev-server');
+rules(devServer, { 'docs/agents/project.md': `# Project\n\n## Sync\n\nPush: ask\n\n## Dev server\n\n${'x'.repeat(9000)}\n` });
+assert.strictEqual(session(devServer), null, "the kit's Dev server section in project.md is not in the rule layer");
 const recent = clone('audit-recent');
 rules(recent, { 'CLAUDE.md': 'x'.repeat(9000) }, 'rules', 50);
 rules(recent, {}, '[rule-audit] keep: everything', 5);
