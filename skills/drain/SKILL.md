@@ -4,7 +4,7 @@ description: Start a Batch run, which works through every spec this repo has rea
 disable-model-invocation: true
 ---
 
-A **Batch run** (`CONTEXT.md`) works through this repo's specs in one conducting session. It asks once, in section 2, and nothing more until the end. Read `docs/agents/workflow.md` and `docs/agents/project.md` first. Set the Session title's Phase to `batch`.
+A **Batch run** (`CONTEXT.md`) works through this repo's specs in one conducting session. It asks once, in section 2, and nothing more until the end. Read `docs/agents/workflow.md`, `docs/agents/project.md` and `~/.claude/kit/skills/unattended-run.md` first: from section 2's answer on, the run follows that file's **Unattended** and **End**. Set the Session title's Phase to `batch`.
 
 ## 1. List
 
@@ -42,7 +42,7 @@ The owner's answer is the sentence `workflow.md` **Say where the authorization c
 
 On start, write the order to `.scratch/batch-run` in `main`'s checkout, one slug per line. Never commit it. It is the run's Claim: another session's `/next` lists those slugs as In progress instead of offering them. Rewrite it whenever the order changes in section 3.
 
-From here on, no `AskUserQuestion` and no waiting on the owner: whatever would need the owner goes into the final message. `Push: auto`'s push after each commit does not apply either; section 4 pushes once.
+From here on the run is Unattended. `Push: auto`'s push after each commit does not apply; section 4 pushes once.
 
 Done when: the owner answered, the authorization line is written, and, on start, `.scratch/batch-run` lists the order.
 
@@ -62,7 +62,7 @@ Subagents run in the background; you are woken as each finishes and take only it
 
 **Failed** means a subagent could not finish its step, a verification did not pass, a merge could not be done, or the spec's decisions must change. The spec stops alone, and the others in flight carry on: commit any progress on its branch, add one line to its `## Comments` there, `- Batch run failed: <reason>`, set `Status` back if it says `done`, and commit. With `Worktree: no`, `git switch main`. No merge. The branch left behind is a Claim, so the next `/drain` lists it as In progress. With no branch yet, the reason goes in the final message only.
 
-**Context limit**: whenever a slot frees, after the lookups if a merge freed it and before starting the next spec, look for a `Context size:` line in this conversation saying past 200k or more (the Context size hook injects one after a Bash call; a 150k line changes nothing here). If there is one, start no more specs: every spec not started is **Left for the next run**, which is not failed, skips nothing and leaves no line anywhere. Every spec in flight finishes and merges as usual first; never cut one short for this. Then the run goes to section 4. `main` broken still wins.
+**Context limit** (`unattended-run.md`): checked whenever a slot frees, after the lookups if a merge freed it and before starting the next spec. Reached: every spec not started is **Left for the next run**, which is not failed, skips nothing and leaves no line anywhere. Every spec in flight finishes and merges as usual first; never cut one short for this. Then the run goes to section 4. `main` broken still wins.
 
 Done when: every spec in the order is merged, waiting as `manual`, failed, skipped or Left for the next run, or `main` broke and every spec in flight has handed back.
 
@@ -70,15 +70,14 @@ Done when: every spec in the order is merged, waiting as `manual`, failed, skipp
 
 Delete `.scratch/batch-run` first: the run takes no more specs, and a failed spec's branch is its own Claim. Every way out of section 3 comes through here, `main` broken included.
 
-Load `PushNotification` (`ToolSearch` with `select:PushNotification`). Right before the push, or at the end when nothing will be pushed, send one line: how many merged, how many failed, whether it pushes, and, after the Context limit, how many are left and that it needs a `/clear` or `/compact`. Send another only if the push or a Deploy check fails. If it cannot be loaded or sent, say so in the final message.
+The notification, as **End** says: how many merged, how many failed, whether it pushes, and, after the Context limit, how many are left and that it needs a `/clear` or `/compact`. Send another only if the push or a Deploy check fails.
 
 **Push** as chosen in section 2, once, in `main`'s checkout, under the Push policy, the Rebase rule and the Guard:
 
-- Compare the files with the Deploy paths as `workflow.md` says, but do not ask. "Only if no Deploy path is touched" and one is: do not push; the final message lists the matching files and the Deploy paths they match.
-- `Push: owner`: hand the command over.
+- Deploy paths and `Push: owner`: as **End** says.
 - Where the Rebase rule would ask: do not push, and say why.
 - After a push: the Deploy check and Production check, as `workflow.md` says.
 
-**The final message**, last: each spec's result (merged; `manual` with its evidence; failed or skipped with the reason; Left for the next run; after `main` broke, where each spec in flight stopped on its branch); which specs ran side by side; the Awaiting OS-bound verification list, and whether what was pushed includes a change still awaiting one; the push result; the commit list and push line of `global.md`. A Compact proposal, if one is due, goes here and nowhere earlier in the run. After the Context limit one is always due and ends the message, as `global.md` says, naming `/drain` as what to run after it for the specs left.
+**The final message**, last: each spec's result (merged; `manual` with its evidence; failed or skipped with the reason; Left for the next run; after `main` broke, where each spec in flight stopped on its branch); which specs ran side by side; the Awaiting OS-bound verification list, and whether what was pushed includes a change still awaiting one; the push result. It opens with the commit list and push line, as **End** says. A Compact proposal, if one is due, goes here and nowhere earlier in the run. After the Context limit one is always due and ends the message, as `global.md` says, naming `/drain` as what to run after it for the specs left.
 
 Done when: the push, if any, has concluded with its checks, and the final message covers every spec from section 1.
