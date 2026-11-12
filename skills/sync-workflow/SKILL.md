@@ -13,7 +13,7 @@ In a repo on the **template**, `docs/agents/workflow.md` is `~/.claude/kit/templ
 1. `git -C ~/.claude/kit status --porcelain` prints nothing. Otherwise stop: the kit has uncommitted work, so no sha describes what you would copy.
 2. `git -C ~/.claude/kit branch --show-current` prints `main`. Otherwise stop: the installed kit must be on `main`, or a sha from another branch would not exist on other devices.
 3. If `git -C ~/.claude/kit remote` prints a name, run `git -C ~/.claude/kit pull --ff-only`. On failure stop and show the owner the output.
-4. Run `sh ~/.claude/kit/setup.sh --check`. If any line it prints mentions graphify, stop and ask the owner to run `sh ~/.claude/kit/setup.sh`. Keep its `TODO:` lines for the report in section 8.
+4. Run `sh ~/.claude/kit/setup.sh --check`. If any line it prints mentions graphify, stop and ask the owner to run `sh ~/.claude/kit/setup.sh`: it installs global tools and writes `~/.claude/settings.json`, the owner's machine setup, so it stays theirs. Keep its `TODO:` lines for the report in section 8.
 5. If `git -C ~/.claude/kit remote` prints a name and `git -C ~/.claude/kit rev-list --count @{u}..HEAD` prints more than `0`, stop: the kit has commits no other device has, so a sha written now would not exist there. Offer to push the kit per `global.md` (`git -C ~/.claude/kit push`), then re-run.
 6. The target: `git branch --show-current` must print `main`; otherwise stop and say which branch it is on — the sync's commit belongs on `main`. If `git remote` prints a name and `main` has an upstream (`git rev-parse --verify -q @{u}`), `git fetch --quiet`, then `git rev-list --left-right --count main...@{u}` (ahead, behind) and `git status --porcelain`:
    - behind only, and the status is empty → `git pull --ff-only`; on failure stop and show the owner the output;
@@ -219,6 +219,6 @@ Done when: `.gitattributes` holds the four lines, and either `RENORM` was empty,
 - Nothing written (in sync, `.gitattributes` complete, no `Remote:`, `## Sync`, `Request watch:` or Production URL added): no commit, and say so.
 - After the commit (and section 7's, if any), push the target as `global.md`'s Push policy says: the sooner it is on the remote, the shorter the time another device can sync on top of a stale base.
 - EC2: the **Commit and report** of `ec2.md`.
-- List the pipeline's missing dependencies: relay verbatim the `TODO:` lines `setup.sh --check` printed in the preflight, and section 4's `gh` one; each carries its own fix. The owner runs them, not you.
+- List the pipeline's missing dependencies: relay verbatim the `TODO:` lines `setup.sh --check` printed in the preflight, and section 4's `gh` one; each carries its own fix. The owner runs them, not you: they install or remove global tools, the owner's machine setup.
 
 Report: the mode, every file written, every commit (hash and message, up front), missing dependencies, and the remote: the `Remote:` value, any warning, mismatch or non-GitHub note, and the `gh repo create` command if one is handed over.
