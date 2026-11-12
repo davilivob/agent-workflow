@@ -48,7 +48,7 @@ What an unattended probe of a running project leaves behind — `/soak-tune` tun
 _Avoid_: audit, findings, spec
 
 **Rule audit**:
-A pass over a repo's own rule layer — never the files the kit carries in — for content in the wrong file, duplicates that disagree or will silently go stale, rules handing the owner work they never asked for, and rules a tool or hook already enforces. It ends in a table the owner marks keep, trim, delete or ask item by item; the session applies the marks, and only an ask goes on to a grill. Started with `/rule-audit`; the session-open report reminds the owner when one is due.
+A pass over a repo's own rule layer — never the files the kit carries in — for content in the wrong file, duplicates that disagree or will silently go stale, rules handing the owner work they never asked for, and rules a tool or hook already enforces. It ends in a table the session marks keep, trim or delete itself and applies at once, one commit per item, so the owner overrules any mark by a revert instead of being asked. Started with `/rule-audit`; the session-open report reminds the owner when one is due.
 _Avoid_: probe, review, cleanup
 
 **Request**:
