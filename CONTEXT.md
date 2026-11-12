@@ -40,8 +40,12 @@ The path a grilled change takes to `main`: **Direct** (no spec; the grill sessio
 _Avoid_: path, track, mode
 
 **Batch run**:
-One session working through every spec a repo has ready, one after another, once the owner has confirmed the list. It asks nothing more until the end: a spec it cannot finish stays on its branch while the rest go on. Once the conducting session's Context size passes 200k it takes no new spec and finishes the run as usual, leaving the rest for the next `/drain`. Started with `/drain`.
+One session conducting every spec a repo has ready, once the owner has confirmed the list: specs the run judges safe to run together are planned and executed side by side, each on its own branch, and merged into `main` one at a time; the rest wait their turn. It asks nothing more until the end: a spec it cannot finish stays on its branch while the rest go on. Once the conducting session's Context size passes 200k it takes no new spec and finishes the run as usual, leaving the rest for the next `/drain`. Started with `/drain`.
 _Avoid_: drain (that is the command), sweep, queue, autopilot
+
+**Probe report**:
+What an unattended probe of a running project leaves behind — `/soak-tune` tuning its parameters under long or heavy load, `/ux-probe` working through its interface as a user would: observations with their evidence, and ranked recommendations. Never a decision: whatever the owner wants to adopt from it goes through a grill like any other change.
+_Avoid_: audit, findings, spec
 
 **Request**:
 A GitHub issue one repo files in another, asking it to change something. It waits there until the owner, after a Triage, applies, drops or grills it. A spec that needs it done first names it in `After:`.
@@ -120,5 +124,5 @@ The short name of the machine a session runs on (`studio`, `mbp`, `win`) — not
 _Avoid_: hostname, device name
 
 **Phase**:
-What a session is doing now, as its Session title shows it: grill, spec, plan, sdd, inline, batch, debug, triage, review, next or chat. Each pipeline step has its Phase, but a Phase also covers work outside the pipeline.
+What a session is doing now, as its Session title shows it: grill, spec, plan, sdd, inline, batch, probe, debug, triage, review, next or chat. Each pipeline step has its Phase, but a Phase also covers work outside the pipeline.
 _Avoid_: step, stage
