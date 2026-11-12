@@ -8,10 +8,6 @@ Before any work, read `docs/agents/workflow.md` and `docs/agents/project.md`. `w
 
 Issues and specs are markdown files in `.scratch/<feature-slug>/`, one directory per feature. See `docs/agents/issue-tracker.md`.
 
-### Triage labels
-
-The five canonical role names, unchanged: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`.
-
 ### Domain docs
 
 Single-context: `CONTEXT.md` at the root plus `docs/adr/`. See `docs/agents/domain.md`.
