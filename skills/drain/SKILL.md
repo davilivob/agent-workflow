@@ -12,7 +12,6 @@ Do the lookups of `workflow.md` **Continue** for this repo: Claims, then the gro
 
 - In the run: **Ready** and **Needs a plan**. A **Blocked** spec whose blocker is itself in the run joins once that one merges.
 - Left out, each with its reason: In progress, specs not committed, every other Blocked spec, Awaiting OS-bound verification, Requests.
-- What `After:` or `Overlaps: high` names is on `main` only if its spec there is `done` or awaiting OS-bound verification: `git log --grep=<slug>` alone also finds its `[<slug>] spec:` commit, and nobody is watching to catch that here.
 - Order: what `After:` and `Overlaps: high` require first, the rest by slug.
 - `.scratch/batch-run` already in `main`'s checkout: another Batch run's Claim, live or crashed. Its slugs are In progress. Report the file's modification time; never judge it stale yourself.
 - **Groups**: read each spec in the run and put it under **Together** or **Alone**. It is Alone (it waits its turn and runs by itself), with a one-sentence reason, when any of these holds:
