@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 **Interfaces**: a web interface in the built-in browser (the `mcp__Claude_Browser__*` tools), an iOS app in the Simulator (the `mcp__Claude_Code_iOS_Simulator__*` tools). Both work in the background: never open the Simulator panel or front a tab for yourself. A CLI, a TUI or a desktop app is not supported: say so in the proposal and stop.
 
-**Environment**: locally, only a local development host (`localhost`, `127.0.0.1`, `[::1]`, a name ending in `.localhost` or `.test`). Test accounts and test data: generate them, or take them from the project's seed, fixture or example-config files; write any you generate into the project's seed or example config, never repeated in chat. A real credential is never entered.
+**Environment**: locally, only a local development host (`localhost`, `127.0.0.1`, `[::1]`, a name ending in `.localhost` or `.test`). Test accounts and test data: generate them, or take them from the project's seed, fixture or example-config files; write any you generate into the seed or example config in the main checkout, never in the worktree, and never repeat them in chat. A real credential is never entered.
 
 ## 1. Propose
 
