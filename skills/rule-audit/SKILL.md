@@ -11,7 +11,7 @@ A **Rule audit** (`CONTEXT.md`) checks this repo's own rules, never the files th
 List the files, with their character counts. The Drift hook (`hooks/drift.cjs`, `inRuleLayer`) sizes the same list for its reminder: change both together.
 
 - Every `CLAUDE.md`, `AGENTS.md` and `CONTEXT.md` anywhere in the repo, outside `node_modules`, `.git` and `.claude/worktrees`.
-- Everything under `docs/agents/` except the files the kit carries in: `workflow.md`, `issue-tracker.md`, `domain.md`, `dev-server.md`. `project.md` is this repo's own and is in.
+- Everything under `docs/agents/` except the files the kit carries in: `workflow.md`, `issue-tracker.md`, `domain.md`. `project.md` is this repo's own and is in, except the `## Dev server` section `/sync-workflow` appends from the kit's `templates/dev-server.md`.
 - `docs/silent-failures.md`, `docs/adr/`, `.claude/skills/*/SKILL.md`.
 - In the kit itself (its git common dir is the one `~/.claude/kit` resolves to), also `templates/`, `skills/` and `global.md`.
 
@@ -66,7 +66,7 @@ Done when: every row has the owner's mark.
 
 ## 6. Apply
 
-- **Delete, trim**: one commit per item or per group of related items, `[rule-audit] <delete|trim>: <item>`, the reason in the body. Commits land as `workflow.md` **Commits** says; with `Worktree: yes`, in a worktree as `project.md` says.
+- **Delete, trim**: one commit per item or per group of related items, `[rule-audit] <delete|trim>: <item>`, the reason in the body. Commits land as `workflow.md` **Commits** says.
 - **Keep, deliberate**: add one short line where it stands saying why it stays as it is, so the next audit does not report it; commit it as `[rule-audit] keep: <item>`.
 - **Ask**: list them for the owner and suggest `/grill-with-docs`; change nothing for them now.
 

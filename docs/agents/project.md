@@ -12,7 +12,7 @@ Verification command:
 
 Worktree: yes
 
-`~/.claude/kit` is the installed copy every session on this device reads, and it stays on `main`. Every change is made in a worktree: `git worktree add .claude/worktrees/<slug> -b <slug> main`.
+`~/.claude/kit` is the installed copy every session on this device reads, and it stays on `main`. Every change is made in a worktree: `git worktree add .claude/worktrees/<slug> -b <slug> main`. Stricter than `workflow.md` **Commits** on purpose: an edit half-made on the main checkout is live in every session at once.
 
 ## Worktree setup and removal
 

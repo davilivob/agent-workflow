@@ -41,7 +41,7 @@ What `/soak-tune` and `/ux-probe` share; their result is a **Probe report** (`CO
 
 A run that could not start keeps the four sections: the failure and its output under 觀察, 建議 saying what would let it start.
 
-Commit the report and what the skill adds beside it as `workflow.md` **Commits** says (with `Worktree: yes`, through a worktree of its own, as that rule says), message `[<slug>] report: ...`.
+Commit the report and what the skill adds beside it as `workflow.md` **Commits** says, message `[<slug>] report: ...`.
 
 **Wrap-up**: End (above), with the push by the Push policy: `ask`, offer it in the final message; `auto`, push `main` now. The notification, after any push: the run ended, and the report's path. The final message, after the commit list and push line: the report's path and its top recommendations.
 
