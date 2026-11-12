@@ -40,7 +40,7 @@ The path a grilled change takes to `main`: **Direct** (no spec; the grill sessio
 _Avoid_: path, track, mode
 
 **Batch run**:
-One session conducting every spec a repo has ready, once the owner has confirmed the list: specs the run judges safe to run together are planned and executed side by side, each on its own branch, and merged into `main` one at a time; the rest wait their turn. It asks nothing more until the end: a spec it cannot finish stays on its branch while the rest go on. Once the conducting session's Context size passes 200k it takes no new spec and finishes the run as usual, leaving the rest for the next `/drain`. Started with `/drain`.
+One session conducting every spec a repo has ready, once the owner has confirmed the list: specs the run judges safe to run together are planned and executed side by side, each on its own branch, and merged into `main` one at a time; the rest wait their turn. It asks nothing more until the end: a spec it cannot finish stays on its branch while the rest go on. Started with `/drain`.
 _Avoid_: drain (that is the command), sweep, queue, autopilot
 
 **Probe report**:
@@ -100,7 +100,7 @@ The one repo where the owner gathers knowledge that is no repo's own, named per 
 _Avoid_: notebook, my-friend; a repo's own docs are `CONTEXT.md` or `project.md`, not its knowledge base
 
 **Note**:
-One piece of knowledge that is useful outside the repo where it was learned, written into the Knowledge base's inbox and committed there. What is the repo's own stays in the repo: a lesson in `project.md`, a Silent failure in `docs/silent-failures.md`, a workflow lesson as a Proposal. A Silent failure that is also useful outside its repo is the one thing written in both places, since each has its own reader.
+One piece of knowledge that is useful outside the repo where it was learned, written into the Knowledge base's inbox and committed there.
 _Avoid_: lesson (that is a repo's own), memo, inbox entry
 
 **Design decision**:
@@ -112,7 +112,7 @@ A decision that changes no existing behaviour. The agent makes it and writes a o
 _Avoid_: implementation detail, minor decision
 
 **Session title**:
-The name a session shows in the app's sidebar and in Remote Control: `[<Device code>] <Phase> · <topic>`, the topic being the slug once there is one. The agent sets it once the session's work is known, and again when its Phase or topic changes; right after `/clear`, until then, it is `[<Device code>] Cleared`.
+The name a session shows in the app's sidebar and in Remote Control: `[<Device code>] <Phase> · <topic>`, the topic being the slug once there is one. The agent sets it as `global.md` says.
 _Avoid_: session name, label
 
 **Context size**:
@@ -128,5 +128,5 @@ The short name of the machine a session runs on (`studio`, `mbp`, `win`) — not
 _Avoid_: hostname, device name
 
 **Phase**:
-What a session is doing now, as its Session title shows it: grill, spec, plan, sdd, inline, batch, probe, debug, triage, review, audit, next or chat. Each pipeline step has its Phase, but a Phase also covers work outside the pipeline.
+What a session is doing now, as its Session title shows it: one of the values `global.md` lists. Each pipeline step has its Phase, but a Phase also covers work outside the pipeline.
 _Avoid_: step, stage
