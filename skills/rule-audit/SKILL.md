@@ -52,7 +52,7 @@ Done when: every finding left was confirmed against its file.
 
 ## 4. Table
 
-Post the table in chat only; never write it to a file. One row per finding: kind; where (file and the first few words); characters; where it should go; why, citing the yardstick it fails; whether moving or deleting it breaks a pointer elsewhere; the mark: **delete**, **trim** or **keep**, with a one-line reason.
+Post the table in chat only; never write it to a file. One row per finding: kind; where (file and the first few words); characters; where it should go; why, citing the yardstick it fails; whether moving or deleting it breaks a pointer elsewhere; the mark: **delete**, **trim**, **keep** or **ask**, with a one-line reason.
 
 Order by how likely the rule is to make someone act wrongly: duplicates that disagree on something that affects a decision, then dead pointers, then references by number, then plain misplacement. After the table, the list from section 3 under "Looks wrong, stays".
 
@@ -60,13 +60,15 @@ Done when: the table and the "stays" list are in chat.
 
 ## 5. Marks
 
-You mark every row yourself: the owner asked not to be asked, so no `AskUserQuestion` and no grill. Two copies that disagree: keep the one that the latest commit, spec or ADR on it settled (`git log -S`), or failing that the one matching what the Guard, the Drift hook or the skill actually does, and trim the other to a pointer. Unsure between trim and keep: keep, since a kept rule costs only characters, a wrong delete costs behaviour. Every mark lands in a commit, so the owner overrules any of them afterwards with a revert.
+You mark every row yourself; the owner asked to be asked little, so no grill. Two copies that disagree: keep the one that the latest commit, spec or ADR on it settled (`git log -S`), or failing that the one matching what the Guard, the Drift hook or the skill actually does, and trim the other to a pointer. Unsure between trim and keep: keep, since a kept rule costs only characters, a wrong delete costs behaviour. Every mark lands in a commit, so the owner overrules any of them afterwards with a revert.
 
-Done when: every row has a mark and its reason.
+Mark **ask** only where a wrong guess is costly and no source settles it: two copies that disagree on a decision with neither the record nor the tools siding with one, or a rule about the owner boundary, a push or a deploy. At most four per audit, the costliest first; the rest you decide. Ask them in one `AskUserQuestion` call, one question each, your recommendation as the first option.
+
+Done when: every row has a mark and its reason, and every ask has the owner's answer.
 
 ## 6. Apply
 
-Apply right after the table, without waiting for a reply.
+Apply every row not marked ask right after the table, without waiting; each ask, once answered, as the answer's mark.
 
 - **Delete, trim**: one commit per item or per group of related items, `[rule-audit] <delete|trim>: <item>`, the reason in the body. Commits land as `workflow.md` **Commits** says.
 - **Keep, deliberate**: add one short line where it stands saying why it stays as it is, so the next audit does not report it; commit it as `[rule-audit] keep: <item>`.
