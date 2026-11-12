@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Merge: ask
 Plan: no
 Execute: inline
@@ -90,3 +90,7 @@ Overlaps: soak-tune — low: 兩份都把 `probe` 加進 `global.md` 的 Phase �
 ## Further Notes
 
 - 跟 `soak-tune` 共用 **Probe report** 的格式，但不抽共用骨架。兩個都上線之後，有重複再抽出來。
+
+## Comments
+
+- iOS 沒驗證到：hand run 只跑了 Web（玩具 app 與起不來的情況），沒有建 SwiftUI app 跑 Simulator。
