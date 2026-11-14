@@ -9,7 +9,7 @@ True in every project on every device.
 - Commit your own changes without asking: one commit per logical change, made before reporting the work as done. `git commit` always takes paths (`git commit <paths> -F -`), never relies on the index: other sessions share it.
 - Production writes and SSH belong to the owner. Hand the command over; never run it.
 - Pushes follow the repo's **Push policy**, the `Push:` line under `## Sync` in its `docs/agents/project.md` (missing, unreadable or any other value: `ask`):
-  - `ask`: push on your own initiative; the Guard asks the owner at every push, and that prompt is their consent. Offer a push when you report work as done and `main` has commits its upstream lacks, and when the session opens with a Drift report of a branch ahead.
+  - `ask`: push on your own initiative, without offering or asking first: the Guard asks the owner at every push, and that prompt is their consent and the only question (the Deploy paths question in `workflow.md` aside). Push when you report work as done and `main` has commits its upstream lacks, and when the session opens with a Drift report of a branch ahead.
   - `auto`: push `main` right after each commit on it, without offering and without waiting to report (a Batch run instead pushes once, at its end, as `/drain` says); the Guard lets a push of `main` from `main` through. Any other push is as under `ask`.
   - `owner`: every push is the owner's, and the Guard denies it: hand the command over.
 

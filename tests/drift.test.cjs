@@ -57,7 +57,7 @@ function session(cwd, source) {
   lastOwner = out.systemMessage;
   return text;
 }
-const RULES = { ask: 'ask the owner with AskUserQuestion', ff: 'without asking', push: 'offer to push',
+const RULES = { ask: 'ask the owner with AskUserQuestion', ff: 'without asking', push: 'no question before it',
   rebase: 'git pull --rebase', auto: 'without offering', owner: 'hand the push command' };
 function expect(text, has, rule, what) { // rule: a key of RULES, a list of them, or false
   const want = [rule].flat().filter(Boolean);
@@ -141,7 +141,7 @@ const wt = path.join(d, '.claude', 'worktrees', 'x');
 sh(d, 'worktree', 'add', '-q', wt, '-b', 'x');
 expect(session(wt), ['branch x: no upstream', 'branch main: behind origin/main by 1'], 'ff', 'worktree, main behind');
 d = clone('diverged'); advance(d); commit(d, 'y.txt');
-expect(session(d), ['branch main: behind origin/main by 1, ahead of origin/main by 1'], 'ask', 'diverged: asks, never offers a push');
+expect(session(d), ['branch main: behind origin/main by 1, ahead of origin/main by 1'], 'ask', 'diverged: asks, never pushes');
 d = clone('wt-ahead'); commit(d, 'z.txt');
 const wtAhead = path.join(d, '.claude', 'worktrees', 'x');
 sh(d, 'worktree', 'add', '-q', wtAhead, '-b', 'x');
@@ -219,7 +219,7 @@ fs.writeFileSync(path.join(kit, 'scratch.txt'), 'x');
 expect(session(p), ['Drift check for the kit (', 'uncommitted changes'], 'ask', 'kit behind, dirty');
 fs.rmSync(path.join(kit, 'scratch.txt')); sh(kit, 'pull', '-q', '--ff-only');
 commit(kit, 'k.txt');
-expect(session(p), [`Drift check for the kit (${kit})`, 'branch main: ahead of origin/main by 1'], 'push', 'kit ahead: real path shown, push offered');
+expect(session(p), [`Drift check for the kit (${kit})`, 'branch main: ahead of origin/main by 1'], 'push', 'kit ahead: real path shown, pushed');
 const kitUrl = execFileSync('git', ['remote', 'get-url', 'origin'], { cwd: kit, encoding: 'utf8' }).trim();
 sh(kit, 'remote', 'set-url', 'origin', path.join(T, 'gone.git'));
 expect(session(p), ['Drift check for the kit (', 'Unknown: fetch failed'], 'ask', 'kit unreachable');
