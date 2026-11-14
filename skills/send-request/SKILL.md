@@ -17,7 +17,7 @@ Owner/repo of a checkout: `git -C <dir> remote get-url origin | sed -E 's#\.git$
    - GitHub: `gh repo view <target> --json nameWithOwner`.
    - Gitea: `tea logins list` must show a login whose URL is that host; use its name as `<login>` and `<owner>/<repo>` as `<slug>`. None: stop and hand the owner the login commands that rule gives. Then `tea issues list -r <slug> -l <login> --state open --limit 1`.
 
-   On failure (CLI not installed, not logged in, offline, no access) stop and show the output; never fall back to another channel.
+   On failure (CLI not installed, not logged in, offline, no access) stop and show the output.
 3. **From**: the source repo's owner/repo (no origin: the directory name of `git rev-parse --show-toplevel`) and `git rev-parse --short HEAD`.
 4. Target and From are the same repo: stop and say so; work there directly.
 

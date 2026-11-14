@@ -56,7 +56,7 @@ A GitHub or Gitea issue one repo files in another, asking it to change something
 _Avoid_: issue (that is a local ticket under a spec), ticket, dispatch
 
 **Channel**:
-The CLI a repo's issues are read and written through: `gh` when its origin is on `github.com`, `tea` when it is on any other host (a self-hosted Gitea). Requests are read and closed through the repo's own Channel, and filed through the target's.
+The CLI a repo's issues are read and written through: `gh` when its origin is on `github.com`, `tea` when it is on any other host (a self-hosted Gitea). A repo lists and closes its Requests, and checks a cross-repo `After:`, through its own Channel; `/send-request` files one through the target's.
 _Avoid_: forge, provider, backend
 
 **Proposal**:
