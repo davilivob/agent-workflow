@@ -52,7 +52,7 @@ A pass over a repo's own rule layer — never the files the kit carries in — f
 _Avoid_: probe, review, cleanup
 
 **Request**:
-A GitHub issue one repo files in another, asking it to change something. It waits there until the owner, after a Triage, applies, drops or grills it. A spec that needs it done first names it in `After:`.
+A GitHub or Gitea issue one repo files in another, asking it to change something. It waits there until the owner, after a Triage, applies, drops or grills it. A spec that needs it done first names it in `After:`.
 _Avoid_: issue (that is a local ticket under a spec), ticket, dispatch
 
 **Proposal**:

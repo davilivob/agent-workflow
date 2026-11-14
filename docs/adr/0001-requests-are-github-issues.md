@@ -11,3 +11,7 @@ A Proposal used to be a file committed straight onto the kit's `main` in `inbox/
 
 - Filing or reading a Request needs network access and an authenticated `gh`; when it is unavailable, Continue shows the Requests group as Unknown, never as empty.
 - The kit now depends on GitHub for its own change intake; moving the kit off GitHub means bringing this back.
+
+## Amendment 2026-11-14: Gitea targets
+
+A repo hosted on a self-hosted Gitea (the owner's company repos) is the same rule on another host: `/send-request` files the Request there with `tea`. Only filing was extended. Continue's Requests group, Triage's Drop and Request watch still read through `gh`, so a repo on Gitea that runs the kit sees its Requests group as Unknown until those are extended too.

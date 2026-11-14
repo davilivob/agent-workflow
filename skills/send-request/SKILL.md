@@ -1,19 +1,23 @@
 ---
 name: send-request
-description: File a Request — a GitHub issue in another repo asking it to change something, or a Proposal to the kit — after the owner reviews each one.
+description: File a Request — a GitHub or Gitea issue in another repo asking it to change something, or a Proposal to the kit — after the owner reviews each one.
 disable-model-invocation: true
 ---
 
-A **Request** is a GitHub issue one repo files in another, asking it to change something; a **Proposal** is a Request to the kit (`~/.claude/kit`), brought back from the repo where it was tried first. The target repo's Triage decides what happens to it (the **Requests** section of `workflow.md`). This skill drafts, shows the owner, and sends only what the owner agreed to; it changes no file in either repo.
+A **Request** is a GitHub or Gitea issue one repo files in another, asking it to change something; a **Proposal** is a Request to the kit (`~/.claude/kit`), brought back from the repo where it was tried first. The target repo's Triage decides what happens to it (the **Requests** section of `workflow.md`). This skill drafts, shows the owner, and sends only what the owner agreed to; it changes no file in either repo.
 
-**Input**: the target (`owner/repo`, or `kit`) and what to ask, in the owner's words (in chat or as the argument), or draft files from `generate-kit-proposal` (target: the kit).
+**Input**: the target (`owner/repo` on GitHub, `https://<host>/<owner>/<repo>` on a Gitea, or `kit`) and what to ask, in the owner's words (in chat or as the argument), or draft files from `generate-kit-proposal` (target: the kit).
 
 ## 1. Repos
 
 Owner/repo of a checkout: `git -C <dir> remote get-url origin | sed -E 's#\.git$##; s#.*[:/]([^/:]+/[^/:]+)$#\1#'`.
 
 1. **Target**: the owner/repo given; `kit` means the kit's origin. No origin for the kit: stop and say so.
-2. `gh repo view <target> --json nameWithOwner`. On failure (`gh` not installed, not logged in, offline, no access) stop and show the output; never fall back to another channel.
+2. **Channel**: a target URL on a host other than `github.com` is a **Gitea** target, sent with `tea`; any other target is GitHub, sent with `gh`. Every command below has a form for each; the target's channel is the only one used.
+   - GitHub: `gh repo view <target> --json nameWithOwner`.
+   - Gitea: `tea logins list` must show a login whose URL is that host; use its name as `<login>` and `<owner>/<repo>` as `<slug>`. None: stop and hand the owner `brew install tea` and `tea login add --name <host> --url https://<host> --token <token>` (the token from the Gitea's Settings > Applications is the owner's to type; add `--insecure` only if the owner says the host's certificate is not trusted). Then `tea issues list -r <slug> -l <login> --state open --limit 1`.
+
+   On failure (CLI not installed, not logged in, offline, no access) stop and show the output; never fall back to another channel.
 3. **From**: the source repo's owner/repo (no origin: the directory name of `git rev-parse --show-toplevel`) and `git rev-parse --short HEAD`.
 4. Target and From are the same repo: stop and say so; work there directly.
 
@@ -47,7 +51,7 @@ From: <owner/repo> @ <short sha>
 - Body in Traditional Chinese; the headings and `CONTEXT.md` terms stay in English. The title in the reply language.
 - **Why** and **Tried** hold only what the source repo shows (commit messages, the text, `git log -S'<text>'` for since when) or what the owner said. Anything else is a `TODO(owner): <the question>` line, never a guess.
 - **Touches**, for the kit: a lesson from a repo's `project.md` usually lands in `templates/workflow.md`, and one that is really a per-repo value in `templates/project.md` as a new field.
-- **Duplicate**: `gh issue list -R <target> --state open --limit 200 --json number,title,body`. A draft that asks what one of them asks is marked `duplicate of #<n>`.
+- **Duplicate**: `gh issue list -R <target> --state open --limit 200 --json number,title,body`; Gitea: `tea issues list -r <slug> -l <login> --state open --limit 200 -o json -f index,title,body`. A draft that asks what one of them asks is marked `duplicate of #<n>`.
 
 Done when: every idea is one draft with every field filled or marked `TODO(owner)`.
 
@@ -67,7 +71,7 @@ Done when: every draft is sent, commented, or dropped.
 
 Write each body to a file under the session's scratchpad directory, then:
 
-- send: `gh issue create -R <target> --title '<title>' --body-file <file>`
-- comment: `gh issue comment <n> -R <target> --body-file <file>`
+- send: `gh issue create -R <target> --title '<title>' --body-file <file>`; Gitea: `tea issues create -r <slug> -l <login> -t '<title>' --description-file <file>`
+- comment: `gh issue comment <n> -R <target> --body-file <file>`; Gitea: no comment command has been verified, so hand the owner the file's text and the issue's URL to post it themselves.
 
-Report each URL `gh` prints. A spec in the source repo that waits on it can now say `After: <target>#<n>`.
+Report each URL `gh` or `tea` prints. A spec in the source repo that waits on it can now say `After: <target>#<n>`.

@@ -109,7 +109,7 @@ One line each: slug, one sentence on what it is, `Merge:`. Whatever another sess
 
 ## Requests
 
-A **Request** is a GitHub issue one repo files in another, asking it to change something; a **Proposal** is a Request to the kit. It lives in the repo it asks to change, so filing one commits nothing anywhere. File one with `/send-request`: the owner sees its title and full body, and agrees, before it is sent.
+A **Request** is a GitHub or Gitea issue one repo files in another, asking it to change something; a **Proposal** is a Request to the kit. It lives in the repo it asks to change, so filing one commits nothing anywhere. File one with `/send-request`: the owner sees its title and full body, and agrees, before it is sent.
 
 A Request the owner picks (from Continue, or by its number) gets a **Triage** first, not a grill. In plain words, one short block each: what it says; why (what the source repo ran into); what in this repo it would touch; and a recommended verdict with a one-line reason — any conflict with a rule here or another Request goes in that reason. Ask for the verdict with `AskUserQuestion`, and change nothing until the owner picks:
 
