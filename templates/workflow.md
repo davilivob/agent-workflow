@@ -117,8 +117,6 @@ A Request the owner picks (from Continue, or by its number) gets a **Triage** fi
 - **Drop**: `gh issue close <n> --comment "<the owner's reason>"`. The owner's pick is the consent to close it.
 - **Grill**: list the decisions the owner has to make, and stop; the owner runs `/grill-with-docs <the Request's URL>` by hand. Its spec carries `Request: #<n>`.
 
-The **Request watch**: the device `project.md` names in `Request watch:` runs `/request-watch` hourly, with nobody at the machine. It triages each new Request and applies it as Apply above, unattended, only when the owner filed it in the `/send-request` format and it is applied as written. It stops at local `main`: no push, no Deploy check. It skips a repo whose `main` is behind, diverged or Unknown, or that is dirty or Claimed. Everything else it only tells the owner about, and it never touches the issue.
-
 ## Spec and Plan
 
 - **Spec**: the decision record of one feature: what, why, what was decided, how it is verified. The only document the owner reviews. Direct has none; the owner accepts the diff instead.

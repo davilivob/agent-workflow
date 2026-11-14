@@ -75,15 +75,15 @@ Apply:
 1. Template-side items: edit the repo's `docs/agents/workflow.md`.
 2. If step 1 changed anything, or the first line is not a `Template:` line, set the first line to `Template: $KIT_SHA` (insert it if missing). Otherwise leave the first line alone.
 
-`project.md` is not compared with any template; section 4 reads its `Remote:` line and adds one if it is missing, and the steps below may add `## Sync` and a Production URL.
+`project.md` is not compared with any template; section 4 reads its `Remote:` line and adds one if it is missing, and the steps below may add `## Sync` and a Production URL, or delete a `Request watch:` line.
 
 **Sync**: if `docs/agents/project.md` has no `## Sync` heading, add the template's `## Sync` section, heading, text and the defaults `Push: ask` and `Pull: ff`, placed as in `templates/project.md`: right before `## Rules and lessons`, or at the end when there is none. Ask nothing; section 8 commits it. A `## Sync` already there is neither read nor changed, except for the line below.
 
-**Request watch**: if `## Sync` exists but has no line starting `Request watch:`, add `Request watch: studio` as its last value line. Ask nothing; section 8 commits it. An existing `Request watch:` line is neither read nor changed. A `## Sync` added whole by the paragraph above already carries it.
+**Request watch**: if `## Sync` has a line starting `Request watch:`, delete that line; the Request watch is gone. Ask nothing; section 8 commits it.
 
 **Production URL**: if an owner-boundary entry of `docs/agents/project.md` contains `deploys to` but not `Production URL` (which `no Production URL` contains too), ask one `AskUserQuestion` for that entry: "Other" lists one or more URLs, comma-separated, or "None". Append `, Production URL <url>, <url>` or `, no Production URL` to the entry's end; section 8 commits it, and the report shows the entry. An entry that already has either is not asked about.
 
-Done when: every item has a decision, `docs/agents/project.md` has `## Sync` and a `Request watch:` line, every entry that deploys has a Production URL or `no Production URL`, and `tail -n +2 docs/agents/workflow.md | diff --strip-trailing-cr - ~/.claude/kit/templates/workflow.md` shows only the items kept as is — list those for the owner; they will be reported as ahead next time, and `/generate-kit-proposal` is how one reaches the kit.
+Done when: every item has a decision, `docs/agents/project.md` has `## Sync` and no `Request watch:` line, every entry that deploys has a Production URL or `no Production URL`, and `tail -n +2 docs/agents/workflow.md | diff --strip-trailing-cr - ~/.claude/kit/templates/workflow.md` shows only the items kept as is — list those for the owner; they will be reported as ahead next time, and `/generate-kit-proposal` is how one reaches the kit.
 
 ## 4. Remote (every mode)
 
@@ -121,7 +121,7 @@ Build each file's intended content:
 | Repo file | Content |
 | --- | --- |
 | `docs/agents/workflow.md` | `Template: $KIT_SHA` line, then `templates/workflow.md` |
-| `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command (a push that deploys reads "`git push` of `main` touching <Deploy paths> — deploys to production"; for EC2 the ending is instead "— deploys to EC2, host <host>, port <port>"; either ending then takes ", Production URL <url>, <url>" or, for "None", ", no Production URL"; and, when `ec2.md` writes the workflow, a bullet follows: "Repo secrets `SSH_KEY`, `VPS_HOST`, `VPS_USER`, `DEPLOY_PATH` — their values are set by the owner (`gh secret set`)"), or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 4. Every other line, including the `- None yet.` sections and `## Sync` with its defaults `Push: ask`, `Pull: ff` and `Request watch: studio` (ask nothing about them), stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
+| `docs/agents/project.md` | `templates/project.md` with its four placeholder lines replaced: `{{VERIFY}}` → the command in backticks (Unity: a bullet per OS; "None yet": `- None yet.`), `{{WORKTREE}}` → `Worktree: yes` or `Worktree: no`, `{{PRODUCTION}}` → one bullet per command (a push that deploys reads "`git push` of `main` touching <Deploy paths> — deploys to production"; for EC2 the ending is instead "— deploys to EC2, host <host>, port <port>"; either ending then takes ", Production URL <url>, <url>" or, for "None", ", no Production URL"; and, when `ec2.md` writes the workflow, a bullet follows: "Repo secrets `SSH_KEY`, `VPS_HOST`, `VPS_USER`, `DEPLOY_PATH` — their values are set by the owner (`gh secret set`)"), or `- None yet.`, `{{REMOTE}}` → the `Remote:` line from section 4. Every other line, including the `- None yet.` sections and `## Sync` with its defaults `Push: ask` and `Pull: ff` (ask nothing about them), stays as the template has it for the owner to fill later. Web stack: `templates/dev-server.md` appended |
 | `docs/agents/issue-tracker.md`, `domain.md` | the same-named template, verbatim |
 | `CLAUDE.md` | each `## ` section of `templates/claude-section.md`: replaces the repo's section with the same heading, else is appended; every other line of the repo's `CLAUDE.md` stays |
 
@@ -215,8 +215,8 @@ Done when: `.gitattributes` holds the four lines, and either `RENORM` was empty,
 
 ## 8. Commit and report
 
-- Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update; `, add Remote: to project.md` appended when section 4 wrote it, `, add Production URL to project.md` when section 3 did, `, add Sync to project.md` when section 3 added `## Sync`, `, add Request watch to project.md` when section 3 added only that line).
-- Nothing written (in sync, `.gitattributes` complete, no `Remote:`, `## Sync`, `Request watch:` or Production URL added): no commit, and say so.
+- Commit in the target repo only the paths this run wrote, minus any the repo ignores (`git check-ignore -q <path>`; `git add` refuses them — name them in the report as local only): `git add <paths> && git commit <paths> -m "Set up agent workflow from kit <short sha>"` (new, existing) or `git add <paths> && git commit <paths> -m "Sync workflow.md with kit <short sha>"` (update; `, add Remote: to project.md` appended when section 4 wrote it, `, add Production URL to project.md` when section 3 did, `, add Sync to project.md` when section 3 added `## Sync`, `, remove Request watch from project.md` when section 3 deleted that line).
+- Nothing written (in sync, `.gitattributes` complete, no `Remote:`, `## Sync` or Production URL added, no `Request watch:` deleted): no commit, and say so.
 - After the commit (and section 7's, if any), push the target as `global.md`'s Push policy says: the sooner it is on the remote, the shorter the time another device can sync on top of a stale base.
 - EC2: the **Commit and report** of `ec2.md`.
 - List the pipeline's missing dependencies: relay verbatim the `TODO:` lines `setup.sh --check` printed in the preflight, and section 4's `gh` one; each carries its own fix. The owner runs them, not you: they install or remove global tools, the owner's machine setup.
