@@ -54,7 +54,7 @@ Request watch（每小時在 studio 無人值守跑 `/request-watch`，自動 Tr
 
 - 好的測試只看外部行為：`drift` 各模式的輸出與 exit code、`/sync-workflow` 實際寫出的檔案與 commit，不看函式內部。
 - Verification command：`sh tests/setup.test.sh && node tests/guard.test.cjs && node tests/drift.test.cjs`，刪掉 watch 測試後全部通過。
-- 殘留檢查：在 kit 根目錄 grep `Request watch`、`request-watch`、`--watch`（大小寫不拘），排除 `.scratch/` 與 ADR 0001 那句「已移除」的說明，應該沒有結果。
+- 殘留檢查：在 kit 根目錄 grep `Request watch`、`request-watch`、`--watch`（大小寫不拘），排除 `.scratch/`、ADR 0001 那句「已移除」的說明，以及 `/sync-workflow` 裡刪除舊 `Request watch:` 行的規則本身，應該沒有結果。
 - 手動跑 skill（kit 對 skill／模板改動的既有作法）：在 session 的 scratchpad 建一個一次性 repo，`docs/agents/workflow.md` 是舊版模板、`docs/agents/project.md` 的 `## Sync` 有 `Request watch: studio`，跑 `/sync-workflow` 的 update 模式，確認該行被刪、其他行不變、commit 訊息帶 `, remove Request watch from project.md`；再對一個沒有該行的一次性 repo 跑一次，確認不產生 commit（工作流程已同步時）。保留輸出作為證據。
 
 ## Out of Scope

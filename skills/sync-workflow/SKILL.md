@@ -77,7 +77,7 @@ Apply:
 
 `project.md` is not compared with any template; section 4 reads its `Remote:` line and adds one if it is missing, and the steps below may add `## Sync` and a Production URL, or delete a `Request watch:` line.
 
-**Sync**: if `docs/agents/project.md` has no `## Sync` heading, add the template's `## Sync` section, heading, text and the defaults `Push: ask` and `Pull: ff`, placed as in `templates/project.md`: right before `## Rules and lessons`, or at the end when there is none. Ask nothing; section 8 commits it. A `## Sync` already there is neither read nor changed, except for the line below.
+**Sync**: if `docs/agents/project.md` has no `## Sync` heading, add the template's `## Sync` section, heading, text and the defaults `Push: ask` and `Pull: ff`, placed as in `templates/project.md`: right before `## Rules and lessons`, or at the end when there is none. Ask nothing; section 8 commits it. A `## Sync` already there is neither read nor changed, except as the paragraph below says.
 
 **Request watch**: the Request watch is gone. If `## Sync` has a line starting `Request watch:`, delete that line, and delete from its text the sentence that starts `` `Request watch:` is the Device code`` (the older template's). Ask nothing; section 8 commits it.
 
