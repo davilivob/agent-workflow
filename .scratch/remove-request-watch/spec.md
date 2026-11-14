@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Merge: auto
 Plan: no
 Execute: inline
