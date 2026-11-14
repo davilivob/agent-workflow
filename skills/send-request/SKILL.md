@@ -13,9 +13,9 @@ A **Request** is a GitHub or Gitea issue one repo files in another, asking it to
 Owner/repo of a checkout: `git -C <dir> remote get-url origin | sed -E 's#\.git$##; s#.*[:/]([^/:]+/[^/:]+)$#\1#'`.
 
 1. **Target**: the owner/repo given; `kit` means the kit's origin. No origin for the kit: stop and say so.
-2. **Channel**: a target URL on a host other than `github.com` is a **Gitea** target, sent with `tea`; any other target is GitHub, sent with `gh`. Every command below has a form for each; the target's channel is the only one used.
+2. **Channel**: the target's, by the **Channel** rule in the **Requests** section of `workflow.md`, applied to the target's host instead of this repo's origin, so a **Gitea** target is sent with `tea` and a GitHub one with `gh`. Every command below has a form for each.
    - GitHub: `gh repo view <target> --json nameWithOwner`.
-   - Gitea: `tea logins list` must show a login whose URL is that host; use its name as `<login>` and `<owner>/<repo>` as `<slug>`. None: stop and hand the owner `brew install tea` and `tea login add --name <host> --url https://<host> --token <token>` (the token from the Gitea's Settings > Applications is the owner's to type; add `--insecure` only if the owner says the host's certificate is not trusted). Then `tea issues list -r <slug> -l <login> --state open --limit 1`.
+   - Gitea: `tea logins list` must show a login whose URL is that host; use its name as `<login>` and `<owner>/<repo>` as `<slug>`. None: stop and hand the owner the login commands that rule gives. Then `tea issues list -r <slug> -l <login> --state open --limit 1`.
 
    On failure (CLI not installed, not logged in, offline, no access) stop and show the output; never fall back to another channel.
 3. **From**: the source repo's owner/repo (no origin: the directory name of `git rev-parse --show-toplevel`) and `git rev-parse --short HEAD`.

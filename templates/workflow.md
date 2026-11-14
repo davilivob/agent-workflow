@@ -43,7 +43,7 @@ Step 1 is every Route's; steps 2–4 are Inline's and SDD's. One new session per
 When one grill splits into several specs, or a new spec intersects another spec that has not merged yet, write the relationship at the top of the spec. A Direct change in progress counts too: a slug with a Claim but no spec. First decide which kind it is:
 
 - **A real dependency**: this spec uses the other one's code, schema or decisions. Write `After: <slug>`. **Before writing its plan or starting it, confirm that one is already on `main`**: its spec there (`git show main:.scratch/<slug>/spec.md`) reads `Status: done` or carries an `Awaiting OS-bound verification` line; its `[<slug>] spec:` commit alone does not count. A Direct change, having no spec, is on `main` once its commits are: `git log main --oneline --grep=<slug>`. If not, wait.
-  - **In another repo**: write `After: <owner/repo>#<n>`, the Request filed there (see **Requests**). It counts as on `main` once `gh issue view <n> -R <owner/repo> --json state` says `CLOSED`. If that call fails, it is Unknown: never treat it as closed.
+  - **In another repo**: write `After: <owner/repo>#<n>`, the Request filed there (see **Requests**). It counts as on `main` once its state, read through this repo's **Channel** (see **Requests**), is closed: `gh issue view <n> -R <owner/repo> --json state` says `CLOSED`; Gitea: `tea issues <n> -r <owner/repo> -l <login> --comments=false -o json` says `"state": "closed"`. If that call fails or there is no login, it is Unknown: never treat it as closed.
 - **Only touching the same file**: not a dependency; do not queue because of it. Look at which parts of the file each spec will change, assess the merge-conflict risk, and write `Overlaps: <slug> — low|medium|high: <one-sentence reason>`:
   - **Low** (different blocks of the same file, each adding its own things): does not block; run in parallel; the note is enough.
   - **Medium** (both change the same block, but the intents are separable): does not block; run in parallel. Write the merge resolution in the spec: the spec that merges later resolves it, which part follows whom, and which verification to run after resolving.
@@ -90,7 +90,7 @@ What is said in chat that changes what gets built goes into its file in the same
 
 Any text in the same message besides "continue" is background, not authorization. Mentioning a slug only tells you its state — in particular "X just started" means **leave X alone**; it belongs to another session, and you are not being asked to take it over. If you cannot tell what it wants, ask; do not pick something and start.
 
-Scan `.scratch/*/spec.md` (committed ones only) and list six groups, the last from GitHub. First look for each slug's **Claim**, the trace that a session is working on it; a Claim with no spec is a Direct change and goes under In progress too:
+Scan `.scratch/*/spec.md` (committed ones only) and list six groups, the last from this repo's issues. First look for each slug's **Claim**, the trace that a session is working on it; a Claim with no spec is a Direct change and goes under In progress too:
 
 - Writing the plan: `.scratch/<slug>/plan.md` exists but is not committed.
 - Executing: `git worktree list` shows `.claude/worktrees/<slug>`, or a branch named `<slug>` exists.
@@ -103,7 +103,7 @@ The groups:
 - **Ready**: has `plan.md` (or `Plan: no`), `Status` not yet `done`, no `Awaiting OS-bound verification` line, and whatever `After:` names is already on `main`. Low or medium `Overlaps:` still count as Ready; note after them whom they overlap and at what risk.
 - **Blocked**: would be Needs a plan or Ready, but what `After:` (or `Overlaps: high`) names is not on `main` yet; say which one it waits for, whether it is a real dependency or a high conflict risk, and whether it still needs a plan. An `After:` Request whose state is Unknown goes here too, marked Unknown.
 - **Awaiting OS-bound verification**: specs on `main` with `Status` not `done` and an `Awaiting OS-bound verification (<os>)` line, on every device, here and in no other group. One line each: slug, the awaiting commands, and whether this device can run them.
-- **Requests**: the open Requests in this repo, from `gh issue list --state open --json number,createdAt,body`. One line each: number, date opened, its `From:` and the first sentence of its `## What`. If `gh` fails (not installed, not logged in, offline, origin not on GitHub), the group is Unknown, never empty. A Request the owner picks gets a Triage (see **Requests**). An open Request with a `Fixes #<n>` commit on local `main` (`git log main -E --grep='Fixes #<n>([^0-9]|$)'`) is listed as `applied, awaiting push` and not offered for Triage.
+- **Requests**: the open Requests in this repo, read through its **Channel** (see **Requests**): `gh issue list --state open --json number,createdAt,body`; Gitea: `tea issues list -r <slug> -l <login> --state open --limit 200 -o json -f index,created,body` (`index` and `created` are `gh`'s `number` and `createdAt`). One line each: number, date opened, its `From:` and the first sentence of its `## What`. If the CLI fails (not installed, not logged in or no matching login, offline, no access), the group is Unknown, never empty; with no matching login, add the login commands from **Requests**. A Request the owner picks gets a Triage (see **Requests**). An open Request with a `Fixes #<n>` commit on local `main` (`git log main -E --grep='Fixes #<n>([^0-9]|$)'`) is listed as `applied, awaiting push` and not offered for Triage.
 
 One line each: slug, one sentence on what it is, `Merge:`. Whatever another session is already working on goes under In progress: a Claim, or the owner saying so. Start only after the owner picks.
 
@@ -111,10 +111,12 @@ One line each: slug, one sentence on what it is, `Merge:`. Whatever another sess
 
 A **Request** is a GitHub or Gitea issue one repo files in another, asking it to change something; a **Proposal** is a Request to the kit. It lives in the repo it asks to change, so filing one commits nothing anywhere. File one with `/send-request`: the owner sees its title and full body, and agrees, before it is sent.
 
+A repo's **Channel** is the CLI its issues are read and written through, the only one used, never falling back to the other. Origin on a host other than `github.com` is **Gitea**, through `tea`: `<login>` is the name of the login in `tea logins list` whose URL is that host, and `<slug>` is origin's `<owner>/<repo>`. Any other origin is GitHub, through `gh`. No matching login is Unknown: hand the owner "install tea" and `tea login add --name <host> --url https://<host> --token <token>` (the token, from the Gitea's Settings > Applications, is the owner's to type; add `--insecure` only if the owner says the host's certificate is not trusted).
+
 A Request the owner picks (from Continue, or by its number) gets a **Triage** first, not a grill. In plain words, one short block each: what it says; why (what the source repo ran into); what in this repo it would touch; and a recommended verdict with a one-line reason — any conflict with a rule here or another Request goes in that reason. Ask for the verdict with `AskUserQuestion`, and change nothing until the owner picks:
 
 - **Apply**: no design decision for the owner, so it is a small change the grill rule exempts. Pick a slug as for Direct and make the change as usual, with verification and no spec. The last commit's message carries `Fixes #<n>`, so the Request closes when that commit is pushed to the default branch (see `global.md` for when to push).
-- **Drop**: `gh issue close <n> --comment "<the owner's reason>"`. The owner's pick is the consent to close it.
+- **Drop**: `gh issue close <n> --comment "<the owner's reason>"`; Gitea: `tea comments <n> -r <slug> -l <login> "<the owner's reason>"`, then `tea issues close <n> -r <slug> -l <login>`. The owner's pick is the consent to close it.
 - **Grill**: list the decisions the owner has to make, and stop; the owner runs `/grill-with-docs <the Request's URL>` by hand. Its spec carries `Request: #<n>`.
 
 ## Spec and Plan

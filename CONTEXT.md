@@ -55,6 +55,10 @@ _Avoid_: probe, review, cleanup
 A GitHub or Gitea issue one repo files in another, asking it to change something. It waits there until the owner, after a Triage, applies, drops or grills it. A spec that needs it done first names it in `After:`.
 _Avoid_: issue (that is a local ticket under a spec), ticket, dispatch
 
+**Channel**:
+The CLI a repo's issues are read and written through: `gh` when its origin is on `github.com`, `tea` when it is on any other host (a self-hosted Gitea). Requests are read and closed through the repo's own Channel, and filed through the target's.
+_Avoid_: forge, provider, backend
+
 **Proposal**:
 A Request to the kit, brought back from another repo where it was tried first. A session outside the kit files a Proposal instead of editing the kit.
 _Avoid_: feedback, suggestion, inbox
