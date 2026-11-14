@@ -72,6 +72,6 @@ Done when: every draft is sent, commented, or dropped.
 Write each body to a file under the session's scratchpad directory, then:
 
 - send: `gh issue create -R <target> --title '<title>' --body-file <file>`; Gitea: `tea issues create -r <slug> -l <login> -t '<title>' --description-file <file>`
-- comment: `gh issue comment <n> -R <target> --body-file <file>`; Gitea: no comment command has been verified, so hand the owner the file's text and the issue's URL to post it themselves.
+- comment: `gh issue comment <n> -R <target> --body-file <file>`; Gitea: `tea comments <n> -r <slug> -l <login> -d "$(cat <file>)"`
 
 Report each URL `gh` or `tea` prints. A spec in the source repo that waits on it can now say `After: <target>#<n>`.
