@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Merge: auto
 Plan: no
 Execute: inline
@@ -71,3 +71,4 @@ After: remove-request-watch
 - 來源：Request #8，From `2ENTER/Entropy @ 8c7bb2e`，2026-11-14。
 - 2026-11-14 grill 的決定：`After:` 用本 repo origin 的 host（不帶 host 前綴）；Channel 以 `workflow.md` 為唯一出處；沒有 login 時附登入指令；Request watch 不擴充而是另案刪除。
 - 最後一個 commit 設 `Status: done` 並帶 `Fixes #8`。
+- 手動驗證證據（2026-11-14，tea 0.16.0）：1. Entropy clone 照 Requests 組規則列出 `55 2026-11-14T07:53:23Z From: davilivob/my-friend @ 90461be`；2. origin `https://gitea.nowhere.example/a/b.git` 沒有相符 login → Unknown，附 `tea login add --name gitea.nowhere.example --url https://gitea.nowhere.example --token <token>`；3. kit（GitHub）`gh issue list` 照舊列出 #8；4. `tea comments <n> [<body>]` 與 `tea issues close <n>` 跟 help 一致；5. `tea issues 52|55 -r 2ENTER/Entropy -l gitea.2enter.art --comments=false -o json` 的 `state` 分別是 `closed`、`open`。
