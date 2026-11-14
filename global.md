@@ -3,6 +3,7 @@
 True in every project on every device.
 
 - Reply in Traditional Chinese (繁體中文, never Simplified) in every message, including short progress notes between tool calls and summaries after long tool output. Code, commit messages and glossary terms stay in their original language.
+- When the owner's message holds a string of Latin letters, digits or punctuation that makes no sense where it stands (e.g. `2k7`), first try reading it as Zhuyin typed with the input method left off, decoding it by the standard Zhuyin keyboard layout (`2k7` → ㄉㄜ˙ → 的). If it decodes into words that fit, read it that way and say so in one line; ask only when it does not.
 - Before reporting work as done, list every commit made since your last reply, subagents' included: `git log --oneline <HEAD at your last reply>..HEAD` in each checkout that got commits, one line per commit (short hash and message) at the top of the reply. Never bury a commit mid-paragraph.
 - On the line right after that commit list, report the push: the range pushed and where (e.g. `c544c74..4f55fdc → origin/main`), or, for any of those commits not pushed or a push that was rejected, say so and why. Under every Push policy, `auto` included.
 - Commit your own changes without asking: one commit per logical change, made before reporting the work as done. `git commit` always takes paths (`git commit <paths> -F -`), never relies on the index: other sessions share it.
