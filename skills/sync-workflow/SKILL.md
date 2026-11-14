@@ -79,7 +79,7 @@ Apply:
 
 **Sync**: if `docs/agents/project.md` has no `## Sync` heading, add the template's `## Sync` section, heading, text and the defaults `Push: ask` and `Pull: ff`, placed as in `templates/project.md`: right before `## Rules and lessons`, or at the end when there is none. Ask nothing; section 8 commits it. A `## Sync` already there is neither read nor changed, except for the line below.
 
-**Request watch**: if `## Sync` has a line starting `Request watch:`, delete that line; the Request watch is gone. Ask nothing; section 8 commits it.
+**Request watch**: the Request watch is gone. If `## Sync` has a line starting `Request watch:`, delete that line, and delete from its text the sentence that starts `` `Request watch:` is the Device code`` (the older template's). Ask nothing; section 8 commits it.
 
 **Production URL**: if an owner-boundary entry of `docs/agents/project.md` contains `deploys to` but not `Production URL` (which `no Production URL` contains too), ask one `AskUserQuestion` for that entry: "Other" lists one or more URLs, comma-separated, or "None". Append `, Production URL <url>, <url>` or `, no Production URL` to the entry's end; section 8 commits it, and the report shows the entry. An entry that already has either is not asked about.
 

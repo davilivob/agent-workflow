@@ -40,7 +40,7 @@ Request watch（每小時在 studio 無人值守跑 `/request-watch`，自動 Tr
 - `workflow.md`：刪除 **Requests** 一節最後的 Request watch 段落；Triage、Apply、Drop、Grill 的文字不動。
 - `templates/project.md`：`## Sync` 的說明句刪掉 `Request watch:` 的部分，刪掉預設行 `Request watch: studio`。
 - `/sync-workflow`：
-  - 第 3 節的 **Request watch** 段落改為：`## Sync` 裡有 `Request watch:` 開頭的行就刪除；不問；第 8 節 commit。新增整段 `## Sync` 的那段（模板已不帶這行）不必再提。
+  - 第 3 節的 **Request watch** 段落改為：`## Sync` 裡有 `Request watch:` 開頭的行就刪除，連同舊模板說明文字裡以 `` `Request watch:` is the Device code`` 開頭的那句；不問；第 8 節 commit。（實作時補上：手動跑發現舊 repo 的 `## Sync` 說明句也提到 `Request watch:`，只刪值行會留下誤導的說明。）新增整段 `## Sync` 的那段（模板已不帶這行）不必再提。
   - 第 3 節的 Done when 改成「`project.md` 有 `## Sync`，且沒有 `Request watch:` 行」。
   - 第 5 節表格裡 `## Sync` 的預設值只列 `Push: ask`、`Pull: ff`。
   - 第 8 節：update 的 commit 訊息附加詞由 `, add Request watch to project.md` 改為 `, remove Request watch from project.md`（第 3 節刪了那一行時）；「Nothing written」的列舉同步改成「沒有刪 `Request watch:`」。
