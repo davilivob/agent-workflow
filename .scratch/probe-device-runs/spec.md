@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Merge: ask
 Plan: no
 Execute: inline
@@ -117,3 +117,8 @@ Probe 共用規則（`unattended-run.md` 的 **Probe**）和 soak-tune 各自補
 - #9 原文要「只讀」；room-stress-2 要裝 apk、改負載，與「只讀」矛盾，改成「Agree 講定的寫入」。
 - 改了 `templates/workflow.md`，各 repo 要 `/sync-workflow` 才拿得到 Continue 的新 Claim。
 - folding-status 的報告是 grill 的佐證：10-31 網路中斷、11-02 RunSwUSB、11-02 driver 被收、10-31 `player-mem/` 留在 scratchpad、11-02 的 7 次 interim commit 與 3 次換 build。
+
+## Comments
+
+- 手跑證據（2026-11-16，scratchpad 拋棄式 repo）：`/next` 對未 commit 的 `.scratch/soak-tune-room-stress/` 列為 In progress（probing）並附時間，commit `report.md` 後不再列出；`/soak-tune` 在 `Worktree: no` 的 repo 跑到 Agree，提案有 Environment health、How it runs、Strategy，Agree 問到裝置點名、允許的寫入、只寫數字與接續 slug。
+- 沒驗證到（只有實際的 run 能證實）：真的跑一整晚、真的連頭盔、loop 被收掉後等待者重起。
