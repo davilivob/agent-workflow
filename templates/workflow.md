@@ -90,15 +90,16 @@ What is said in chat that changes what gets built goes into its file in the same
 
 Any text in the same message besides "continue" is background, not authorization. Mentioning a slug only tells you its state — in particular "X just started" means **leave X alone**; it belongs to another session, and you are not being asked to take it over. If you cannot tell what it wants, ask; do not pick something and start.
 
-Scan `.scratch/*/spec.md` (committed ones only) and list six groups, the last from this repo's issues. First look for each slug's **Claim**, the trace that a session is working on it; a Claim with no spec is a Direct change and goes under In progress too:
+Scan `.scratch/*/spec.md` (committed ones only) and list six groups, the last from this repo's issues. First look for each slug's **Claim**, the trace that a session is working on it; a Claim with no spec is a Direct change or a probe and goes under In progress too:
 
 - Writing the plan: `.scratch/<slug>/plan.md` exists but is not committed.
 - Executing: `git worktree list` shows `.claude/worktrees/<slug>`, or a branch named `<slug>` exists.
 - Queued in a Batch run: `<slug>` is a line of `.scratch/batch-run` in the main checkout, and that file is not committed. `/drain` writes it on start and deletes it at the end.
+- Probing: the main checkout has `.scratch/<slug>/` with no spec and no committed `report.md`. A `/soak-tune` or `/ux-probe` is running there or waits for its next night.
 
 The groups:
 
-- **In progress**: slugs with a Claim, and only here, in none of the other groups. Say which kind (writing the plan, executing, or queued in a Batch run) and how long since it last moved: the stub's or `.scratch/batch-run`'s modification time, or the branch's last commit. A slug with its own branch as well is executing. Never judge a Claim stale yourself; report the time and let the owner decide whether to take it over.
+- **In progress**: slugs with a Claim, and only here, in none of the other groups. Say which kind (writing the plan, executing, queued in a Batch run, or probing) and how long since it last moved: the stub's or `.scratch/batch-run`'s modification time, the branch's last commit, or the newest modification time of a file in a probing slug's directory. A slug with its own branch as well is executing. Never judge a Claim stale yourself; report the time and let the owner decide whether to take it over.
 - **Needs a plan**: specs with `Plan: yes` (or none written), no `plan.md` in the directory, and whatever `After:` (or `Overlaps: high`) names is already on `main`.
 - **Ready**: has `plan.md` (or `Plan: no`), `Status` not yet `done`, no `Awaiting OS-bound verification` line, and whatever `After:` names is already on `main`. Low or medium `Overlaps:` still count as Ready; note after them whom they overlap and at what risk.
 - **Blocked**: would be Needs a plan or Ready, but what `After:` (or `Overlaps: high`) names is not on `main` yet; say which one it waits for, whether it is a real dependency or a high conflict risk, and whether it still needs a plan. An `After:` Request whose state is Unknown goes here too, marked Unknown.
