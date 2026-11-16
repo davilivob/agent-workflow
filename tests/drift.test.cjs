@@ -140,6 +140,8 @@ assert.ok(lastTitle.includes('[<Device code>] Cleared'), `clear: the title is Cl
   assert.strictEqual(stop([say(EN), ent('user', '好'), say(ZH)]), null, 'English before the last prompt: not this turn');
   assert.strictEqual(stop([ent('user', 'hi'), say(EN)], { stop_hook_active: true }), null, 'already sent back once: no loop');
   assert.strictEqual(stop([ent('user', 'hi'), say('OK, done.')]), null, 'a short English line: passes');
+  const commits = '- `d1a2ab1` [reply-language] Language check: a Stop hook sends back a turn whose reply holds an English paragraph\nd1a2ab2 [x] Another commit message written in plain English words here\n\n' + ZH;
+  assert.strictEqual(stop([ent('user', 'hi'), say(commits)]), null, 'a commit list keeps its English messages: passes');
   assert.strictEqual(stop([ent('user', 'hi'), say(ZH)], { last_assistant_message: EN })?.decision, 'block', 'last_assistant_message is checked too');
   assert.strictEqual(stop(['garbage'], { transcript_path: path.join(T, 'none.jsonl') }), null, 'no transcript: silent');
 }

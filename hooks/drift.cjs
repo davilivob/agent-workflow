@@ -406,7 +406,9 @@ async function cli() {
 // A paragraph is English when, outside code, it has at least 8 Latin words and fewer Han characters than words:
 // a Chinese paragraph full of glossary terms still has far more Han characters than words.
 function english(text) {
-  return text.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '').replace(/https?:\/\/\S+/g, '')
+  // a commit-list line (global.md: short hash and message) keeps its message in English, so it is dropped first
+  return text.replace(/```[\s\S]*?```/g, '').replace(/^\s*(?:[-*]\s*)?`?[0-9a-f]{7,40}`?\s.*$/gm, '')
+    .replace(/`[^`\n]*`/g, '').replace(/https?:\/\/\S+/g, '')
     .split(/\n\s*\n/).find((p) => {
       const words = (p.match(/[A-Za-z]{2,}/g) || []).length;
       return words >= 8 && (p.match(/\p{Script=Han}/gu) || []).length < words;
