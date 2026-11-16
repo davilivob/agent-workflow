@@ -120,7 +120,7 @@ How many tokens a session's last model call was sent, measured from its transcri
 _Avoid_: context usage, context percentage
 
 **Compact proposal**:
-The agent offering the owner, at a natural break, either a ready-to-run `/compact` with written instructions, or `/clear` when everything the work needs is already in files; either way with the next step as a sentence the owner can send as is. Prompted when the Context size first crosses its threshold, and again at each further step; only the owner runs either command.
+The agent offering the owner, at a natural break, either a ready-to-run `/compact` with written instructions, or `/clear` when everything the work needs is already in files; either way with the next step as a sentence the owner can send as is, naming the work itself, never "continue". Prompted when the Context size first crosses its threshold, and again at each further step; only the owner runs either command.
 _Avoid_: auto-compact (that is Claude Code's own, near the window's limit), compact reminder
 
 **Device code**:
