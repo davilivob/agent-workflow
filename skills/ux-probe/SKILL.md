@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 **Interfaces**: a web interface in the built-in browser (the `mcp__Claude_Browser__*` tools), an iOS app in the Simulator (the `mcp__Claude_Code_iOS_Simulator__*` tools). Both work in the background: never open the Simulator panel or front a tab for yourself. A CLI, a TUI or a desktop app is not supported: say so in the proposal and stop.
 
-**Environment**: locally, only a local development host (`localhost`, `127.0.0.1`, `[::1]`, a name ending in `.localhost` or `.test`). Test accounts and test data: generate them, or take them from the project's seed, fixture or example-config files; write any you generate into the seed or example config in the main checkout, never in the worktree, and never repeat them in chat. A real credential is never entered.
+**Environment**: locally, only a local development host (`localhost`, `127.0.0.1`, `[::1]`, a name ending in `.localhost` or `.test`). Test accounts and test data: generate them, or take them from the project's seed, fixture or example-config files; write any you generate into the seed or example config in the main checkout, never in a worktree, and never repeat them in chat. A real credential is never entered.
 
 ## 1. Propose
 
@@ -31,7 +31,7 @@ Done when: the plan is agreed and the authorization line is written.
 
 ## 3. Run
 
-The worktree (nothing changed in it), keep-awake, start and stop of **Probe**, and:
+The worktree and Claim of **Probe** (nothing in the project changed, so **Project files** has nothing to restore), keep-awake, start and stop, and:
 
 - **Start**: web with `preview_start`, iOS by building and then `launch`.
 - **Each task**, in this order:
@@ -49,7 +49,7 @@ Done when: the budget is spent, every task and lens is done, or the Context limi
 
 As **Probe** says, with:
 
-- The worktree removed with `git worktree remove .claude/worktrees/<slug>`; the Simulator app stopped too.
+- Where a worktree exists, removed with `git worktree remove .claude/worktrees/<slug>`; the Simulator app stopped too.
 - **設定與範圍** adds the interface, the agreed tasks and lenses. **觀察**: the visual lens's consistency counts first, unmarked and not friction points; then each friction point with its mark (UX or bug), where, what was expected, what happened, and its screenshot (`screenshots/<name>`) or the description that stands in for one; bugs first, so they can go to debugging instead of a redesign. **沒驗證到的地方** adds tasks, passes or lenses not reached and screenshots that could not be saved.
 - The screenshots the report cites copied into `.scratch/<slug>/screenshots/` (the rest stay in the scratchpad directory) and committed with it, with any seed or example-config file that got generated test accounts.
 
