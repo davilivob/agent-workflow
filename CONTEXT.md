@@ -32,7 +32,7 @@ Looking at the Production URL after a Deploy check succeeds, as a visitor would 
 _Avoid_: smoke test, post-deploy check
 
 **Claim**:
-The visible trace that a session is working on a slug: an uncommitted `plan.md` while a plan is being written, a worktree or branch named after the slug while it is executed, a line of the uncommitted `.scratch/batch-run` while a Batch run has it queued.
+The visible trace that a session is working on a slug: an uncommitted `plan.md` while a plan is being written, a worktree or branch named after the slug while it is executed, a line of the uncommitted `.scratch/batch-run` while a Batch run has it queued, a `.scratch/<slug>/` in the main checkout with no committed `report.md` while a probe runs or waits to be resumed.
 _Avoid_: lock, reservation
 
 **Route**:
@@ -44,8 +44,12 @@ One session conducting every spec a repo has ready, once the owner has confirmed
 _Avoid_: drain (that is the command), sweep, queue, autopilot
 
 **Probe report**:
-What an unattended probe of a running project leaves behind — `/soak-tune` tuning its parameters under long or heavy load, `/ux-probe` working through its interface as a user would: observations with their evidence, and ranked recommendations. Never a decision: whatever the owner wants to adopt from it goes through a grill like any other change.
+What an unattended probe of a running project leaves behind — `/soak-tune` tuning its parameters under long or heavy load, `/ux-probe` working through its interface as a user would: observations with their evidence, and ranked recommendations unless the owner agreed to numbers only. Never a decision: whatever the owner wants to adopt from it goes through a grill like any other change.
 _Avoid_: audit, findings, spec
+
+**Probe harness**:
+Code a probe uses to apply load or take measurements — a stress scene, a decision loop — kept apart from the project's own code, in paths the owner names when agreeing to the probe. A probe may write or change it there, and commits it with its results, so a later night can reuse it; the project's own code it never changes.
+_Avoid_: test code, tooling, fixture
 
 **Rule audit**:
 A pass over a repo's own rule layer — never the files the kit carries in — for content in the wrong file, duplicates that disagree or will silently go stale, rules handing the owner work they never asked for, and rules a tool or hook already enforces. It ends in a table the session marks keep, trim or delete itself and applies at once, so the owner overrules any mark by a revert; at most four rows it cannot settle are asked instead. Started with `/rule-audit`; the session-open report reminds the owner when one is due.
