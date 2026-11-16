@@ -93,7 +93,7 @@ Any text in the same message besides "continue" is background, not authorization
 Scan `.scratch/*/spec.md` (committed ones only) and list six groups, the last from this repo's issues. First look for each slug's **Claim**, the trace that a session is working on it; a Claim with no spec is a Direct change or a probe and goes under In progress too:
 
 - Writing the plan: `.scratch/<slug>/plan.md` exists but is not committed.
-- Executing: `git worktree list` shows `.claude/worktrees/<slug>`, or a branch named `<slug>` exists.
+- Executing: `git worktree list` shows `.claude/worktrees/<slug>` on a branch (a probe's is detached, and not this kind), or a branch named `<slug>` exists.
 - Queued in a Batch run: `<slug>` is a line of `.scratch/batch-run` in the main checkout, and that file is not committed. `/drain` writes it on start and deletes it at the end.
 - Probing: the main checkout has `.scratch/<slug>/` with no spec and no committed `report.md`. A `/soak-tune` or `/ux-probe` is running there or waits for its next night.
 

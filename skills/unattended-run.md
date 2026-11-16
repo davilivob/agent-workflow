@@ -27,11 +27,11 @@ What `/soak-tune` and `/ux-probe` share; their result is a **Probe report** (`CO
 
 **Run**:
 
-- **Worktree**: read `Worktree:` in `project.md` and the exceptions it lists. `yes`, with none of the paths this run changes in an exception: `git worktree add --detach .claude/worktrees/<slug>`, no branch, and never commit in it. Otherwise run on the main checkout. The worktree only isolates; it is not the Claim.
+- **Worktree**: read `Worktree:` in `project.md` and any exceptions written beside it. `yes`, with none of the paths this run changes in an exception: `git worktree add --detach .claude/worktrees/<slug>`, no branch, and never commit in it. Otherwise run on the main checkout. The worktree only isolates; it is not the Claim.
 - **Claim**: `.scratch/<slug>/` in the main checkout, with no committed `report.md`: `/next` lists the slug as In progress (probing). Create it as the run starts; the data, `progress.md` and the list of changed files live there.
-- **Data**: raw output goes into `.scratch/<slug>/` in the main checkout from the first unit of work, never the session's scratchpad, so a reboot or a new session loses nothing.
+- **Data**: raw measurements go into `.scratch/<slug>/` in the main checkout from the first unit of work, never the session's scratchpad, so a reboot or a new session loses nothing (`/ux-probe`'s screenshots go where it says).
 - **Project files**, on the main checkout: prefer environment variables or launch arguments. A tracked file that must change: first check it has no uncommitted changes (`git status --porcelain -- <file>` empty), or stop and say so in the report; write each one changed into `.scratch/<slug>/changed-files`. At the report, `git restore` only those, then confirm `git status --short` shows nothing but `.scratch/<slug>/` and the harness paths.
-- **Probe harness** (`CONTEXT.md`): only in the paths the owner named in Agree. One with decision logic comes with a self-check, run and passing before the harness is used. Commit it on its own, `[<slug>] harness: ...`, with each night's results. A change it needs outside those paths: say in the proposal what is missing, and stop. In a worktree, write it there and commit it onto `main` as `workflow.md` **Commits** says for a checkout not on `main`.
+- **Probe harness** (`CONTEXT.md`): only in the paths the owner named in Agree. One with decision logic comes with a self-check, run and passing before the harness is used. Commit it on its own, `[<slug>] harness: ...`, with each night's results. A change it needs outside those paths: say in the proposal what is missing, and stop. In a worktree, write it there, and commit it onto `main` as `workflow.md` **Commits** says for a checkout not on `main`: through a branch worktree of its own, never in the probe's.
 - **Keep awake**: load `request_keep_awake` (`ToolSearch`) and call it with `until: "session_idle"`. If it cannot be loaded, say so in the report's 沒驗證到的地方.
 - **Start**: as the proposal found. The app cannot be started (no way found, or it fails before the first unit of work): stop, skip to the report and write it with the failure and its output only.
 - **Stop** when the agreed budget is spent, the skill's own end is reached, or the Context limit is: list what was not reached under 沒驗證到的地方.
@@ -42,7 +42,7 @@ What `/soak-tune` and `/ux-probe` share; their result is a **Probe report** (`CO
 
 - **設定與範圍**: the project and commit, where it ran, how it started, what was agreed and the budget, the duration actually used, any Probe harness, and the authorization line.
 - **觀察**: each with its evidence.
-- **建議**: ranked, each with the change or value, its expected effect and how confident you are (high, medium, low) and why. Recommendations only: never apply one. Whatever the owner adopts goes through a grill like any other change. Agreed to numbers only: this section says only that Agree withholds it.
+- **建議**: ranked, each with the change or value, its expected effect and how confident you are (high, medium, low) and why. Recommendations only: never apply one. Whatever the owner adopts goes through a grill like any other change. Agreed to numbers only: this section says only that the owner withheld recommendations in Agree.
 - **沒驗證到的地方**: what was not reached or measured, doubts that would have been questions, anything that could not be done.
 
 A run that could not start keeps the four sections: the failure and its output under 觀察, 建議 saying what would let it start.

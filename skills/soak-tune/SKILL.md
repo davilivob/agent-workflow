@@ -1,6 +1,6 @@
 ---
 name: soak-tune
-description: Tune a running project's parameters, or find its ceilings, under long or heavy load, unattended after one agreed plan, and leave a Probe report of observations and ranked recommendations.
+description: Tune a running project's parameters, or find its ceilings, under long or heavy load, unattended after one agreed plan, and leave a Probe report of observations and ranked recommendations, or numbers only.
 disable-model-invocation: true
 ---
 
@@ -44,7 +44,7 @@ The worktree, Claim, data, project files, harness, keep-awake, start and stop of
 
 `runs.csv`: one header row naming the round, `commit` (that round's `HEAD`), each parameter, each metric, each Environment health signal and `status` (`ok`, `error`, `crashed`), then one row per round, in `.scratch/<slug>/`.
 
-**Handing it to a loop**: run the loop's self-check first; it fails, and the session picks the rounds instead. Start the loop detached (`setsid` or `nohup`; on Windows `Start-Process`), writing its pid and a heartbeat file into `.scratch/<slug>/` and `runs.csv` in this format. Then start a separate background command (`run_in_background`) that only waits: it exits when the pid is gone or the budget is spent. Never poll. Woken with the loop still alive: start a new waiter. The loop exits before the budget: if it can resume from its data, restart it once; it exits again, and stop and go to section 4. The Context limit is checked before each start.
+**Handing it to a loop**: run the loop's self-check first, as **Probe harness** says. Start the loop detached (`setsid` or `nohup`; on Windows `Start-Process`), writing its pid and a heartbeat file into `.scratch/<slug>/` and `runs.csv` in this format. Then start a separate background command (`run_in_background`) that only waits: it exits when the pid is gone or the budget is spent. Never poll. Woken with the loop still alive: start a new waiter. The loop exits before the budget: if it can resume from its data, restart it once; it exits again, and stop and go to section 4. The Context limit is checked before each start.
 
 **Ceiling**: per parameter, climb ×1.5 per step from the baseline; at the first failed step, bisect between it and the last passing one until they are under 10 % apart; then run the highest passing step for the long confirmation. The three numbers are defaults the owner may change in Agree. Several parameters: one at a time, the others at baseline, each with its own ceiling and confirmation.
 
@@ -58,4 +58,4 @@ As **Probe** says, with:
 - **設定與範圍** adds the load, the agreed parameters, ranges and metrics. **觀察**: the evidence is the rounds of `runs.csv` each rests on, and output excerpts; for a ceiling, each ceiling, its confirmation and the readings of the first failed step. Windows where Environment health was bad are listed apart under 觀察, never used for a conclusion or a recommendation. **沒驗證到的地方** adds ranges not reached and metrics not measured.
 - `runs.csv` beside the report, committed with it.
 
-Done when: **Probe**'s Done when holds, `runs.csv` committed with the report.
+Done when: **Probe**'s Done when holds, `runs.csv` committed with the report, or with `progress.md` on a night that is not the last.
