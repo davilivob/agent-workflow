@@ -119,6 +119,30 @@ assert.ok(lastTitle.includes('[<Device code>] Cleared'), `clear: the title is Cl
   fs.writeFileSync(transcript, at(160000) + '\n' + 'x'.repeat(2 << 20) + '\n' + at(310000) + '\n');
   assert.ok(JSON.parse(tool()).hookSpecificOutput.additionalContext.includes('past 300k'), 'a transcript longer than the tail: its last usage line is read');
 }
+// --stop: blocks a turn whose replies hold an English paragraph; Chinese with glossary terms and code passes; never loops.
+{
+  const tx = path.join(T, 'stop.jsonl');
+  const ent = (type, content, extra = {}) => JSON.stringify({ type, message: { role: type, content }, ...extra });
+  const say = (text) => ent('assistant', [{ type: 'text', text }]);
+  const stop = (lines, extra = {}) => {
+    fs.writeFileSync(tx, lines.join('\n') + '\n');
+    const r = spawnSync('node', [DRIFT, '--stop'], { input: JSON.stringify({ session_id: 'st', transcript_path: tx, ...extra }), env, encoding: 'utf8' });
+    assert.strictEqual(r.status, 0, `drift --stop exited ${r.status}: ${r.stderr}`);
+    return r.stdout.trim() ? JSON.parse(r.stdout) : null;
+  };
+  const EN = 'I added the Stop hook to the kit and every test passes now, so this is ready to merge.';
+  const ZH = '我在 `drift.cjs` 加了 Stop hook，setup.sh 會安裝它，Guard 和 Drift check 不受影響。\n\n```js\nconst english = (text) => text.split(/\\n/).find(Boolean); // plenty of English words here\n```';
+  const tool = ent('user', [{ type: 'tool_result', content: 'x' }]);
+  assert.strictEqual(stop([ent('user', 'hi'), say(ZH)]), null, 'Chinese with glossary terms and code: passes');
+  const b = stop([ent('user', 'hi'), say(EN), tool, say(ZH)]);
+  assert.strictEqual(b?.decision, 'block', 'an English progress note mid-turn: blocked');
+  assert.ok(b.reason.includes('I added the Stop hook') && b.reason.includes('繁體中文'), `reason: ${b.reason}`);
+  assert.strictEqual(stop([say(EN), ent('user', '好'), say(ZH)]), null, 'English before the last prompt: not this turn');
+  assert.strictEqual(stop([ent('user', 'hi'), say(EN)], { stop_hook_active: true }), null, 'already sent back once: no loop');
+  assert.strictEqual(stop([ent('user', 'hi'), say('OK, done.')]), null, 'a short English line: passes');
+  assert.strictEqual(stop([ent('user', 'hi'), say(ZH)], { last_assistant_message: EN })?.decision, 'block', 'last_assistant_message is checked too');
+  assert.strictEqual(stop(['garbage'], { transcript_path: path.join(T, 'none.jsonl') }), null, 'no transcript: silent');
+}
 assert.strictEqual(lastDevice, 'Device: mbp', 'device file read and trimmed');
 let d = clone('behind'); advance(d);
 expect(session(d), ['branch main: behind origin/main by 1'], 'ff', 'behind, clean');

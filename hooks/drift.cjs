@@ -7,6 +7,7 @@
 //   --prompt   UserPromptSubmit hook: a reminder to update the Session title when the Phase or topic changes, and of the reply language;
 //              and, once per step the Context size crosses (~/.claude/compact-state.json), a reminder to make a Compact proposal.
 //   --tool     PostToolUse hook on Bash: that same Context size reminder alone, for a turn with no prompt to carry it, such as a Batch run.
+//   --stop     Stop hook: blocks the end of a turn whose replies hold a paragraph in English, not the reply language, so the agent re-sends it.
 //   (no args)  the `drift` command: scans every repo under the roots listed in ~/.claude/drift-roots,
 //              except Retired repos (under a `!` line there), which it only counts; also says which repos'
 //              workflow.md is older than the kit's template (not counted as Drift).
@@ -241,7 +242,7 @@ const CLEARED = `Session title: the session was just cleared; set it now with se
 // The language line too: said only at session start, it slipped after long English tool output (#6).
 const PROMPT = `Session title: if this message changes the Phase or topic, first update it with set_session_title (session self), as global.md says. ${LOAD}
 Language: reply in Traditional Chinese (繁體中文), as global.md says, even right after long English tool output; check your reply's first sentence before sending.`;
-let input = {}; // the hook JSON, read by session(), --prompt and --tool
+let input = {}; // the hook JSON, read by session(), --prompt, --tool and --stop
 
 // Context size: the tokens the session's last model call was sent, read from its transcript.
 // Past the threshold, one step per COMPACT_STEP tokens; the agent is told once per step, so the step told is kept per session.
@@ -249,16 +250,18 @@ const COMPACT_AT = 150000;
 const COMPACT_STEP = 50000; // /drain's Context limit (200k) must stay one of these steps: the line names only the step, so change both together
 const TRANSCRIPT_TAIL = 1 << 20;
 const COMPACT_STATE = path.join(os.homedir(), '.claude', 'compact-state.json');
-function contextSize(transcript) {
-  // shortcut: only the last TRANSCRIPT_TAIL bytes, so a usage line further back reads as none (silent until the next one); widen it if that shows.
+// shortcut: only the last TRANSCRIPT_TAIL bytes, so a line further back reads as none; widen it if that shows.
+function transcriptTail(transcript) {
   const fd = fs.openSync(transcript, 'r');
-  let lines;
   try {
     const { size } = fs.fstatSync(fd);
     const tail = Buffer.alloc(Math.min(size, TRANSCRIPT_TAIL));
     fs.readSync(fd, tail, 0, tail.length, size - tail.length);
-    lines = tail.toString('utf8').split('\n'); // the first line may be cut: it fails JSON.parse and is skipped
+    return tail.toString('utf8').split('\n'); // the first line may be cut: it fails JSON.parse and is skipped
   } finally { fs.closeSync(fd); }
+}
+function contextSize(transcript) {
+  const lines = transcriptTail(transcript);
   for (let i = lines.length - 1; i >= 0; i--) {
     if (!lines[i].includes('"usage"')) continue;
     let e;
@@ -399,6 +402,43 @@ async function cli() {
   return missing.length || totals.unknown || totals.drift ? 1 : 0;
 }
 
+// Reply language at the end of a turn: the --prompt line is a reminder, this is the check (#7).
+// A paragraph is English when, outside code, it has at least 8 Latin words and fewer Han characters than words:
+// a Chinese paragraph full of glossary terms still has far more Han characters than words.
+function english(text) {
+  return text.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '').replace(/https?:\/\/\S+/g, '')
+    .split(/\n\s*\n/).find((p) => {
+      const words = (p.match(/[A-Za-z]{2,}/g) || []).length;
+      return words >= 8 && (p.match(/\p{Script=Han}/gu) || []).length < words;
+    });
+}
+// The agent's text this turn: its assistant entries after the owner's last prompt (a tool result is not one).
+function turnTexts(transcript) {
+  const lines = transcriptTail(transcript);
+  const texts = [];
+  for (let i = lines.length - 1; i >= 0; i--) {
+    let e;
+    try { e = JSON.parse(lines[i]); } catch { continue; }
+    if (e.isSidechain) continue;
+    const c = e.message?.content;
+    if (e.type === 'user' && !e.isMeta && !(Array.isArray(c) && c.some((b) => b.type === 'tool_result'))) break;
+    if (e.type === 'assistant' && Array.isArray(c)) for (const b of c) if (b.type === 'text') texts.unshift(b.text);
+  }
+  return texts;
+}
+// The JSON that blocks the stop, or '' to let it end. Silent when anything cannot be read: a wrong block costs a turn.
+function stopNote(hook) {
+  if (hook.stop_hook_active || hook.agent_id) return ''; // already sent back once: never loop
+  let texts = [];
+  try { if (hook.transcript_path) texts = turnTexts(hook.transcript_path); } catch {}
+  if (typeof hook.last_assistant_message === 'string') texts.push(hook.last_assistant_message); // the transcript may lag behind the hook
+  const p = texts.map(english).find(Boolean);
+  if (!p) return '';
+  const quote = p.trim().replace(/\s+/g, ' ').slice(0, 80);
+  return JSON.stringify({ decision: 'block', reason: `Language: this turn's reply has a paragraph in English ("${quote}…"). ` +
+    'Per global.md, re-send your reply to the owner in Traditional Chinese (繁體中文); code, commit messages and glossary terms stay in their original language.' });
+}
+
 if (process.argv[2] === '--session') { // a check that broke or ran out of time is Unknown, never silence
   const deadline = setTimeout(() => {
     emit(`Drift check: Unknown, it did not finish within ${SESSION_DEADLINE / 1000}s.\n${ASK}`);
@@ -413,6 +453,10 @@ if (process.argv[2] === '--session') { // a check that broke or ran out of time 
   try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch {}
   const note = compactNote(input).trim();
   if (note) console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: note } }));
+} else if (process.argv[2] === '--stop') {
+  try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch {}
+  const note = stopNote(input);
+  if (note) console.log(note);
 } else {
   cli().then((code) => { process.exitCode = code; }, (e) => { console.error(`drift: Unknown, the check failed: ${e.message}`); process.exitCode = 2; });
 }
