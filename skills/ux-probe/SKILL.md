@@ -43,7 +43,7 @@ The worktree and Claim of **Probe** (nothing in the project changed, so **Projec
 - **Screenshots**: save each one a finding cites in the session's scratchpad directory, never in the repo. A tool screenshot whose result names the file it was saved to: copy that file. Otherwise iOS with `xcrun simctl io booted screenshot <path>`, and web by rendering the same URL, width and color scheme to a file with a headless browser on the machine (Chrome's `--headless --screenshot`, or Playwright if the project has it), only when that URL alone shows the same screen. A screen only a click sequence reaches, or no way to save one: describe the screen in the finding and say so under 沒驗證到的地方.
 - **Stop** also when every task is done. **Context limit**: checked before each new task.
 
-Done when: the budget is spent, every task and lens is done, or the Context limit was reached (with tasks or lenses left, a night that is not the last, as **Probe**'s **Stop** says), and every friction point has its record.
+Done when: the budget is spent, every task and lens is done, or the Context limit was reached (as **Probe**'s **Stop** says), and every friction point has its record.
 
 ## 4. Report
 

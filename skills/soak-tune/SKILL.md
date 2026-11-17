@@ -48,7 +48,7 @@ The worktree, Claim, data, project files, harness, keep-awake, start and stop of
 
 **Ceiling**: per parameter, climb ×1.5 per step from the baseline; at the first failed step, bisect between it and the last passing one until they are under 10 % apart; then run the highest passing step for the long confirmation. The three numbers are defaults the owner may change in Agree. Several parameters: one at a time, the others at baseline, each with its own ceiling and confirmation.
 
-Done when: the budget is spent, the results converged, the Context limit was reached (with ranges left, a night that is not the last, as **Probe**'s **Stop** says), or a crash could not be restored, and every round run has its row.
+Done when: the budget is spent, the results converged, the Context limit was reached (as **Probe**'s **Stop** says), or a crash could not be restored, and every round run has its row.
 
 ## 4. Report
 
