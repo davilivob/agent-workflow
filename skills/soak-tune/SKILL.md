@@ -40,7 +40,7 @@ The worktree, Claim, data, project files, harness, keep-awake, start and stop of
 - **Strategy**: converge: a coarse sweep first, a few points per parameter; then refine around the best region; stop when the agreed budget is spent or the results converge (the next round would not change the recommendation). Ceiling: as **Ceiling** says.
 - **Builds**: the run never switches builds; the owner does that between nights.
 - **A crash**: a parameter set that crashes or wedges the service is an observation, with its values and output. Restore the last values that worked, restart, confirm it serves, and go on. It cannot be restored: stop and write the report with what you have.
-- **Context limit**: checked before each new round; the ranges not reached go under 沒驗證到的地方.
+- **Context limit**: checked before each new round; the ranges not reached go where **Probe**'s **Stop** says.
 
 `runs.csv`: one header row naming the round, `commit` (that round's `HEAD`), each parameter, each metric, each Environment health signal and `status` (`ok`, `error`, `crashed`), then one row per round, in `.scratch/<slug>/`.
 
@@ -48,7 +48,7 @@ The worktree, Claim, data, project files, harness, keep-awake, start and stop of
 
 **Ceiling**: per parameter, climb ×1.5 per step from the baseline; at the first failed step, bisect between it and the last passing one until they are under 10 % apart; then run the highest passing step for the long confirmation. The three numbers are defaults the owner may change in Agree. Several parameters: one at a time, the others at baseline, each with its own ceiling and confirmation.
 
-Done when: the budget is spent, the results converged, the Context limit was reached, or a crash could not be restored, and every round run has its row.
+Done when: the budget is spent, the results converged, the Context limit was reached (with ranges left, a night that is not the last, as **Probe**'s **Stop** says), or a crash could not be restored, and every round run has its row.
 
 ## 4. Report
 
