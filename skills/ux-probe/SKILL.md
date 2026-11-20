@@ -17,7 +17,7 @@ Read the project's README and code, then write the proposal in chat:
 - **Tasks**: what real users come to do, each one sentence with the state that means it is done, e.g. "a new user signs up and creates a first project: the project's page shows its name".
 - **Lenses**: from the second pass as a repeat user, phone width, dark mode and visual (see **Visual lens**), the ones that fit, each dropped one with why (an iOS app has no "phone width"; an app with no dark theme has no dark mode).
 - **How it starts**: the project's `.claude/launch.json` or `run` skill, or for iOS its own build; say which, or that none exists.
-- **Ideal duration**, with the reasoning: tasks, passes and lenses, and the free exploration after each task.
+- **Work**, the budget: the tasks, times the passes and lenses each gets. No duration: tool calls are far faster than a person, so a time budget never binds. No guess at how much fits one night either: a run the Context limit cuts short goes on the next night, as **Nights** says.
 
 Pick the slug, `ux-probe-<topic>`, as **Probe** says.
 
@@ -25,7 +25,7 @@ Done when: the proposal and the slug are in chat, or the interface is unsupporte
 
 ## 2. Agree
 
-As **Probe** says, settling tasks, lenses, duration and any named test host.
+As **Probe** says, settling tasks and lenses, which are the work, and any named test host.
 
 Done when: the plan is agreed and the authorization line is written.
 
@@ -36,24 +36,26 @@ The worktree and Claim of **Probe** (nothing in the project changed, so **Projec
 - **Start**: web with `preview_start`, iOS by building and then `launch`.
 - **Window** (web): `resize_window` width 1280, height 800 before each task, and again whenever a result says the app cleared the size: the pane changing width clears it, and the owner may use the pane during the run. At the end of the run, preset `desktop`.
 - **Clicks**: by the `ref` from `find` or `read_page`; a coordinate only where no ref reaches the element. A coordinate click refused because the page, zoom or size changed: take a new ref or screenshot and click again.
+- **One subagent per task**: the session conducts and does no task itself, so its own context grows by a line per task. Before each task, check the Context limit; then dispatch a subagent and wait for it, one at a time, never side by side: the pane's size, color scheme and site storage, and the Simulator, are shared. Its brief: the slug, the task's sentence and done state, the passes and lenses agreed for it, the file holding the test accounts, and where its findings go, `.scratch/<slug>/findings/<task>.md` in the main checkout; it reads this file for the rules below itself, never a copy in the brief. It writes every friction point there as it finds it, with its screenshot's path, plus the visual lens's raw values and any native dialog it overrode, and returns one line. A subagent that fails (a tool error, its own context spent): no retry; what it wrote stands, and what it did not reach goes under 沒驗證到的地方. The app down after it: start it again as **Start** says before the next task; it will not start, and stop as **Probe** says for a failed start.
+- **Reading the page**: `find` and `get_page_text` first; `read_page` only with `filter: "interactive"` or a `ref_id`. A screenshot only as a finding's evidence; what the screen shows is read as text.
 - **Each task**, in this order:
-  1. **Newcomer**: from a clean state (a fresh tab with the site's storage and cookies cleared, or the app deleted from the Simulator and reinstalled), knowing only what the screen says.
+  1. **Newcomer**: from a clean state (a fresh tab with the site's storage and cookies cleared, or the app deleted from the Simulator and reinstalled), knowing only what the screen says: no project code, README or docs read until this pass ends.
   2. **Repeat user**, if agreed: the same task again, the way someone who has done it before would; note every step that is still needed only because the interface asks for it.
   3. **The other agreed lenses**: phone width with `resize_window` preset `mobile`, dark mode with `colorScheme: dark` (web) or `set_appearance` `dark` (iOS); after, reset the window with preset `desktop` and then 1280×800 (only `desktop` clears the mobile user agent and touch) and the scheme with `colorScheme: light` or `set_appearance` `light`, so the next task starts clean. The visual lens checks every screen the task reached, in the dark scheme too while the dark mode lens is on, as **Visual lens** says.
-  4. **Free exploration**: a few minutes off the scripted path, around what the task touched.
+  4. **Free exploration**: off the scripted path, on the screens this task reached only: on each, one or two controls no pass used.
 - **A friction point**: write down where (the screen, or the component, and the code behind it where it is obvious), what you expected, what happened, and a screenshot; then mark it **UX** (it works but is hard) or **bug** (it does not do what it says).
 - **Native dialogs** (web): a click that changes neither the screen nor the network: check whether its handler calls `confirm()`, `alert()` or `prompt()`. The built-in browser dismisses them as cancelled, so the control looks broken. Only for a step an agreed task needs to get past, never in free exploration (a `confirm()` often guards a delete): save the original, override it to record the message and return what the step needs, e.g. `window.confirm = m => { (window.__probeDialogs ??= []).push(m); return true; }`, click again, then restore it. Say under 設定與範圍 which steps it was done for, with the messages recorded. In free exploration, leave such a control unclicked and list it under 沒驗證到的地方. It is the tool's limit, not a bug; a UX observation about it names the environment it fails in.
 - **Screenshots**: save each one a finding cites in the session's scratchpad directory, never in the repo. A tool screenshot whose result names the file it was saved to: copy that file. Otherwise iOS with `xcrun simctl io booted screenshot <path>`, and web by rendering the same URL, width and color scheme to a file with a headless browser on the machine (Chrome's `--headless --screenshot`, or Playwright if the project has it), only when that URL alone shows the same screen. A screen only a click sequence reaches, or no way to save one: describe the screen in the finding and say so under 沒驗證到的地方. A screenshot narrower than the size set (a small pane gives about 432px) only describes: back the finding with DOM measurements and text.
-- **Stop** also when every task is done. **Context limit**: checked before each new task.
+- **Stop** when every task is done: that is the budget spent.
 
-Done when: the budget is spent, every task and lens is done, or the Context limit was reached (as **Probe**'s **Stop** says), and every friction point has its record.
+Done when: every agreed task and lens is done, or the Context limit was reached (as **Probe**'s **Stop** says), and every friction point has its record.
 
 ## 4. Report
 
 As **Probe** says, with:
 
 - Where a worktree exists, removed with `git worktree remove .claude/worktrees/<slug>`; the Simulator app stopped too.
-- **設定與範圍** adds the interface, the agreed tasks and lenses, and any native dialog overridden. **觀察**: the visual lens's consistency counts first, unmarked and not friction points; then each friction point with its mark (UX or bug), where, what was expected, what happened, and its screenshot (`screenshots/<name>`) or the description that stands in for one; bugs first, so they can go to debugging instead of a redesign. **沒驗證到的地方** adds tasks, passes or lenses not reached and screenshots that could not be saved.
+- **設定與範圍** adds the interface, the agreed tasks and lenses, how many of them ran and whether the Context limit cut the night short, the start and end `date` where known but never set against the budget, and any native dialog overridden. **觀察**: the visual lens's consistency counts first, unmarked and not friction points; then each friction point with its mark (UX or bug), where, what was expected, what happened, and its screenshot (`screenshots/<name>`) or the description that stands in for one; bugs first, so they can go to debugging instead of a redesign. **沒驗證到的地方** adds tasks, passes or lenses not reached and screenshots that could not be saved.
 - The screenshots the report cites copied into `.scratch/<slug>/screenshots/` (the rest stay in the scratchpad directory) and committed with it, with any seed or example-config file that got generated test accounts.
 
 Done when: **Probe**'s Done when holds, its screenshots committed with the report.
@@ -66,6 +68,6 @@ Readability and layout against stated thresholds, never taste: no aesthetic find
 
 - **Standards**: text contrast at least 4.5:1, or 3:1 for large text, 24px and up or 18.66px and up at weight 700 or more (WCAG 1.4.3 AA); target size at least 24×24 CSS px for buttons, standalone links and form controls, links inside a sentence exempt (WCAG 2.5.8 AA); no horizontal scroll at 320 CSS px width, checked with `resize_window` width 320, height 800, then preset `desktop` and 1280×800 (WCAG 1.4.10 AA); no overlapping or clipped elements.
 - **Conventions**, each named as a convention, not a standard: body text under 16px, line height under 1.4, lines over 75 characters. The opposite side is never a finding.
-- **Consistency**: count the font families, font sizes and button styles in use, for the head of 觀察.
+- **Consistency**: each subagent records the font families, font sizes and button styles it saw, as values; the session counts their union, for the head of 觀察.
 
 **iOS**: from screenshots only, no measurements: clipped text, overlapping elements, targets plainly under 44×44pt (HIG). Repeat each screen at Dynamic Type XXXL, `xcrun simctl ui booted content_size extra-extra-extra-large`, and at the largest accessibility size, AX5, `xcrun simctl ui booted content_size accessibility-extra-extra-extra-large`; after, reset with `xcrun simctl ui booted content_size large`.
