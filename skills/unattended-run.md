@@ -23,7 +23,7 @@ What `/soak-tune` and `/ux-probe` share; their result is a **Probe report** (`CO
 
 **Slug**: `<skill>-<topic>`, the topic a few words in English kebab-case; if `.scratch/<slug>/` already exists, append the date (`-YYYY-MM-DD`). When the owner says in Agree to resume `<slug>`, keep that slug and its directory, with no date.
 
-**Agree**: ask the owner for their budget, in the unit the skill's proposal sizes the run in (`/soak-tune` time, `/ux-probe` work), then go back and forth until everything the skill's proposal lists, any named test host or device, the **Probe harness** paths if one is needed, and whether the report states numbers only are settled. The owner's answer that settles it is the sentence `workflow.md` **Say where the authorization came from** quotes; write that line. From here on the run is Unattended (above).
+**Agree**: ask the owner for their budget, in the unit the skill's proposal sizes the run in, then go back and forth until everything the skill's proposal lists, any named test host or device, the **Probe harness** paths if one is needed, and whether the report states numbers only are settled. The owner's answer that settles it is the sentence `workflow.md` **Say where the authorization came from** quotes; write that line. From here on the run is Unattended (above).
 
 **Run**:
 
@@ -40,7 +40,7 @@ What `/soak-tune` and `/ux-probe` share; their result is a **Probe report** (`CO
 
 **Report**: first stop every server, app and background process the run started, then remove the worktree as the skill says, or, with none, restore the project files as **Project files** says, so the path is free for the commit. Write `.scratch/<slug>/report.md`, its body in Traditional Chinese, with these sections in this order, each holding what the skill adds:
 
-- **設定與範圍**: the project and commit, where it ran, how it started, what was agreed and the budget, how much of it was used in the budget's unit, any Probe harness, and the authorization line.
+- **設定與範圍**: the project and commit, where it ran, how it started, what was agreed and the budget, how much the run did, in the budget's unit, any Probe harness, and the authorization line.
 - **觀察**: each with its evidence.
 - **建議**: ranked, each with the change or value, its expected effect and how confident you are (high, medium, low) and why. Recommendations only: never apply one. Whatever the owner adopts goes through a grill like any other change. Agreed to numbers only: this section says only that the owner withheld recommendations in Agree.
 - **沒驗證到的地方**: what was not reached or measured, doubts that would have been questions, anything that could not be done.
